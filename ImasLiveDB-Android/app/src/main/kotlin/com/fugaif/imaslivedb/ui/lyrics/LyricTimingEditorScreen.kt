@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.Forward5
 import androidx.compose.material.icons.filled.PanTool
 import androidx.compose.material.icons.filled.AutoFixNormal
 import androidx.compose.material.icons.filled.FormatColorFill
+import androidx.compose.material.icons.filled.GroupAdd
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -148,6 +149,8 @@ fun LyricTimingEditorScreen(
     val brush = partsBrushIds ?: listOfNotNull(cast.artists.firstOrNull()?.id)
     // 消しゴムを持っているか (塗る代わりに、その字の歌う人をみな外す)。
     var partsErasing by remember { mutableStateOf(false) }
+    /** 「一緒に歌う」を持っているか (歌う人のタップが、持ち替えでなく筆に足す / 外すになる)。 */
+    var partsAdding by remember { mutableStateOf(false) }
     // 行をタップして次に記録する行を選んだ直後か (指の下の一覧を寄せない)。
     var pickedByTap by remember { mutableStateOf(false) }
     // パートの段の見せ方。false = 曲に付いていく (聴きながら)、true = 一覧 (追従と再生の操作を畳む。聴かずに塗る)。
@@ -402,7 +405,7 @@ fun LyricTimingEditorScreen(
         }
 
         if (recorder.lane == LyricTimingRecorder.Lane.PARTS) {
-            // 歌う人のアイコン (筆)。タップでその人 1 人に持ち替え、長押しで一緒に歌う人を足す / 外す。「全員を選ぶ」で原唱者みんな。
+            // 歌う人のアイコン (筆)。タップでその人 1 人に持ち替え、「一緒に歌う」を持っているとき・長押しで足す / 外す。「全員を選ぶ」で原唱者みんな。
             val everyone = cast.artists.map { it.id }
             val isEveryone = brush.toSet() == everyone.toSet()
             Column(
@@ -418,10 +421,20 @@ fun LyricTimingEditorScreen(
                         ImasIconButton(
                             icon = Icons.Filled.AutoFixNormal, label = "消しゴム",
                             style = if (partsErasing) ImasIconButtonStyle.FILLED else ImasIconButtonStyle.PLAIN,
-                            onClick = { partsErasing = !partsErasing },
+                            onClick = { partsErasing = !partsErasing; partsAdding = false },
                             modifier = Modifier.semantics { selected = partsErasing }
                         )
                         ImasText("消しゴム", ImasTextRole.META, color = if (partsErasing) DS.ink else DS.ink3, maxLines = 1)
+                    }
+                    // 一緒に歌う: 持っている間は、歌う人のタップで筆に足す / 外す (2 人以上で歌う所を塗る)。
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        ImasIconButton(
+                            icon = Icons.Filled.GroupAdd, label = "一緒に歌う",
+                            style = if (partsAdding) ImasIconButtonStyle.FILLED else ImasIconButtonStyle.PLAIN,
+                            onClick = { partsAdding = !partsAdding; partsErasing = false },
+                            modifier = Modifier.semantics { selected = partsAdding }
+                        )
+                        ImasText("一緒に歌う", ImasTextRole.META, color = if (partsAdding) DS.ink else DS.ink3, maxLines = 1)
                     }
                     cast.artists.forEach { idol ->
                         val isOn = !partsErasing && idol.id in brush
@@ -444,12 +457,12 @@ fun LyricTimingEditorScreen(
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
-                                // タップはその人 1 人に持ち替える (パートチェンジ)。一緒に歌う人は長押しで足す / 外す。
+                                // タップはその人 1 人に持ち替える (パートチェンジ)。「一緒に歌う」を持っているとき・長押しは足す / 外す。
                                 .combinedClickable(
                                     interactionSource = remember { MutableInteractionSource() }, indication = null,
                                     onLongClickLabel = "一緒に歌う人に足す・外す",
                                     onLongClick = toggle,
-                                    onClick = pick
+                                    onClick = { if (partsAdding) toggle() else pick() }
                                 )
                                 .semantics { contentDescription = "${idol.shortName}で塗る"; selected = isOn }
                         ) {
@@ -458,10 +471,6 @@ fun LyricTimingEditorScreen(
                         }
                     }
                 }
-                ImasNote(
-                    "タップでその人に替えて塗ります。一緒に歌う人は長押しで足せます。",
-                    modifier = Modifier.padding(horizontal = DS.sp5), icon = Icons.Filled.TouchApp
-                )
                 Row(Modifier.padding(horizontal = DS.sp5), horizontalArrangement = Arrangement.spacedBy(DS.sp2)) {
                     ImasButton(
                         title = if (isEveryone) "1 人に戻す" else "全員を選ぶ", icon = Icons.Filled.Groups,
