@@ -73,7 +73,7 @@ fun LyricsPipContent(modifier: Modifier = Modifier) {
         val density = LocalDensity.current
         val scale = minOf(maxWidth / CanvasWidth, maxHeight / CanvasHeight)
         CompositionLocalProvider(LocalDensity provides Density(density.density * scale, density.fontScale)) {
-            Box(Modifier.requiredSize(CanvasWidth, CanvasHeight).padding(horizontal = 24.dp, vertical = 18.dp)) {
+            Box(Modifier.requiredSize(CanvasWidth, CanvasHeight).padding(horizontal = DS.sp6, vertical = DS.sp5)) {
                 if (entry == null) {
                     ImasText("♪", ImasTextRole.HERO_TITLE, color = DS.ink3, modifier = Modifier.align(Alignment.CenterStart))
                 } else {
@@ -96,14 +96,14 @@ private fun PipLines(entry: LyricsSession.Entry, positionMs: Int) {
     val call = lyricActiveCall(callStarts, positionMs.toLong())?.toInt()?.let { calls[it] }
     val theme = imasTheme(seed = entry.seed)
 
-    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(DS.sp2)) {
         // 曲名 (差し色の短い印を頭に)。
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.width(3.dp).height(14.dp).background(theme.accent))
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(DS.sp3))
             ImasText(entry.song.title, ImasTextRole.ROW_SUBTITLE, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(DS.sp2))
         Box(Modifier.heightIn(max = 120.dp).clipToBounds()) {
             if (current != null) {
                 val mainText = lyricOverlaySplit(current.text).main.ifEmpty { current.text }
