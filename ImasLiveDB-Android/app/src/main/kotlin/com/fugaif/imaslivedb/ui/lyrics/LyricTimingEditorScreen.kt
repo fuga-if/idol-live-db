@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.automirrored.filled.KeyboardReturn
 import androidx.compose.material.icons.filled.Check
@@ -244,6 +245,10 @@ fun LyricTimingEditorScreen(
             ImasIconButton(
                 icon = Icons.AutoMirrored.Filled.Undo, label = "取り消す", style = ImasIconButtonStyle.PLAIN,
                 enabled = recorder.canUndo, onClick = { recorder.undo() }
+            )
+            ImasIconButton(
+                icon = Icons.AutoMirrored.Filled.Redo, label = "やり直す", style = ImasIconButtonStyle.PLAIN,
+                enabled = recorder.canRedo, onClick = { recorder.redo() }
             )
             ImasButton(
                 title = "保存", role = ImasButtonRole.PRIMARY, size = ImasButtonSize.SMALL,

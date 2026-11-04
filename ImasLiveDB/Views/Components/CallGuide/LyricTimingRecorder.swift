@@ -50,8 +50,6 @@ final class LyricTimingRecorder: Identifiable {
     private let originalBreaks: [[LyricLinePartBreak]]
     /// 各行の本文のスカラー数 (区切りの位置の上限)。
     private let lengths: [Int]
-    /// パートの取り消し用 (history の .parts と同じ順に、前の歌唱者と区切りを積む)。
-    private var partsUndo: [(singers: [String], breaks: [LyricLinePartBreak])] = []
     /// いま記録している段。
     var lane: Lane = .lines
     /// 次に記録する行 / コールの添字。最後まで記録したら nil。
@@ -61,8 +59,19 @@ final class LyricTimingRecorder: Identifiable {
 
     private let originalStarts: [Int?]
     private let originalCallStarts: [Int?]
-    /// 取り消し用。1 回ごとに「どの段のどれが・前は何だったか・カーソルはどこだったか」を積む。
-    private var history: [(lane: Lane, index: Int, previous: Int?, cursor: Int?)] = []
+    /// 取り消し / やり直しの 1 手。「どの段のどれが・そのとき何だったか・カーソルはどこだったか」。
+    private struct Step {
+        let lane: Lane
+        let index: Int
+        var time: Int?
+        var cursor: Int?
+        var singers: [String] = []
+        var breaks: [LyricLinePartBreak] = []
+    }
+    /// 取り消し用。1 回ごとに、変える前の様子を積む。
+    private var history: [Step] = []
+    /// やり直し用。取り消すたびに、取り消す前の様子を積む。新しく手を入れたら捨てる。
+    private var redoStack: [Step] = []
     /// 直前の履歴が「微調整」か。同じものを続けて寄せている間は 1 回の取り消しにまとめる
     /// (つまみをなぞると 1 秒に何十回も値が変わるので、1 つずつ戻させない)。
     private var lastWasAdjust = false
@@ -183,9 +192,37 @@ final class LyricTimingRecorder: Identifiable {
     }
 
     private func pushPartsUndo(_ index: Int) {
-        history.append((.parts, index, nil, nil))
-        partsUndo.append((singers[index], breaks[index]))
+        pushHistory(.parts, index)
         lastWasAdjust = false
+    }
+
+    /// いまの様子 (段の index 番) を 1 手として写す。
+    private func snapshot(_ lane: Lane, _ index: Int) -> Step {
+        switch lane {
+        case .lines: Step(lane: lane, index: index, time: starts[index], cursor: cursor)
+        case .calls: Step(lane: lane, index: index, time: callStarts[index], cursor: callCursor)
+        case .parts: Step(lane: lane, index: index, singers: singers[index], breaks: breaks[index])
+        }
+    }
+
+    private func restore(_ step: Step) {
+        switch step.lane {
+        case .lines:
+            starts[step.index] = step.time
+            cursor = step.cursor
+        case .calls:
+            callStarts[step.index] = step.time
+            callCursor = step.cursor
+        case .parts:
+            singers[step.index] = step.singers
+            breaks[step.index] = step.breaks
+        }
+    }
+
+    /// 変える前の様子を積む。新しく手を入れたので、やり直しの先は捨てる。
+    private func pushHistory(_ lane: Lane, _ index: Int) {
+        history.append(snapshot(lane, index))
+        redoStack.removeAll()
     }
 
     func singers(for lineId: String) -> [String] {
@@ -202,6 +239,7 @@ final class LyricTimingRecorder: Identifiable {
         lineIds.firstIndex(of: lineId).flatMap { layers[$0] }
     }
     var canUndo: Bool { !history.isEmpty }
+    var canRedo: Bool { !redoStack.isEmpty }
     var hasCalls: Bool { !callIds.isEmpty }
     var cursorLineId: String? { cursor.map { lineIds[$0] } }
 
@@ -233,12 +271,12 @@ final class LyricTimingRecorder: Identifiable {
         switch lane {
         case .lines:
             guard let index = cursor else { return }
-            history.append((.lines, index, starts[index], cursor))
+            pushHistory(.lines, index)
             starts[index] = positionMs
             cursor = lyricNextRecordable(kinds: kinds, after: UInt32(index)).map(Int.init)
         case .calls:
             guard let index = callCursor else { return }
-            history.append((.calls, index, callStarts[index], callCursor))
+            pushHistory(.calls, index)
             callStarts[index] = positionMs
             callCursor = index + 1 < callIds.count ? index + 1 : nil
         case .parts:
@@ -308,9 +346,8 @@ final class LyricTimingRecorder: Identifiable {
         } else {
             return
         }
-        let current = lane == .lines ? starts[index] : callStarts[index]
         if !(lastWasAdjust && history.last?.lane == lane && history.last?.index == index) {
-            history.append((lane, index, current, lane == .lines ? cursor : callCursor))
+            pushHistory(lane, index)
         }
         if lane == .lines { starts[index] = max(0, ms) } else { callStarts[index] = max(0, ms) }
         lastWasAdjust = true
@@ -327,22 +364,20 @@ final class LyricTimingRecorder: Identifiable {
     /// 曲の順の各コールの開始 ms (コアに渡す形)。
     var callStartsForCore: [Int64?] { callStarts.map { $0.map(Int64.init) } }
 
-    /// 直前の記録を取り消す (カーソルも戻す)。
+    /// 直前の記録を取り消す (カーソルも戻す)。取り消す前の様子はやり直し用に取っておく。
     func undo() {
         guard let last = history.popLast() else { return }
         lastWasAdjust = false
-        switch last.lane {
-        case .lines:
-            starts[last.index] = last.previous
-            cursor = last.cursor
-        case .calls:
-            callStarts[last.index] = last.previous
-            callCursor = last.cursor
-        case .parts:
-            let previous = partsUndo.popLast()
-            singers[last.index] = previous?.singers ?? []
-            breaks[last.index] = previous?.breaks ?? []
-        }
+        redoStack.append(snapshot(last.lane, last.index))
+        restore(last)
+    }
+
+    /// 取り消したものをやり直す (カーソルも進め直す)。
+    func redo() {
+        guard let next = redoStack.popLast() else { return }
+        lastWasAdjust = false
+        history.append(snapshot(next.lane, next.index))
+        restore(next)
     }
 
     func save() async -> Bool {

@@ -71,8 +71,6 @@ class LyricTimingRecorder(lyrics: Lyrics, val songId: String) {
     private val originalBreaks: List<List<LyricLinePartBreak>> = breaks
     /** 各行の本文のコードポイント数 (区切りの位置の上限)。 */
     private val lengths: List<Int> = lyrics.lines.map { it.text.codePointCount(0, it.text.length) }
-    /** パートの取り消し用 (history の PARTS と同じ順に、前の歌唱者と区切りを積む)。 */
-    private val partsUndo = ArrayDeque<Pair<List<String>, List<LyricLinePartBreak>>>()
 
     var lane: Lane by mutableStateOf(Lane.LINES)
 
@@ -84,8 +82,19 @@ class LyricTimingRecorder(lyrics: Lyrics, val songId: String) {
     var saveState: SaveState by mutableStateOf(SaveState.Idle)
         private set
 
-    private data class HistoryEntry(val lane: Lane, val index: Int, val previous: Int?, val cursor: Int?)
-    private val history = ArrayDeque<HistoryEntry>()
+    /** 取り消し / やり直しの 1 手。「どの段のどれが・そのとき何だったか・カーソルはどこだったか」。 */
+    private data class Step(
+        val lane: Lane,
+        val index: Int,
+        val time: Int? = null,
+        val cursor: Int? = null,
+        val singers: List<String> = emptyList(),
+        val breaks: List<LyricLinePartBreak> = emptyList()
+    )
+    /** 取り消し用。1 回ごとに、変える前の様子を積む。 */
+    private val history = ArrayDeque<Step>()
+    /** やり直し用。取り消すたびに、取り消す前の様子を積む。新しく手を入れたら捨てる。 */
+    private val redoStack = ArrayDeque<Step>()
     /** 直前の履歴が「微調整」か。なぞっている間は 1 回の取り消しにまとめる。 */
     private var lastWasAdjust = false
 
@@ -180,12 +189,42 @@ class LyricTimingRecorder(lyrics: Lyrics, val songId: String) {
     }
 
     private fun pushPartsUndo(index: Int) {
-        history.addLast(HistoryEntry(Lane.PARTS, index, null, null))
-        partsUndo.addLast(singers[index] to breaks[index])
+        pushHistory(Lane.PARTS, index)
         lastWasAdjust = false
     }
 
+    /** いまの様子 (段の index 番) を 1 手として写す。 */
+    private fun snapshot(lane: Lane, index: Int): Step = when (lane) {
+        Lane.LINES -> Step(lane, index, time = starts[index], cursor = cursor)
+        Lane.CALLS -> Step(lane, index, time = callStarts[index], cursor = callCursor)
+        Lane.PARTS -> Step(lane, index, singers = singers[index], breaks = breaks[index])
+    }
+
+    private fun restore(step: Step) {
+        when (step.lane) {
+            Lane.LINES -> {
+                starts = starts.toMutableList().also { it[step.index] = step.time }
+                cursor = step.cursor
+            }
+            Lane.CALLS -> {
+                callStarts = callStarts.toMutableList().also { it[step.index] = step.time }
+                callCursor = step.cursor
+            }
+            Lane.PARTS -> {
+                singers = singers.toMutableList().also { it[step.index] = step.singers }
+                breaks = breaks.toMutableList().also { it[step.index] = step.breaks }
+            }
+        }
+    }
+
+    /** 変える前の様子を積む。新しく手を入れたので、やり直しの先は捨てる。 */
+    private fun pushHistory(lane: Lane, index: Int) {
+        history.addLast(snapshot(lane, index))
+        redoStack.clear()
+    }
+
     val canUndo: Boolean get() = history.isNotEmpty()
+    val canRedo: Boolean get() = redoStack.isNotEmpty()
     val hasCalls: Boolean get() = callIds.isNotEmpty()
 
     /** 行またはコールの開始 ms (id で引く)。 */
@@ -216,13 +255,13 @@ class LyricTimingRecorder(lyrics: Lyrics, val songId: String) {
         when (lane) {
             Lane.LINES -> {
                 val index = cursor ?: return
-                history.addLast(HistoryEntry(Lane.LINES, index, starts[index], cursor))
+                pushHistory(Lane.LINES, index)
                 starts = starts.toMutableList().also { it[index] = positionMs }
                 cursor = lyricNextRecordable(kinds, index.toUInt())?.toInt()
             }
             Lane.CALLS -> {
                 val index = callCursor ?: return
-                history.addLast(HistoryEntry(Lane.CALLS, index, callStarts[index], callCursor))
+                pushHistory(Lane.CALLS, index)
                 callStarts = callStarts.toMutableList().also { it[index] = positionMs }
                 callCursor = if (index + 1 < callIds.size) index + 1 else null
             }
@@ -299,9 +338,8 @@ class LyricTimingRecorder(lyrics: Lyrics, val songId: String) {
             if (ci < 0) return
             lane = Lane.CALLS; index = ci
         }
-        val current = if (lane == Lane.LINES) starts[index] else callStarts[index]
         if (!(lastWasAdjust && history.lastOrNull()?.lane == lane && history.lastOrNull()?.index == index)) {
-            history.addLast(HistoryEntry(lane, index, current, if (lane == Lane.LINES) cursor else callCursor))
+            pushHistory(lane, index)
         }
         val clamped = maxOf(0, toMs)
         if (lane == Lane.LINES) {
@@ -323,25 +361,20 @@ class LyricTimingRecorder(lyrics: Lyrics, val songId: String) {
     /** 曲の順の各コールの開始 ms (コアに渡す形)。 */
     val callStartsForCore: List<Long?> get() = callStarts.map { it?.toLong() }
 
-    /** 直前の記録を取り消す (カーソルも戻す)。 */
+    /** 直前の記録を取り消す (カーソルも戻す)。取り消す前の様子はやり直し用に取っておく。 */
     fun undo() {
         val last = history.removeLastOrNull() ?: return
         lastWasAdjust = false
-        when (last.lane) {
-            Lane.LINES -> {
-                starts = starts.toMutableList().also { it[last.index] = last.previous }
-                cursor = last.cursor
-            }
-            Lane.CALLS -> {
-                callStarts = callStarts.toMutableList().also { it[last.index] = last.previous }
-                callCursor = last.cursor
-            }
-            Lane.PARTS -> {
-                val previous = partsUndo.removeLastOrNull()
-                singers = singers.toMutableList().also { it[last.index] = previous?.first ?: emptyList() }
-                breaks = breaks.toMutableList().also { it[last.index] = previous?.second ?: emptyList() }
-            }
-        }
+        redoStack.addLast(snapshot(last.lane, last.index))
+        restore(last)
+    }
+
+    /** 取り消したものをやり直す (カーソルも進め直す)。 */
+    fun redo() {
+        val next = redoStack.removeLastOrNull() ?: return
+        lastWasAdjust = false
+        history.addLast(snapshot(next.lane, next.index))
+        restore(next)
     }
 
     suspend fun save(api: LyricsApi): Boolean {

@@ -152,6 +152,10 @@ struct LyricTimingEditorView: View {
                 recorder.undo()
             }
             .disabled(!recorder.canUndo)
+            ImasIconButton(systemImage: "arrow.uturn.forward", label: "やり直す", size: .small) {
+                recorder.redo()
+            }
+            .disabled(!recorder.canRedo)
             ImasButton(title: "保存", role: .primary, size: .small, isLoading: recorder.saveState == .saving) {
                 AppAnalytics.tap("lyric_timing.save")
                 Task { await save() }
