@@ -1,6 +1,7 @@
 // routes/app_links.ts — Universal Links (共有リンク) の入口。
 //
 //   GET /.well-known/apple-app-site-association — アプリで開くパスの定義 (AASA)
+//   GET /.well-known/assetlinks.json            — Android App Links の確かめ (お題の旧い共有 URL)
 //   GET /app/{events,shows,polls}/:id           — アプリが無い端末向けの着地ページ (HTML)
 //
 // 着地ページには IP の枠を掛けない (アプリ証明の口の枠は routes/app_attest.ts)。
@@ -13,6 +14,27 @@ import type { RouteContext } from "./context";
 /** アイドルライブDB の App Store ページ (未インストールユーザーの誘導先)。 */
 const APP_STORE_URL = "https://apps.apple.com/jp/app/id6763342297";
 const APP_STORE_NUMERIC_ID = "6763342297";
+/** Android 版の Google Play ページ。 */
+const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=site.fugaapp.imaslivedb";
+
+/**
+ * Android App Links の確かめ。アプリの AndroidManifest がこのホストの `/app/polls/` を
+ * autoVerify で受ける。指紋は Play App Signing の鍵と debug 鍵 (公開サイトの
+ * `web/public/.well-known/assetlinks.json` と同じ値)。
+ */
+const ANDROID_ASSET_LINKS = [
+  {
+    relation: ["delegate_permission/common.handle_all_urls"],
+    target: {
+      namespace: "android_app",
+      package_name: "site.fugaapp.imaslivedb",
+      sha256_cert_fingerprints: [
+        "0E:49:13:99:FD:1A:C4:B2:15:95:21:D2:C8:C8:76:F1:8A:31:12:97:C9:D5:4C:81:DE:1A:1D:AC:94:B1:F1:2A",
+        "7F:FB:F1:B9:31:D2:84:AB:F4:68:ED:C8:BB:F3:BE:58:5A:95:A9:2C:AC:92:7E:E4:90:EE:D3:AB:5B:2D:09:85",
+      ],
+    },
+  },
+];
 
 /** HTML テキスト/属性値に埋め込む動的文字列のエスケープ (XSS 防止)。 */
 function escapeHtml(s: string): string {
@@ -103,6 +125,7 @@ function renderAppFallbackPage(opts: {
     ${subtitleHtml}
     <p class="app">アイドルライブDB — アイマス全ブランドのライブ・セットリストデータベース</p>
     <a class="btn primary" href="${APP_STORE_URL}">App Store でダウンロード</a>
+    <a class="btn primary" href="${PLAY_STORE_URL}">Google Play でダウンロード</a>
     <a class="btn secondary" href="${schemeUrl}">アプリで開く</a>
   </div>
 </body>
@@ -142,6 +165,16 @@ export async function handleAppLinks(ctx: RouteContext): Promise<Response | null
         },
       }
     );
+  }
+
+  if (path === "/.well-known/assetlinks.json" && request.method === "GET") {
+    return new Response(JSON.stringify(ANDROID_ASSET_LINKS), {
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "public, max-age=3600",
+        "X-Request-Id": requestId,
+      },
+    });
   }
 
   // ----------------------------------------------------------------

@@ -32,6 +32,17 @@ describe("GET /.well-known/apple-app-site-association", () => {
   });
 });
 
+describe("GET /.well-known/assetlinks.json", () => {
+  it("Android アプリの指紋を JSON で返す", async () => {
+    const res = await call("GET", "/.well-known/assetlinks.json");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toBe("application/json");
+    const body = (await res.json()) as Array<{ target: { package_name: string; sha256_cert_fingerprints: string[] } }>;
+    expect(body[0].target.package_name).toBe("site.fugaapp.imaslivedb");
+    expect(body[0].target.sha256_cert_fingerprints.length).toBeGreaterThan(0);
+  });
+});
+
 describe("GET /app/{events,shows,polls}/:id (着地ページ)", () => {
   it("開催中のお題は 200 の HTML。CSP と nosniff を付ける", async () => {
     await exec(
@@ -48,6 +59,7 @@ describe("GET /app/{events,shows,polls}/:id (着地ページ)", () => {
     const html = await res.text();
     expect(html).toContain("<title>&lt;好き&gt; | アイドルライブDB</title>");
     expect(html).toContain("imaslivedb://polls/p1");
+    expect(html).toContain("play.google.com/store/apps/details?id=site.fugaapp.imaslivedb");
   });
 
   it("無いお題・名前を引けないイベント・壊れた percent-encoding は 404 の HTML", async () => {
