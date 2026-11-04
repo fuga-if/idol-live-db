@@ -152,6 +152,7 @@ struct SongCommunityTab: View {
                         .aspectRatio(16.0 / 9.0, contentMode: .fit)
                         .background(DS.surface2)
                         .clipShape(RoundedRectangle(cornerRadius: DS.rXS, style: .continuous))
+                        .contextMenu { videoMenu(url) }
                 } else {
                     Button {
                         AppAnalytics.tap("song_detail.video_play")
@@ -165,6 +166,7 @@ struct SongCommunityTab: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("\(video.videoTitle ?? "参考動画") を小窓で再生")
+                    .contextMenu { videoMenu(url) }
                 }
             }
             if let title = video.videoTitle {
@@ -203,6 +205,21 @@ struct SongCommunityTab: View {
             }
         }
         .padding(.horizontal, DS.sp5).padding(.vertical, DS.Space.rowV)
+    }
+
+    /// サムネの長押し: YouTube アプリで開く・リンクをコピー。
+    @ViewBuilder
+    private func videoMenu(_ url: URL) -> some View {
+        Button {
+            AppAnalytics.tap("song_detail.video_open_youtube")
+            openURL(url)
+        } label: { Label("YouTube で開く", systemImage: "arrow.up.right.square") }
+        Button {
+            UIPasteboard.general.string = url.absoluteString
+            // コピーは画面に変化が出ないので、触覚で「入った」ことを返す。
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            AppAnalytics.tap("song_detail.video_copy_link")
+        } label: { Label("リンクをコピー", systemImage: "doc.on.doc") }
     }
 
     private func videoThumbnail(_ ref: YouTubeVideoRef) -> some View {

@@ -23,6 +23,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.foundation.layout.aspectRatio
 import uniffi.imas_core.youtubeEmbedPlayer
 import com.fugaif.imaslivedb.ui.components.YouTubeUnplayableNotice
@@ -1212,6 +1217,7 @@ private fun CommunityTab(
     }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun VideoRow(
     video: SongVideo,
@@ -1228,9 +1234,20 @@ private fun VideoRow(
         player == null || isUnplayable -> onOpenVideo
         else -> { { VideoPiP.play(VideoPiP.Item(video.id, video.videoTitle, video.youtubeUrl, player)) } }
     }
+    // 長押し: YouTube アプリで開く・リンクをコピー。
+    var showMenu by remember { mutableStateOf(false) }
+    val clipboard = LocalClipboardManager.current
+    val haptics = LocalHapticFeedback.current
     Column {
+    Box {
     Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onRowClick).padding(horizontal = DS.Space.rowH, vertical = DS.Space.rowV),
+        modifier = Modifier.fillMaxWidth()
+            .combinedClickable(
+                onClick = onRowClick,
+                onLongClick = { haptics.performHapticFeedback(HapticFeedbackType.LongPress); showMenu = true },
+                onLongClickLabel = "メニュー"
+            )
+            .padding(horizontal = DS.Space.rowH, vertical = DS.Space.rowV),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
@@ -1282,6 +1299,19 @@ private fun VideoRow(
                 style = ImasIconButtonStyle.PLAIN, onClick = { onEditVideo(video) }
             )
         }
+    }
+    DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+        DropdownMenuItem(
+            text = { Text("YouTube で開く") },
+            leadingIcon = { androidx.compose.material3.Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null) },
+            onClick = { showMenu = false; onOpenVideo() }
+        )
+        DropdownMenuItem(
+            text = { Text("リンクをコピー") },
+            leadingIcon = { androidx.compose.material3.Icon(Icons.Filled.ContentCopy, contentDescription = null) },
+            onClick = { showMenu = false; clipboard.setText(AnnotatedString(video.youtubeUrl)) }
+        )
+    }
     }
     if (player != null && isUnplayable) {
         YouTubeUnplayableNotice(
