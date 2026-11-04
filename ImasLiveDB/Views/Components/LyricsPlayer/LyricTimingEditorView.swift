@@ -278,8 +278,8 @@ struct LyricTimingEditorView: View {
         case .lines: "行をタップすると、その行から記録します。押すたびに次の行へ進みます。"
         case .calls: "コールをタップして選ぶと、前後に寄せられます。"
         case .parts where isPartsList:
-            "歌う人を選んでから行をタップすると、行まるごと塗れます。選んだ行は、語をタップするか長押しでなぞると、その字だけ塗れます。もう一度で外れます。"
-        case .parts: "歌う人を選んでから行をタップすると、行まるごと塗れます。いま歌っている行 (選んだ行) は、語をタップするか長押しでなぞると、その字だけ塗れます。もう一度で外れます。"
+            "行をタップして選び、語をタップ・なぞるか、コールの印か刷毛で塗ります。もう一度で外れます。"
+        case .parts: "いま歌っている行を塗ります。過ぎた行はタップするとそこへ戻って聴き直せます。語をタップ・なぞるか、コールの印か刷毛で塗ります。"
         }
     }
 
@@ -367,9 +367,10 @@ struct LyricTimingEditorView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// パートの段の 1 行。歌う人 (筆) を選んでから、行をタップすると行まるごと塗る / 外す。
+    /// パートの段の 1 行。行をタップすると塗る行に選ぶ (聴きながらなら、その行の頭へ戻して聴き直す)。
     /// 選んだ行 (いま歌っている行) は語をタップ・長押しでなぞると、その字だけ塗る / 外す。
-    /// 選んだ行でも右の印 1 タップで行まるごと塗れる (行の端から端までなぞらなくてよい)。
+    /// 右の刷毛で行まるごと、行の下のコールの印でそのコールの掛かる字だけ塗れる
+    /// (コールの所だけみんなで歌う、を 1 タップで)。
     /// 塗ると前に歌っていた人と入れ替わる (パートチェンジ)。2 人で歌う所は筆に 2 人選んで塗る。
     @ViewBuilder
     private func partsLaneRow(line: LyricLine, isCurrent: Bool) -> some View {
@@ -401,10 +402,23 @@ struct LyricTimingEditorView: View {
                         paint(line.id, start: 0, end: line.text.unicodeScalars.count)
                     }
                 }
+                // コールの掛かる字 (歌詞と同じ文字を一緒に歌う所など) を、範囲ぴったりに塗る。
+                let anchored = line.calls.filter { $0.hasAnchor && !$0.isPenlight }
+                if !anchored.isEmpty {
+                    FlowLayout(spacing: DS.sp2, lineSpacing: DS.sp2) {
+                        ForEach(anchored) { call in
+                            ImasButton(title: call.anchorText.isEmpty ? call.text : call.anchorText,
+                                       systemImage: partsErasing ? "eraser" : "megaphone.fill",
+                                       role: .secondary, size: .small) {
+                                paint(line.id, start: call.start, end: call.end)
+                            }
+                            .accessibilityLabel("コール「\(call.text)」の所を\(partsErasing ? "消す" : "塗る")")
+                        }
+                    }
+                }
             } else {
                 Button {
-                    selectedId = line.id
-                    paint(line.id, start: 0, end: line.text.unicodeScalars.count)
+                    pickPartsLine(line)
                 } label: {
                     laneText(line.text, isCurrent: isCurrent, parts: marks)
                 }
@@ -413,6 +427,21 @@ struct LyricTimingEditorView: View {
             ImasPartNames(groups: segments.map { cast.names($0.singers) })
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// 塗る行を選ぶ。聴きながら塗っていて行に時刻があれば、その行の頭へ戻す
+    /// (今の行がその行になるので、そのまま聴き直して塗れる。過ぎた行を塗り直すため)。
+    private func pickPartsLine(_ line: LyricLine) {
+        AppAnalytics.tap("lyric_timing.pick_part_line")
+        // 被せの行は今の行にならない (今の行はメインの行で決まる) ので、選ぶだけにする。
+        let isMain = lyrics.lines.firstIndex(where: { $0.id == line.id }).map { !isOverlay($0) } ?? false
+        if !isPartsList, isMain, playback.isFullLoaded, let start = recorder.start(for: line.id) {
+            selectedId = nil
+            followPausedUntil = .distantPast
+            seek(start)
+        } else {
+            selectedId = line.id
+        }
     }
 
     /// いまの筆 (選んでいなければ原唱者の先頭 1 人)。

@@ -8,6 +8,8 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -34,6 +36,7 @@ import androidx.compose.material.icons.filled.Replay5
 import androidx.compose.material.icons.filled.Forward5
 import androidx.compose.material.icons.filled.PanTool
 import androidx.compose.material.icons.filled.AutoFixNormal
+import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.FormatColorFill
 import androidx.compose.material.icons.filled.GroupAdd
 import androidx.compose.material.icons.filled.Groups
@@ -200,6 +203,23 @@ fun LyricTimingEditorScreen(
         recorder.aim(ms)
     }
 
+    /**
+     * 塗る行を選ぶ。聴きながら塗っていて行に時刻があれば、その行の頭へ戻す
+     * (今の行がその行になるので、そのまま聴き直して塗れる。過ぎた行を塗り直すため)。
+     * 被せの行は今の行にならないので選ぶだけ。
+     */
+    fun pickPartsLine(lineId: String) {
+        val index = lyrics.lines.indexOfFirst { it.id == lineId }
+        val start = recorder.start(lineId)
+        if (!isPartsList && index >= 0 && !isOverlay(index) && playback.loadedSongId.value == song.id && start != null) {
+            selectedId = null
+            followPausedUntil = 0L
+            seek(start)
+        } else {
+            selectedId = lineId
+        }
+    }
+
     LaunchedEffect(Unit) {
         // 曲の途中で開いたら、そこから押し直せるようにする (記録済みの曲を頭から押させない)。
         if (playback.loadedSongId.value == song.id) {
@@ -318,6 +338,7 @@ fun LyricTimingEditorScreen(
             onPaint = { lineId, start, end -> paint(lineId, start, end) },
             partsTargetId = partsTargetId,
             partsErasing = partsErasing,
+            onPickPartsLine = ::pickPartsLine,
             listState = laneListState,
             followPausedUntil = { followPausedUntil },
             onUserScroll = { followPausedUntil = System.currentTimeMillis() + 4000 },
@@ -548,6 +569,7 @@ private fun LaneLyricsList(
     onPaint: (String, Int, Int) -> Unit,
     partsTargetId: String?,
     partsErasing: Boolean,
+    onPickPartsLine: (String) -> Unit,
     listState: LazyListState,
     followPausedUntil: () -> Long,
     onUserScroll: () -> Unit,
@@ -600,8 +622,8 @@ private fun LaneLyricsList(
                         LyricTimingRecorder.Lane.LINES -> "行をタップすると、その行から記録します。押すたびに次の行へ進みます。"
                         LyricTimingRecorder.Lane.CALLS -> "コールをタップして選ぶと、前後に寄せられます。"
                         LyricTimingRecorder.Lane.PARTS -> if (isPartsList) {
-                            "歌う人を選んでから行をタップすると、行まるごと塗れます。選んだ行は、語をタップするか長押しでなぞると、その字だけ塗れます。もう一度で外れます。"
-                        } else "歌う人を選んでから行をタップすると、行まるごと塗れます。いま歌っている行 (選んだ行) は、語をタップするか長押しでなぞると、その字だけ塗れます。もう一度で外れます。"
+                            "行をタップして選び、語をタップ・なぞるか、コールの印か刷毛で塗ります。もう一度で外れます。"
+                        } else "いま歌っている行を塗ります。過ぎた行はタップするとそこへ戻って聴き直せます。語をタップ・なぞるか、コールの印か刷毛で塗ります。"
                     },
                     ImasTextRole.META, color = DS.ink3
                 )
@@ -624,7 +646,7 @@ private fun LaneLyricsList(
                     PartsLaneRow(
                         line = line, isCurrent = isCurrent, isTarget = line.id == partsTargetId,
                         isErasing = partsErasing, recorder = recorder, cast = cast,
-                        onSelectTarget = { onSelect(line.id) },
+                        onSelectTarget = { onPickPartsLine(line.id) },
                         onPaint = { start, end -> onPaint(line.id, start, end) }
                     )
                 } else {
@@ -745,11 +767,13 @@ private fun CallsLaneRow(
 }
 
 /**
- * パートの段の 1 行。歌う人 (筆) を選んでから、行をタップすると行まるごと塗る / 外す。
+ * パートの段の 1 行。行をタップすると塗る行に選ぶ (聴きながらなら、その行の頭へ戻して聴き直す)。
  * 選んだ行 (いま歌っている行) は語をタップ・長押しでなぞると、その字だけ塗る / 外す。
- * 選んだ行でも右の印 1 タップで行まるごと塗れる (行の端から端までなぞらなくてよい)。
+ * 右の刷毛で行まるごと、行の下のコールの印でそのコールの掛かる字だけ塗れる
+ * (コールの所だけみんなで歌う、を 1 タップで)。
  * 塗ると前に歌っていた人と入れ替わる (パートチェンジ)。2 人で歌う所は筆に 2 人選んで塗る。
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PartsLaneRow(
     line: LyricLine,
@@ -784,6 +808,21 @@ private fun PartsLaneRow(
                     onClick = { onPaint(0, length) }
                 )
             }
+            // コールの掛かる字 (歌詞と同じ文字を一緒に歌う所など) を、範囲ぴったりに塗る。
+            val anchored = line.calls.filter { it.hasAnchor && !it.isPenlight }
+            if (anchored.isNotEmpty()) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(DS.sp2), verticalArrangement = Arrangement.spacedBy(DS.sp2)) {
+                    anchored.forEach { call ->
+                        ImasButton(
+                            title = call.anchorText.ifEmpty { call.text },
+                            icon = if (isErasing) Icons.Filled.AutoFixNormal else Icons.Filled.Campaign,
+                            role = ImasButtonRole.SECONDARY, size = ImasButtonSize.SMALL,
+                            onClick = { onPaint(call.start, call.end) },
+                            accessibilityLabel = "コール「${call.text}」の所を${if (isErasing) "消す" else "塗る"}"
+                        )
+                    }
+                }
+            }
         } else {
             val marks: List<LyricPartMark> = ink.mapNotNull { segment ->
                 val colors = cast.colors(segment.singers)
@@ -792,7 +831,6 @@ private fun PartsLaneRow(
             Row(
                 Modifier.clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
                     onSelectTarget()
-                    onPaint(0, length)
                 }
             ) {
                 LaneLyricText(line.text, isCurrent, parts = marks)
