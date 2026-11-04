@@ -23,6 +23,7 @@ import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Forward10
 import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay10
 import androidx.compose.material.icons.filled.SkipNext
@@ -31,6 +32,7 @@ import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -53,6 +55,7 @@ import com.fugaif.imaslivedb.data.lyrics.LyricPartCast
 import com.fugaif.imaslivedb.data.lyrics.Lyrics
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.player.LyricsPip
 import com.fugaif.imaslivedb.ui.components.ArtworkImage
 import com.fugaif.imaslivedb.ui.designsystem.ImasButton
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
@@ -118,6 +121,15 @@ fun LyricsPlayerScreen(
     val context = LocalContext.current
     val module = AppModule.from(context)
     val playback = module.lyricsPlayback
+    // 開いている間は、鳴らしたままホームへ出たら歌詞が PiP で浮かぶ。PiP の間は窓の中身に差し替える。
+    DisposableEffect(Unit) {
+        LyricsPip.setPlayerVisible(true)
+        onDispose { LyricsPip.setPlayerVisible(false) }
+    }
+    if (LyricsPip.isInPip.collectAsState().value) {
+        LyricsPipContent()
+        return
+    }
     val scope = rememberCoroutineScope()
     val haptics = rememberImasHaptics()
 
@@ -280,6 +292,14 @@ fun LyricsPlayerScreen(
                         label = if (callHaptics) "コールで震わせる: オン" else "コールで震わせる: オフ",
                         onClick = ::toggleCallHaptics,
                         size = ImasIconButtonSize.SMALL,
+                        style = ImasIconButtonStyle.PLAIN
+                    )
+                }
+                if (hasTiming && isFullLoaded && LyricsPip.isSupported(context)) {
+                    ImasIconButton(
+                        icon = Icons.Filled.PictureInPictureAlt,
+                        label = "ピクチャ・イン・ピクチャで歌詞を出す",
+                        onClick = { LyricsPip.enter(context, playback) },
                         style = ImasIconButtonStyle.PLAIN
                     )
                 }

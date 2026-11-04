@@ -1,7 +1,16 @@
 package com.fugaif.imaslivedb
 
 import uniffi.imas_core.CardReceiveVia
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.content.res.Configuration
+import android.os.Build
+import androidx.core.content.ContextCompat
+import com.fugaif.imaslivedb.player.LyricsPip
+import com.fugaif.imaslivedb.player.LyricsSession
+import kotlinx.coroutines.flow.combine
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -82,6 +91,7 @@ class MainActivity : ComponentActivity() {
             handleProducerCardIntent(intent)
             handlePollLinkIntent(intent)
         }
+        setUpLyricsPip()
         setContent {
             ImasLiveDBTheme {
                 when (val bootState = boot.state.collectAsState().value) {
@@ -91,6 +101,10 @@ class MainActivity : ComponentActivity() {
                         AppRoot(sync)
                         com.fugaif.imaslivedb.ui.components.SpotifyPlaybackAlert()
                         com.fugaif.imaslivedb.ui.components.UpdateAvailableAlert()
+                        // 歌詞のピクチャ・イン・ピクチャの間は、窓いっぱいに歌詞の行だけを出す。
+                        if (LyricsPip.isInPip.collectAsState().value) {
+                            com.fugaif.imaslivedb.ui.lyrics.LyricsPipContent()
+                        }
                     }
                 }
             }
@@ -216,6 +230,45 @@ class MainActivity : ComponentActivity() {
             }
             null -> Unit
         }
+    }
+
+    // MARK: - 歌詞のピクチャ・イン・ピクチャ (LyricsPip)
+
+    private val pipToggleReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            AppModule.from(context).lyricsPlayback.togglePlay()
+        }
+    }
+
+    /** PiP の窓の再生ボタンを受け、自分で浮かぶかどうか・ボタンの記号を再生の状態に合わせて更新し続ける。 */
+    private fun setUpLyricsPip() {
+        if (!LyricsPip.isSupported(this)) return
+        ContextCompat.registerReceiver(
+            this, pipToggleReceiver, IntentFilter(LyricsPip.ACTION_TOGGLE_PLAY), ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+        val playback = AppModule.from(this).lyricsPlayback
+        lifecycleScope.launch {
+            combine(playback.isPlaying, playback.loadedSongId, LyricsSession.state, LyricsPip.playerVisible) { _, _, _, _ -> }
+                .collect { runCatching { setPictureInPictureParams(LyricsPip.params(this@MainActivity, playback)) } }
+        }
+    }
+
+    /** API 30 までは自分で浮かぶ設定が無いので、ホームへ出る合図で浮かべる。 */
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) return
+        val playback = AppModule.from(this).lyricsPlayback
+        if (LyricsPip.isSupported(this) && LyricsPip.shouldAutoEnter(playback)) LyricsPip.enter(this, playback)
+    }
+
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        LyricsPip.setInPip(isInPictureInPictureMode)
+    }
+
+    override fun onDestroy() {
+        if (LyricsPip.isSupported(this)) runCatching { unregisterReceiver(pipToggleReceiver) }
+        super.onDestroy()
     }
 
     override fun onStart() {
