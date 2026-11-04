@@ -30,7 +30,8 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.foundation.layout.aspectRatio
 import uniffi.imas_core.youtubeEmbedPlayer
-import com.fugaif.imaslivedb.ui.components.YouTubeUnplayableNotice
+import com.fugaif.imaslivedb.ui.designsystem.YouTubeUnplayableNotice
+import com.fugaif.imaslivedb.ui.designsystem.imasVideoFrame
 import com.fugaif.imaslivedb.ui.components.VideoPiP
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -1317,7 +1318,7 @@ private fun VideoRow(
         YouTubeUnplayableNotice(
             onOpen = onOpenVideo,
             modifier = Modifier.padding(start = DS.Space.rowH, end = DS.Space.rowH, bottom = DS.Space.rowV)
-                .aspectRatio(16f / 9f).clip(RoundedCornerShape(DS.rXS))
+                .imasVideoFrame()
         )
     }
     }

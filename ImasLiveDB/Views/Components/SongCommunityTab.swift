@@ -149,9 +149,7 @@ struct SongCommunityTab: View {
                 // 分かった時点で「YouTube で開く」案内に替える。
                 if pip.unplayableVideoIDs.contains(video.id) {
                     YouTubeUnplayableNotice { openURL(url) }
-                        .aspectRatio(16.0 / 9.0, contentMode: .fit)
-                        .background(DS.surface2)
-                        .clipShape(RoundedRectangle(cornerRadius: DS.rXS, style: .continuous))
+                        .imasVideoFrame()
                         .contextMenu { videoMenu(url) }
                 } else {
                     Button {

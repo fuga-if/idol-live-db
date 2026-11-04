@@ -1,4 +1,4 @@
-package com.fugaif.imaslivedb.ui.components
+package com.fugaif.imaslivedb.ui.designsystem
 
 import android.annotation.SuppressLint
 import android.content.Intent

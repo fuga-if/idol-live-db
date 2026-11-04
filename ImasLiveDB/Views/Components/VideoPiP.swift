@@ -121,12 +121,7 @@ private struct VideoPiPOverlay: View {
                         .frame(height: playerHeight)
                 }
                 .frame(width: width)
-                .background(DS.surface)
-                .clipShape(RoundedRectangle(cornerRadius: DS.rSM, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: DS.rSM, style: .continuous)
-                        .strokeBorder(DS.line, lineWidth: 1)
-                )
+                .imasFloatingWindow()
                 .position(x: geo.size.width / 2, y: y)
                 .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { pip.frame = $0 }
                 .transition(.move(edge: pip.dock == .top ? .top : .bottom).combined(with: .opacity))
@@ -139,8 +134,7 @@ private struct VideoPiPOverlay: View {
 
     private func bar(_ item: VideoPiP.Item) -> some View {
         HStack(spacing: DS.sp3) {
-            Capsule().fill(DS.ink3).frame(width: 4, height: 18)
-                .accessibilityHidden(true)
+            ImasWindowGrip()
             Text(item.title ?? "参考動画")
                 .imasText(.meta, color: DS.ink2)
                 .lineLimit(1)
