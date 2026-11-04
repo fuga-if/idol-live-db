@@ -57,6 +57,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasIconButton
 import com.fugaif.imaslivedb.ui.designsystem.ImasIconButtonSize
 import com.fugaif.imaslivedb.ui.designsystem.ImasIconButtonStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasRubyPreview
+import com.fugaif.imaslivedb.ui.designsystem.ImasTextSelectionAction
 import com.fugaif.imaslivedb.ui.designsystem.ImasSavingOverlay
 import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbar
 import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbarKind
@@ -362,6 +363,7 @@ private fun IssueNotes(
 
 /**
  * 歌詞の入力欄と「選んだ字に読み仮名を付ける」(iOS `LyricsRubyEditor` の移植。文字の選択を読む)。
+ * 字を選んで下のボタンか、選んだときに出るメニューの「ルビ」から付ける。
  * 本文は書き換えず、選んだ範囲 (コードポイントの位置) と読みを [onAddRuby] で返す。読み仮名は
  * 本文と分けて持つ。選択は [TextFieldValue.selection] の UTF-16 の位置なので、呼び出し側に渡す前に
  * コードポイントの位置へ直す。
@@ -389,7 +391,15 @@ private fun LyricsRubyFields(text: String, onTextChange: (String) -> Unit, onAdd
             if (it.text != text) onTextChange(it.text)
         },
         prompt = "1 行ずつ改行して入力してください",
-        imprint = "LYRICS"
+        imprint = "LYRICS",
+        selectionActions = listOf(
+            ImasTextSelectionAction("ルビ") { range ->
+                if (!range.collapsed) {
+                    reading = ""
+                    pending = text.codePointCount(0, range.min) until text.codePointCount(0, range.max)
+                }
+            }
+        )
     )
     ImasFormField(label = "読み仮名を付ける", imprint = "RUBY", icon = Icons.Filled.TextFields) {
         ImasButton(

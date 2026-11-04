@@ -48,6 +48,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
@@ -70,6 +71,8 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalTextToolbar
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.Role
@@ -456,6 +459,7 @@ fun ImasFormTextArea(
  * 複数行の入力の欄で、選んでいる範囲を外から読める形 (iOS `ImasFormSelectableTextArea` の移植。
  * 歌詞の読み仮名を選んだ字に付けるなど)。見た目は [ImasFormTextArea] と同じ。呼び出し側が
  * [TextFieldValue] (選択を含む) をそのまま持ち、変化をそのまま受け取る。
+ * [selectionActions] は字を選んだときのメニューに足す項目 (「ルビ」など)。
  */
 @Composable
 fun ImasFormSelectableTextArea(
@@ -465,20 +469,27 @@ fun ImasFormSelectableTextArea(
     prompt: String,
     modifier: Modifier = Modifier,
     imprint: String? = "MEMO",
-    icon: ImageVector? = Icons.AutoMirrored.Outlined.Notes
+    icon: ImageVector? = Icons.AutoMirrored.Outlined.Notes,
+    selectionActions: List<ImasTextSelectionAction> = emptyList()
 ) {
     val minHeight = with(LocalDensity.current) { 88.sp.toDp() }
+    val view = LocalView.current
+    val currentValue by rememberUpdatedState(value)
+    val toolbar = remember(view) { ImasTextSelectionToolbar(view, selectionActions) { currentValue.selection } }
+    toolbar.actions = selectionActions
     ImasFormField(label = label, modifier = modifier, imprint = imprint, icon = icon) {
-        FormInput(
-            value = value,
-            onValueChange = onValueChange,
-            prompt = prompt,
-            style = ImasTextRole.BODY.style,
-            label = label,
-            modifier = Modifier.fillMaxWidth().heightIn(min = minHeight),
-            singleLine = false,
-            minLines = 3
-        )
+        CompositionLocalProvider(LocalTextToolbar provides if (selectionActions.isEmpty()) LocalTextToolbar.current else toolbar) {
+            FormInput(
+                value = value,
+                onValueChange = onValueChange,
+                prompt = prompt,
+                style = ImasTextRole.BODY.style,
+                label = label,
+                modifier = Modifier.fillMaxWidth().heightIn(min = minHeight),
+                singleLine = false,
+                minLines = 3
+            )
+        }
     }
 }
 

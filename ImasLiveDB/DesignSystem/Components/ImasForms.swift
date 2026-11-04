@@ -154,25 +154,117 @@ struct ImasFormTextArea: View {
     }
 }
 
-/// 複数行の入力の欄で、選んでいる範囲を外から読める形 (iOS 18 から。歌詞の読み仮名を選んだ字に付けるなど)。
-/// 見た目は `ImasFormTextArea` と同じ。
-@available(iOS 18.0, *)
+/// 文字を選んだときのメニュー (コピー・貼り付けの並び) に足す項目。押すと選んでいる範囲 (スカラーの位置) を渡す。
+struct ImasTextSelectionAction {
+    let title: String
+    var systemImage: String? = nil
+    let handler: (Range<Int>) -> Void
+}
+
+/// 複数行の入力の欄で、選んでいる範囲を外から読め、文字の選択メニューに項目を足せる形
+/// (歌詞の読み仮名を選んだ字に付けるなど)。見た目は `ImasFormTextArea` と同じ。
+/// 範囲は Unicode スカラーの位置 (コアの位置の数え方) で渡す。
 struct ImasFormSelectableTextArea: View {
     let label: String
     var imprint: String? = "MEMO"
     var systemImage: String? = "note.text"
     @Binding var text: String
-    @Binding var selection: TextSelection?
+    /// 選んでいる範囲。何も選んでいなければ nil。外から nil にすると選択を外す。
+    @Binding var selection: Range<Int>?
     var prompt: String
+    var selectionActions: [ImasTextSelectionAction] = []
 
     @ScaledMetric(relativeTo: .body) private var minHeight: CGFloat = 88
 
     var body: some View {
         ImasFormField(label: label, imprint: imprint, systemImage: systemImage) {
-            TextField(prompt, text: $text, selection: $selection, axis: .vertical)
-                .font(.imasBody)
-                .lineLimit(3...)
-                .frame(minHeight: minHeight, alignment: .topLeading)
+            SelectableTextView(text: $text, selection: $selection, label: label,
+                               minHeight: minHeight, actions: selectionActions)
+                .overlay(alignment: .topLeading) {
+                    if text.isEmpty {
+                        Text(prompt).font(.imasBody).foregroundStyle(DS.ink3)
+                            .allowsHitTesting(false).accessibilityHidden(true)
+                    }
+                }
+        }
+    }
+}
+
+/// `ImasFormSelectableTextArea` の中身。SwiftUI の入力欄は選択メニューに項目を足せないので UITextView で組む。
+private struct SelectableTextView: UIViewRepresentable {
+    @Binding var text: String
+    @Binding var selection: Range<Int>?
+    let label: String
+    let minHeight: CGFloat
+    let actions: [ImasTextSelectionAction]
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    func makeUIView(context: Context) -> UITextView {
+        let view = UITextView()
+        view.delegate = context.coordinator
+        view.backgroundColor = .clear
+        view.isScrollEnabled = false
+        view.textContainerInset = .zero
+        view.textContainer.lineFragmentPadding = 0
+        view.adjustsFontForContentSizeCategory = true
+        view.accessibilityLabel = label
+        view.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        view.text = text
+        return view
+    }
+
+    func updateUIView(_ view: UITextView, context: Context) {
+        context.coordinator.parent = self
+        view.font = UIFontMetrics(forTextStyle: .body)
+            .scaledFont(for: .systemFont(ofSize: 17 * Font.imasTextScale))
+        view.textColor = UIColor(DS.ink)
+        // 変換中 (下線の付いた入力) は書き戻さない。書き戻すと確定前の字が消える。
+        if view.text != text, view.markedTextRange == nil {
+            view.text = text
+        }
+        if selection == nil, view.selectedRange.length > 0, view.markedTextRange == nil {
+            view.selectedRange = NSRange(location: view.selectedRange.upperBound, length: 0)
+        }
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextView, context: Context) -> CGSize? {
+        let width = proposal.width ?? uiView.bounds.width
+        let fitted = uiView.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude))
+        return CGSize(width: width, height: max(minHeight, fitted.height))
+    }
+
+    final class Coordinator: NSObject, UITextViewDelegate {
+        var parent: SelectableTextView
+        init(_ parent: SelectableTextView) { self.parent = parent }
+
+        func textViewDidChange(_ view: UITextView) {
+            if parent.text != view.text { parent.text = view.text }
+            view.invalidateIntrinsicContentSize()
+        }
+
+        func textViewDidChangeSelection(_ view: UITextView) {
+            let range = Self.scalars(view.selectedRange, in: view.text)
+            if parent.selection != range { parent.selection = range }
+        }
+
+        func textView(_ view: UITextView, editMenuForTextIn range: NSRange,
+                      suggestedActions: [UIMenuElement]) -> UIMenu? {
+            guard let scalars = Self.scalars(range, in: view.text), !parent.actions.isEmpty else { return nil }
+            let added = parent.actions.map { action in
+                UIAction(title: action.title, image: action.systemImage.flatMap { UIImage(systemName: $0) }) { _ in
+                    action.handler(scalars)
+                }
+            }
+            return UIMenu(children: added + suggestedActions)
+        }
+
+        /// UTF-16 の範囲をスカラーの位置に直す。空・外れた範囲は nil。
+        static func scalars(_ range: NSRange, in text: String) -> Range<Int>? {
+            guard range.length > 0, let r = Range(range, in: text) else { return nil }
+            let start = text.unicodeScalars.distance(from: text.startIndex, to: r.lowerBound)
+            let end = text.unicodeScalars.distance(from: text.startIndex, to: r.upperBound)
+            return start..<end
         }
     }
 }

@@ -68,16 +68,11 @@ struct LyricSubmissionSheet: View {
                 }
 
                 ImasFormCard {
-                    if #available(iOS 18.0, *) {
-                        LyricsRubyEditor(text: textBinding) { start, end, reading in
-                            let songId = song.id
-                            if let mark = lyricRubyMarkAt(plain: text, start: UInt32(start), end: UInt32(end), reading: reading) {
-                                drafts.update(songId) { $0.rubies.append(mark) }
-                            }
+                    LyricsRubyEditor(text: textBinding) { start, end, reading in
+                        let songId = song.id
+                        if let mark = lyricRubyMarkAt(plain: text, start: UInt32(start), end: UInt32(end), reading: reading) {
+                            drafts.update(songId) { $0.rubies.append(mark) }
                         }
-                    } else {
-                        ImasFormTextArea(label: "歌詞", imprint: "LYRICS", systemImage: "text.quote",
-                                         text: textBinding, prompt: "1 行ずつ改行して入力してください")
                     }
                 }
                 rubySection
@@ -272,39 +267,34 @@ struct LyricSubmissionSheet: View {
     }
 }
 
-/// 歌詞の入力欄と「選んだ字に読み仮名を付ける」(iOS 18 から。文字の選択を読むため)。
+/// 歌詞の入力欄と「選んだ字に読み仮名を付ける」。字を選んで下のボタンか、選んだときに出るメニューの「ルビ」から付ける。
 /// 本文は書き換えず、選んだ範囲 (スカラーの位置) と読みを `onAdd` で返す。読み仮名は本文と分けて持つ。
-@available(iOS 18.0, *)
 private struct LyricsRubyEditor: View {
     @Binding var text: String
     let onAdd: (Int, Int, String) -> Void
-    @State private var selection: TextSelection?
+    @State private var selection: Range<Int>?
     @State private var pending: Range<Int>?
     @State private var reading = ""
-
-    /// 選んでいる範囲 (Unicode スカラーの位置)。何も選んでいなければ nil。
-    private var selectedScalars: Range<Int>? {
-        guard case .selection(let range)? = selection?.indices, !range.isEmpty,
-              range.upperBound <= text.endIndex else { return nil }
-        let start = text.unicodeScalars.distance(from: text.startIndex, to: range.lowerBound)
-        let end = text.unicodeScalars.distance(from: text.startIndex, to: range.upperBound)
-        return start..<end
-    }
 
     var body: some View {
         ImasFormSelectableTextArea(label: "歌詞", imprint: "LYRICS", systemImage: "text.quote",
                                    text: $text, selection: $selection,
-                                   prompt: "1 行ずつ改行して入力してください")
+                                   prompt: "1 行ずつ改行して入力してください",
+                                   selectionActions: [
+                                       ImasTextSelectionAction(title: "ルビ", systemImage: "character.textbox") { range in
+                                           AppAnalytics.tap("lyric_submission.add_ruby_menu")
+                                           ask(range)
+                                       },
+                                   ])
         ImasFormField(label: "読み仮名を付ける", imprint: "RUBY", systemImage: "character.textbox") {
             Button {
                 AppAnalytics.tap("lyric_submission.add_ruby")
-                pending = selectedScalars
-                reading = ""
+                if let selection { ask(selection) }
             } label: {
-                Label(selectedScalars == nil ? "歌詞の字を選んでください" : "選んだ字に読み仮名を付ける", systemImage: "plus")
+                Label(selection == nil ? "歌詞の字を選んでください" : "選んだ字に読み仮名を付ける", systemImage: "plus")
             }
             .buttonStyle(.imas(.secondary, size: .small))
-            .disabled(selectedScalars == nil)
+            .disabled(selection == nil)
         }
         .alert("読み仮名", isPresented: Binding(get: { pending != nil }, set: { if !$0 { pending = nil } })) {
             TextField("歌詞カードに振られている読み", text: $reading)
@@ -317,5 +307,10 @@ private struct LyricsRubyEditor: View {
         } message: {
             Text("歌詞カードに振られている読み仮名だけを付けてください。")
         }
+    }
+
+    private func ask(_ range: Range<Int>) {
+        reading = ""
+        pending = range
     }
 }
