@@ -32,6 +32,7 @@ final class LyricsSession {
         guard player.isFullPlayback, player.nowPlayingSongId == entry.song.id else { return }
         self.entry = entry
         LyricsLiveActivityController.shared.sync()
+        LyricsPictureInPicture.shared.sync()
     }
 
     /// 鳴っている曲の歌詞。鳴っていなければ nil。
@@ -44,6 +45,7 @@ final class LyricsSession {
     func release(unlessSongId songId: String?) {
         if entry?.song.id != songId { entry = nil }
         LyricsLiveActivityController.shared.sync()
+        LyricsPictureInPicture.shared.sync()
     }
 
     /// 曲送り・プレイリストで曲が替わったとき、その曲の歌詞を自分で取りに行く

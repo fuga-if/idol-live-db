@@ -139,7 +139,9 @@ targets:
           - _imascard._tcp
           - _imascard._udp
         # P名刺のすれちがいモード。裏にいる間も BLE で名乗り・探し続ける (StreetPassService)。
+        # audio: 歌詞のピクチャ・イン・ピクチャ (LyricsPictureInPicture) を裏で出し続ける。
         UIBackgroundModes:
+          - audio
           - bluetooth-central
           - bluetooth-peripheral
         # 名刺ファイル (.imascard)。名乗り (拡張子・MIME・UTI) はコアの cardFileTypeInfo と同じ値。

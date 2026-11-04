@@ -129,6 +129,9 @@ struct ImasLiveDBApp: App {
     /// DB を開けた後の画面。
     private func root(_ appDatabase: AppDatabase) -> some View {
         ContentView(incomingURL: $incomingURL)
+            // 歌詞のピクチャ・イン・ピクチャの元の層を、どの画面でも画面の裏に置いておく
+            // (歌詞プレイヤーを閉じた後も PiP を続けられるように)。
+            .background(alignment: .topLeading) { LyricsPiPSource().frame(width: 16, height: 9) }
             .environment(appDatabase)
             .environment(syncEngine)
             .task {

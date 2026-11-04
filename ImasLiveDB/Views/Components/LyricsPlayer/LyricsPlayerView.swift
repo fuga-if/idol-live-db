@@ -81,6 +81,9 @@ struct LyricsPlayerView: View {
             // 下へスワイプで畳む (頭と下の操作をつまむ。歌詞は一番上から引き下げる)。
             .offset(y: pullOffset)
         .task { await startIfNeeded() }
+        // 開いたまま鳴らしてホームへ出たら、歌詞が PiP で浮かぶ。
+        .onAppear { LyricsPictureInPicture.shared.setPlayerVisible(true) }
+        .onDisappear { LyricsPictureInPicture.shared.setPlayerVisible(false) }
         .task(id: playback.isFullLoaded) { await poll() }
         .sensoryFeedback(.impact(weight: .light), trigger: likeToken)
         .sensoryFeedback(.impact(weight: .heavy), trigger: callPulse)
@@ -94,6 +97,8 @@ struct LyricsPlayerView: View {
     private var header: some View {
         HStack(spacing: DS.sp3) {
             ImasArtwork(title: song.title, seed: seed, size: 52, imageURL: artworkURL)
+                // ピクチャ・イン・ピクチャの元の層 (浮かぶときにジャケの所から縮む)。
+                .background { LyricsPiPSource() }
             VStack(alignment: .leading, spacing: DS.sp1) {
                 Text(song.title).imasText(.rowTitle).lineLimit(1)
                 if let artistLine, !artistLine.isEmpty {
@@ -107,6 +112,14 @@ struct LyricsPlayerView: View {
                                size: .small, style: .glass) {
                     AppAnalytics.tap("lyrics_player.toggle_call_haptics")
                     callHaptics.toggle()
+                }
+            }
+            if LyricsPictureInPicture.isSupported, hasTiming, playback.isFullLoaded {
+                let pip = LyricsPictureInPicture.shared
+                ImasIconButton(systemImage: pip.isActive ? "pip.exit" : "pip.enter",
+                               label: pip.isActive ? "ピクチャ・イン・ピクチャを終える" : "ピクチャ・イン・ピクチャで歌詞を出す",
+                               size: .small, style: .glass) {
+                    pip.toggle()
                 }
             }
             ImasIconButton(systemImage: "text.badge.plus", label: "プレイリストに追加", size: .small, style: .glass) {
