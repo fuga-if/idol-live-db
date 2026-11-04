@@ -110,14 +110,16 @@ final class LyricsPictureInPicture: NSObject {
     // MARK: - 歌詞・再生が変わったとき
 
     /// 預かった歌詞か再生が変わったときに呼ぶ (`LyricsSession`)。描く必要があれば周期で描き始める。
+    /// 描くのは歌詞プレイヤーを開いている間 (自分で浮かぶための 1 コマを用意しておく) と、浮かべている間だけ。
     func sync() {
         let player = MusicKitService.shared
-        guard player.isFullPlayback, isActive || usableEntry() != nil else {
+        guard player.isFullPlayback, isActive || (playerVisible && usableEntry() != nil) else {
             stopLoop()
             if isActive { controller?.stopPictureInPicture() }
             updateAutoStart()
             return
         }
+        setUpControllerIfNeeded()
         guard loop == nil else { return }
         tick()
         loop = Task { [weak self] in
@@ -131,6 +133,8 @@ final class LyricsPictureInPicture: NSObject {
     private func stopLoop() {
         loop?.cancel()
         loop = nil
+        // 裏に回ると層の中身が消えることがあるので、次に描き始めたら必ず 1 コマ流し直す。
+        lastFrame = nil
     }
 
     /// 行の時刻があり、フル再生で鳴っている曲の歌詞。
@@ -156,7 +160,7 @@ final class LyricsPictureInPicture: NSObject {
             return
         }
         let entry = usableEntry()
-        if entry == nil, !isActive {
+        if entry == nil || !playerVisible, !isActive {
             sync()
             return
         }
@@ -225,7 +229,6 @@ final class LyricsPictureInPicture: NSObject {
             style = newStyle
             lastFrame = nil
         }
-        setUpControllerIfNeeded()
     }
 
     private func setUpControllerIfNeeded() {
