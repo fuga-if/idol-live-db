@@ -50,6 +50,19 @@ final class LyricsPictureInPictureTests: XCTestCase {
         }
     }
 
+    /// 曲ぶんの絵: 行が替わるところで絵が替わり、曲の終わりに曲名だけの絵が来る。全部映像にできる。
+    func testTimelineHasAFramePerChangeAndEncodes() async throws {
+        let entry = entry()
+        let points = LyricsPictureInPicture.timelinePoints(entry, dark: false, durationMs: 10_000)
+        XCTAssertEqual(points.first?.ms, 0)
+        XCTAssertTrue(points.contains { $0.ms == 1_000 && $0.frame.lineIndex == 0 })
+        XCTAssertTrue(points.contains { $0.ms == 6_000 && $0.frame.lineIndex == 1 })
+        XCTAssertNil(points.last?.frame.songId)
+        let made = await LyricsPictureInPicture.makeTimeline(entry, dark: false, durationMs: 10_000)
+        let frames = try XCTUnwrap(made)
+        XCTAssertEqual(frames.map(\.ms), points.map(\.ms))
+    }
+
     func testIntroHasNoCurrentLine() {
         let frame = LyricsPictureInPicture.frame(entry(), positionMs: 0, dark: false)
         XCTAssertNil(frame.lineIndex)

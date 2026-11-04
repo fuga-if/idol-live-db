@@ -5,12 +5,19 @@ import Observation
 import OSLog
 import SwiftUI
 import UIKit
+import VideoToolbox
 import os
 
 /// 歌詞をピクチャ・イン・ピクチャ (PiP) で出す。他のアプリを開いている間も、いま歌っている行が画面の隅に残る。
 ///
 /// PiP は映像しか浮かべられないので、いま歌っている行・次の行・コールを 1 枚の絵に描き、
-/// `AVSampleBufferDisplayLayer` に映像の 1 コマとして流す (行が変わったときだけ描き直す)。
+/// `AVSampleBufferDisplayLayer` に映像の 1 コマとして流す。
+///
+/// 曲ぶんの絵 (行・コールが替わるところごとに 1 枚) を先に描いて H.264 の映像にし、曲の時刻を付けて
+/// まとめて層に流しておく (`Timeline`)。層は自分の時計 (`controlTimebase`) で絵を替えていくので、
+/// アプリが裏で止められても (Spotify で鳴らしている間など) 歌詞は曲の時間どおりに進む。
+/// アプリが動いている間は再生位置と時計を突き合わせ、ずれたら (シーク・一時停止) 流し直す。
+/// 曲ぶんの絵ができるまでは、行が替わるたびに 1 枚描いてすぐ出す。
 /// 歌詞は `LyricsSession` が預かったものから引く (ロック画面のライブアクティビティと同じ)。
 ///
 /// - 歌詞プレイヤーの頭の記号で始める / 終える。
@@ -46,6 +53,16 @@ final class LyricsPictureInPicture: NSObject {
     /// 始めると押したが、まだ PiP を始められる状態になっていない (最初の 1 コマを流した直後など)。
     @ObservationIgnored private var pendingStart = false
     @ObservationIgnored private var style: UIUserInterfaceStyle = .unspecified
+    /// 曲ぶんの絵。いま鳴っている曲・見た目と合っていれば、これを層に流す。
+    @ObservationIgnored private var timeline: Timeline?
+    /// 層に流しているのが曲ぶんの絵か (false なら 1 枚ずつ)。
+    @ObservationIgnored private var showsTimeline = false
+    @ObservationIgnored private var building: (key: TimelineKey, task: Task<Void, Never>)?
+    /// 作れなかった曲ぶんの絵 (裏にいて映像にできなかった等)。しばらくは作り直さない。
+    @ObservationIgnored private var failedBuild: (key: TimelineKey, at: Date)?
+    /// 層がまだ受け取っていない絵 (層の受け口が空いたら続きを渡す)。
+    @ObservationIgnored private var pendingSamples: [CMSampleBuffer] = []
+    @ObservationIgnored private var pendingIndex = 0
     /// PiP の再生ボタン・時間の帯が主スレッドの外から引く値。
     private nonisolated let snapshot = OSAllocatedUnfairLock(initialState: Snapshot())
 
@@ -56,6 +73,21 @@ final class LyricsPictureInPicture: NSObject {
 
     private struct WeakHost {
         weak var view: LyricsPiPHostView?
+    }
+
+    /// 曲ぶんの絵がどの曲・どの見た目・どの時刻の付け方のものか。
+    struct TimelineKey: Equatable {
+        var songId: String
+        var dark: Bool
+        /// 行・コールの時刻と本文 (記録し直したら作り直す)。
+        var signature: Int
+        var durationSec: Int
+    }
+
+    /// 曲ぶんの絵。`ms` はその絵を出し始める曲の時刻。
+    struct Timeline {
+        var key: TimelineKey
+        var frames: [(ms: Int, sample: CMSampleBuffer)]
     }
 
     /// 描いた絵の中身。同じなら描き直さない。
@@ -135,6 +167,7 @@ final class LyricsPictureInPicture: NSObject {
         loop = nil
         // 裏に回ると層の中身が消えることがあるので、次に描き始めたら必ず 1 コマ流し直す。
         lastFrame = nil
+        showsTimeline = false
     }
 
     /// 行の時刻があり、フル再生で鳴っている曲の歌詞。
@@ -150,7 +183,7 @@ final class LyricsPictureInPicture: NSObject {
     private func updateAutoStart() {
         let player = MusicKitService.shared
         controller?.canStartPictureInPictureAutomaticallyFromInline =
-            playerVisible && player.isPlaying && usableEntry() != nil && lastFrame != nil
+            playerVisible && player.isPlaying && usableEntry() != nil && (lastFrame != nil || showsTimeline)
     }
 
     private func tick() {
@@ -171,14 +204,33 @@ final class LyricsPictureInPicture: NSObject {
             $0.isPlaying = isPlaying
             $0.durationMs = durationMs
         }
-        syncTimebase(positionMs: positionMs, isPlaying: isPlaying)
+        let jumped = syncTimebase(positionMs: positionMs, isPlaying: isPlaying)
         if isPlaying != lastPlaying {
             lastPlaying = isPlaying
             controller?.invalidatePlaybackState()
             updateAutoStart()
         }
 
-        let frame = Self.frame(entry, positionMs: positionMs, dark: style == .dark)
+        let dark = style == .dark
+        // 曲ぶんの絵があればそれを流す。無ければ作り始め、できるまでは 1 枚ずつ。
+        if let entry {
+            let key = Self.timelineKey(entry, dark: dark, durationMs: durationMs)
+            if let timeline, timeline.key == key {
+                let renderer = layer.sampleBufferRenderer
+                if !showsTimeline || jumped || renderer.status == .failed || renderer.requiresFlushToResumeDecoding {
+                    schedule(timeline, from: positionMs)
+                }
+                return
+            }
+            buildTimelineIfNeeded(entry, key: key)
+        }
+        if showsTimeline {
+            showsTimeline = false
+            clearLayer()
+            lastFrame = nil
+        }
+
+        let frame = Self.frame(entry, positionMs: positionMs, dark: dark)
         guard frame != lastFrame else { return }
         let firstFrame = lastFrame == nil
         guard let buffer = Self.render(entry, frame: frame) else { return }
@@ -187,14 +239,145 @@ final class LyricsPictureInPicture: NSObject {
         if firstFrame { updateAutoStart() }
     }
 
-    private func syncTimebase(positionMs: Int, isPlaying: Bool) {
-        guard let timebase else { return }
+    /// 層の時計を再生位置に合わせる。時計を動かした (ずれていた・シークした) ら true。
+    @discardableResult
+    private func syncTimebase(positionMs: Int, isPlaying: Bool) -> Bool {
+        guard let timebase else { return false }
         let position = CMTime(value: CMTimeValue(positionMs), timescale: 1000)
-        if abs(CMTimebaseGetTime(timebase).seconds - position.seconds) > 0.5 {
+        var jumped = false
+        if abs(CMTimebaseGetTime(timebase).seconds - position.seconds) > 0.3 {
             CMTimebaseSetTime(timebase, time: position)
+            jumped = true
         }
         let rate: Float64 = isPlaying ? 1 : 0
         if CMTimebaseGetRate(timebase) != rate { CMTimebaseSetRate(timebase, rate: rate) }
+        return jumped
+    }
+
+    // MARK: - 曲ぶんの絵
+
+    private func buildTimelineIfNeeded(_ entry: LyricsSession.Entry, key: TimelineKey) {
+        guard building?.key != key else { return }
+        if let failedBuild, failedBuild.key == key, Date().timeIntervalSince(failedBuild.at) < 15 { return }
+        building?.task.cancel()
+        let task = Task { [weak self] in
+            let frames = await Self.makeTimeline(entry, dark: key.dark, durationMs: key.durationSec * 1000)
+            guard let self, !Task.isCancelled, self.building?.key == key else { return }
+            self.building = nil
+            if let frames {
+                self.timeline = Timeline(key: key, frames: frames)
+                self.failedBuild = nil
+            } else {
+                self.failedBuild = (key, Date())
+            }
+            self.tick()
+        }
+        building = (key, task)
+    }
+
+    /// 層を空にして、曲ぶんの絵を今の位置から流し直す。今の位置の絵は今の時刻に付け直してすぐ出す。
+    private func schedule(_ timeline: Timeline, from positionMs: Int) {
+        clearLayer()
+        let frames = timeline.frames
+        let start = frames.lastIndex { $0.ms <= positionMs } ?? 0
+        pendingSamples = frames[start...].enumerated().compactMap { offset, frame in
+            Self.retimed(frame.sample, ms: offset == 0 ? positionMs : frame.ms)
+        }
+        pendingIndex = 0
+        showsTimeline = true
+        lastFrame = nil
+        feedLayer()
+        if pendingIndex < pendingSamples.count {
+            layer.sampleBufferRenderer.requestMediaDataWhenReady(on: .main) { [weak self] in
+                MainActor.assumeIsolated { self?.feedLayer() }
+            }
+        }
+    }
+
+    private func feedLayer() {
+        let renderer = layer.sampleBufferRenderer
+        while pendingIndex < pendingSamples.count, renderer.isReadyForMoreMediaData {
+            renderer.enqueue(pendingSamples[pendingIndex])
+            pendingIndex += 1
+        }
+        if pendingIndex >= pendingSamples.count {
+            renderer.stopRequestingMediaData()
+            pendingSamples = []
+            pendingIndex = 0
+        }
+    }
+
+    private func clearLayer() {
+        let renderer = layer.sampleBufferRenderer
+        renderer.stopRequestingMediaData()
+        renderer.flush()
+        pendingSamples = []
+        pendingIndex = 0
+    }
+
+    private static func retimed(_ sample: CMSampleBuffer, ms: Int) -> CMSampleBuffer? {
+        var timing = CMSampleTimingInfo(duration: .invalid,
+                                        presentationTimeStamp: CMTime(value: CMTimeValue(ms), timescale: 1000),
+                                        decodeTimeStamp: .invalid)
+        var out: CMSampleBuffer?
+        CMSampleBufferCreateCopyWithNewTiming(allocator: kCFAllocatorDefault, sampleBuffer: sample,
+                                              sampleTimingEntryCount: 1, sampleTimingArray: &timing,
+                                              sampleBufferOut: &out)
+        return out
+    }
+
+    static func timelineKey(_ entry: LyricsSession.Entry, dark: Bool, durationMs: Int) -> TimelineKey {
+        var hasher = Hasher()
+        for line in entry.lyrics.lines {
+            hasher.combine(line.id)
+            hasher.combine(line.startMs)
+            hasher.combine(line.text)
+            for call in line.calls {
+                hasher.combine(call.id)
+                hasher.combine(call.startMs)
+                hasher.combine(call.text)
+            }
+        }
+        return TimelineKey(songId: entry.song.id, dark: dark, signature: hasher.finalize(),
+                           durationSec: durationMs / 1000)
+    }
+
+    /// 曲の中で絵が替わるところと、そこから出す絵。行・コールの始まりちょうどと、その間を 0.1 秒刻みで見る
+    /// (コールが消えるところも拾うため)。同じ絵が続くところは 1 枚にまとめる。曲の終わりには曲名だけの絵を置く。
+    static func timelinePoints(_ entry: LyricsSession.Entry, dark: Bool, durationMs: Int) -> [(ms: Int, frame: Frame)] {
+        let lines = entry.lyrics.lines
+        let starts = lines.compactMap(\.startMs) + lines.flatMap { $0.calls.compactMap(\.startMs) }
+        let endMs = durationMs > 0 ? durationMs : (starts.max() ?? 0) + 10_000
+        var times = Set(starts.filter { $0 >= 0 && $0 < endMs })
+        times.insert(0)
+        for ms in stride(from: 0, to: endMs, by: 100) { times.insert(ms) }
+        var points: [(ms: Int, frame: Frame)] = []
+        for ms in times.sorted() {
+            let frame = Self.frame(entry, positionMs: ms, dark: dark)
+            if points.last?.frame != frame { points.append((ms, frame)) }
+        }
+        if durationMs > 0 { points.append((durationMs, Frame(songId: nil, dark: dark))) }
+        return points
+    }
+
+    /// 曲ぶんの絵を描いて H.264 (全部キーフレーム。どこからでも出せるように) にする。作れなければ nil。
+    static func makeTimeline(_ entry: LyricsSession.Entry, dark: Bool,
+                             durationMs: Int) async -> [(ms: Int, sample: CMSampleBuffer)]? {
+        let points = timelinePoints(entry, dark: dark, durationMs: durationMs)
+        guard !points.isEmpty, let encoder = FrameEncoder(size: canvas) else { return nil }
+        for (index, point) in points.enumerated() {
+            if Task.isCancelled { encoder.cancel(); return nil }
+            guard let pixelBuffer = renderPixelBuffer(point.frame.songId == nil ? nil : entry, frame: point.frame)
+            else { encoder.cancel(); return nil }
+            encoder.encode(pixelBuffer, ms: point.ms)
+            // 主スレッドを長く塞がない (歌詞プレイヤーの追従を止めない)。
+            if index % 3 == 2 { await Task.yield() }
+        }
+        let box = await Task.detached(priority: .userInitiated) { encoder.finish() }.value
+        guard let samples = box?.samples, samples.count == points.count else { return nil }
+        return samples.map { (ms: Int(CMSampleBufferGetPresentationTimeStamp($0).value * 1000
+                                      / Int64(max(1, CMSampleBufferGetPresentationTimeStamp($0).timescale))),
+                              sample: $0) }
     }
 
     private func enqueue(_ buffer: CMSampleBuffer) {
@@ -261,7 +444,10 @@ final class LyricsPictureInPicture: NSObject {
     fileprivate func setActive(_ active: Bool) {
         isActive = active
         pendingStart = false
-        if active { lastFrame = nil }
+        if active {
+            lastFrame = nil
+            showsTimeline = false
+        }
         sync()
     }
 
@@ -283,6 +469,28 @@ final class LyricsPictureInPicture: NSObject {
 
     /// 1 コマ描いて、すぐ出す印を付けた映像の 1 コマにする。
     static func render(_ entry: LyricsSession.Entry?, frame: Frame) -> CMSampleBuffer? {
+        guard let pixelBuffer = renderPixelBuffer(entry, frame: frame) else { return nil }
+        var format: CMVideoFormatDescription?
+        CMVideoFormatDescriptionCreateForImageBuffer(allocator: kCFAllocatorDefault, imageBuffer: pixelBuffer,
+                                                     formatDescriptionOut: &format)
+        guard let format else { return nil }
+        var timing = CMSampleTimingInfo(duration: .invalid, presentationTimeStamp: .zero, decodeTimeStamp: .invalid)
+        var sample: CMSampleBuffer?
+        CMSampleBufferCreateReadyWithImageBuffer(allocator: kCFAllocatorDefault, imageBuffer: pixelBuffer,
+                                                 formatDescription: format, sampleTiming: &timing,
+                                                 sampleBufferOut: &sample)
+        guard let sample else { return nil }
+        if let attachments = CMSampleBufferGetSampleAttachmentsArray(sample, createIfNecessary: true),
+           CFArrayGetCount(attachments) > 0 {
+            let dict = unsafeBitCast(CFArrayGetValueAtIndex(attachments, 0), to: CFMutableDictionary.self)
+            CFDictionarySetValue(dict, Unmanaged.passUnretained(kCMSampleAttachmentKey_DisplayImmediately).toOpaque(),
+                                 Unmanaged.passUnretained(kCFBooleanTrue).toOpaque())
+        }
+        return sample
+    }
+
+    /// 1 コマを絵 (BGRA) に描く。
+    static func renderPixelBuffer(_ entry: LyricsSession.Entry?, frame: Frame) -> CVPixelBuffer? {
         let size = canvas
         var pixelBuffer: CVPixelBuffer?
         let attrs: [CFString: Any] = [
@@ -312,25 +520,7 @@ final class LyricsPictureInPicture: NSObject {
             UIGraphicsPopContext()
         }
         CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
-        guard context != nil else { return nil }
-
-        var format: CMVideoFormatDescription?
-        CMVideoFormatDescriptionCreateForImageBuffer(allocator: kCFAllocatorDefault, imageBuffer: pixelBuffer,
-                                                     formatDescriptionOut: &format)
-        guard let format else { return nil }
-        var timing = CMSampleTimingInfo(duration: .invalid, presentationTimeStamp: .zero, decodeTimeStamp: .invalid)
-        var sample: CMSampleBuffer?
-        CMSampleBufferCreateReadyWithImageBuffer(allocator: kCFAllocatorDefault, imageBuffer: pixelBuffer,
-                                                 formatDescription: format, sampleTiming: &timing,
-                                                 sampleBufferOut: &sample)
-        guard let sample else { return nil }
-        if let attachments = CMSampleBufferGetSampleAttachmentsArray(sample, createIfNecessary: true),
-           CFArrayGetCount(attachments) > 0 {
-            let dict = unsafeBitCast(CFArrayGetValueAtIndex(attachments, 0), to: CFMutableDictionary.self)
-            CFDictionarySetValue(dict, Unmanaged.passUnretained(kCMSampleAttachmentKey_DisplayImmediately).toOpaque(),
-                                 Unmanaged.passUnretained(kCFBooleanTrue).toOpaque())
-        }
-        return sample
+        return context == nil ? nil : pixelBuffer
     }
 
     /// 地は平らな紙の色。上に曲名、真ん中にいま歌っている行 (歌う人の色で字を塗る)、その下に歌う人とコール、
@@ -569,6 +759,83 @@ extension LyricsPictureInPicture: AVPictureInPictureSampleBufferPlaybackDelegate
             self.tick()
         }
         completionHandler()
+    }
+}
+
+// MARK: - 絵を映像にする
+
+/// 描いた絵を H.264 の映像の 1 コマずつにする (VideoToolbox)。全部キーフレームにして、
+/// どの絵からでも層に流し始められるようにする。
+private final class FrameEncoder: @unchecked Sendable {
+    /// 映像にしたコマ (`CMSampleBuffer` は Sendable でないので箱に入れて主スレッドへ返す)。
+    struct Output: @unchecked Sendable {
+        let samples: [CMSampleBuffer]
+    }
+
+    private var session: VTCompressionSession?
+    private let lock = NSLock()
+    private var outputs: [CMSampleBuffer] = []
+    private var failed = false
+
+    init?(size: CGSize) {
+        var created: VTCompressionSession?
+        let status = VTCompressionSessionCreate(allocator: kCFAllocatorDefault, width: Int32(size.width),
+                                                height: Int32(size.height), codecType: kCMVideoCodecType_H264,
+                                                encoderSpecification: nil, imageBufferAttributes: nil,
+                                                compressedDataAllocator: nil, outputCallback: nil, refcon: nil,
+                                                compressionSessionOut: &created)
+        guard status == noErr, let created else {
+            Logger.musickit.error("pip_encoder_create_failed: \(status)")
+            return nil
+        }
+        VTSessionSetProperty(created, key: kVTCompressionPropertyKey_RealTime, value: kCFBooleanFalse)
+        VTSessionSetProperty(created, key: kVTCompressionPropertyKey_AllowFrameReordering, value: kCFBooleanFalse)
+        VTSessionSetProperty(created, key: kVTCompressionPropertyKey_MaxKeyFrameInterval, value: 1 as CFNumber)
+        VTSessionSetProperty(created, key: kVTCompressionPropertyKey_ProfileLevel,
+                             value: kVTProfileLevel_H264_Main_AutoLevel)
+        VTSessionSetProperty(created, key: kVTCompressionPropertyKey_Quality, value: 0.85 as CFNumber)
+        VTCompressionSessionPrepareToEncodeFrames(created)
+        session = created
+    }
+
+    func encode(_ pixelBuffer: CVPixelBuffer, ms: Int) {
+        guard let session else { return }
+        let status = VTCompressionSessionEncodeFrame(
+            session, imageBuffer: pixelBuffer,
+            presentationTimeStamp: CMTime(value: CMTimeValue(ms), timescale: 1000), duration: .invalid,
+            frameProperties: [kVTEncodeFrameOptionKey_ForceKeyFrame: kCFBooleanTrue] as CFDictionary,
+            infoFlagsOut: nil
+        ) { [self] status, _, sample in
+            lock.lock()
+            defer { lock.unlock() }
+            if status == noErr, let sample { outputs.append(sample) } else { failed = true }
+        }
+        if status != noErr {
+            Logger.musickit.error("pip_encode_failed: \(status)")
+            lock.lock()
+            failed = true
+            lock.unlock()
+        }
+    }
+
+    /// 残りを映像にし終えて返す。1 コマでも失敗していれば nil。
+    func finish() -> Output? {
+        guard let session else { return nil }
+        VTCompressionSessionCompleteFrames(session, untilPresentationTimeStamp: .invalid)
+        VTCompressionSessionInvalidate(session)
+        self.session = nil
+        lock.lock()
+        defer { lock.unlock() }
+        guard !failed else { return nil }
+        return Output(samples: outputs.sorted {
+            CMSampleBufferGetPresentationTimeStamp($0) < CMSampleBufferGetPresentationTimeStamp($1)
+        })
+    }
+
+    func cancel() {
+        guard let session else { return }
+        VTCompressionSessionInvalidate(session)
+        self.session = nil
     }
 }
 
