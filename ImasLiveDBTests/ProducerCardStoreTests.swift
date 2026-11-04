@@ -596,8 +596,10 @@ final class ProducerCardStoreTests: XCTestCase {
         mine.cardDesign = .custom
         let custom = try XCTUnwrap(ProducerCardAssembler.encode(card: mine, record: record))
         let file = try XCTUnwrap(decodeCardFile(bytes: try XCTUnwrap(ProducerCardAssembler.myCardFile(custom))))
-        // 名刺の写真 (端末に置いてあれば) は別の種類。ここでは自作の画像だけを見る。
-        let faces: (CardFileContents) -> [CardFileImageKind] = { $0.images.map(\.kind).filter { $0 != .photo } }
+        // 名刺の写真・素材 (端末に置いてあれば) は別の種類。ここでは自作の画像だけを見る。
+        let faces: (CardFileContents) -> [CardFileImageKind] = {
+            $0.images.map(\.kind).filter { $0 == .faceFront || $0 == .faceBack }
+        }
         XCTAssertEqual(faces(file), [.faceFront, .faceBack])
 
         mine.cardDesign = .formal
