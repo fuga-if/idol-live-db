@@ -34,6 +34,96 @@ export const CALL_EMPHASES: ReadonlySet<string> = new Set([
   "performer_request",
 ]);
 
+/**
+ * ペンライトの動き。コール本の「ペンラ芸」の型に対応する。
+ *   sway=左右に振る / pump=縦に振る / spin=回す / raise=掲げる / wave=ウェーブ (客席の波) /
+ *   off=消す (消灯) / on=点ける (消灯からの点灯)。
+ * 色を変えるだけで振り方の指示が無いときは move を null にする。
+ */
+export type PenlightMove = "sway" | "pump" | "spin" | "raise" | "wave" | "off" | "on";
+
+export const PENLIGHT_MOVES: ReadonlySet<string> = new Set([
+  "sway", "pump", "spin", "raise", "wave", "off", "on",
+]);
+
+/**
+ * ペンライトの指示 (コールの一種。`LyricCall.kind === "penlight"` のときだけ載る)。
+ *
+ * 色の書き方 (アプリと共有する契約。読み方はアプリ側は imas-core の lyric_penlight が唯一):
+ *   "oshi"           = 各自の担当色
+ *   "idol:<idol_id>" = そのアイドルのイメージカラー (名前と色はアプリがマスタから引く)
+ *   "#RRGGBB"        = 決まった色 (白・UO のオレンジなど)
+ *   null             = 色の指示なし (振り方だけ)
+ */
+export interface PenlightCue {
+  color: string | null;
+  move: PenlightMove | null;
+  /** 補足 (「2 本持ち」「サビ頭で一斉に」など)。無ければ省略。 */
+  note?: string;
+}
+
+/** 色の指示の書き方。 */
+const PENLIGHT_COLOR_RE = /^(oshi|idol:[A-Za-z0-9_.-]{1,64}|#[0-9A-Fa-f]{6})$/;
+/** ペンライトのメモの長さ上限 (Unicode スカラー数)。 */
+export const MAX_PENLIGHT_NOTE_CHARS = 80;
+
+const PENLIGHT_MOVE_LABELS: Record<PenlightMove, string> = {
+  sway: "左右に振る", pump: "縦に振る", spin: "回す", raise: "掲げる",
+  wave: "ウェーブ", off: "消す", on: "点ける",
+};
+
+/**
+ * 古いアプリ向けの代わりの文言。ペンライトを知らないアプリはこれを普通のコールとして出す。
+ * アプリは色の名前 (アイドル名など) を入れた文言を送ってくるので、空のときだけここで作る。
+ */
+export function penlightFallbackText(cue: PenlightCue): string {
+  const parts = [
+    cue.color === "oshi" ? "担当色" : null,
+    cue.move ? PENLIGHT_MOVE_LABELS[cue.move] : null,
+    cue.note ?? null,
+  ].filter((p): p is string => !!p);
+  return parts.length ? `ペンライト: ${parts.join("・")}` : "ペンライト";
+}
+
+/** ペンライトの指示を検証して正規化する。 */
+function validatePenlight(raw: unknown, at: string): { ok: true; cue: PenlightCue } | { ok: false; error: string } {
+  if (!isPlainObject(raw)) return { ok: false, error: `${at}.penlight must be an object` };
+  const { color, move, note } = raw;
+  if (color !== undefined && color !== null && (typeof color !== "string" || !PENLIGHT_COLOR_RE.test(color))) {
+    return { ok: false, error: `${at}.penlight.color must be null, "oshi", "idol:<id>" or "#RRGGBB"` };
+  }
+  if (move !== undefined && move !== null && (typeof move !== "string" || !PENLIGHT_MOVES.has(move))) {
+    return { ok: false, error: `${at}.penlight.move must be null or one of ${[...PENLIGHT_MOVES].join("/")}` };
+  }
+  if (note !== undefined && note !== null) {
+    if (typeof note !== "string") return { ok: false, error: `${at}.penlight.note must be a string` };
+    if (/[\r\n]/.test(note)) return { ok: false, error: `${at}.penlight.note must not contain a newline` };
+    if (scalarLength(note) > MAX_PENLIGHT_NOTE_CHARS) {
+      return { ok: false, error: `${at}.penlight.note too long (max ${MAX_PENLIGHT_NOTE_CHARS})` };
+    }
+  }
+  const trimmed = typeof note === "string" ? note.trim() : "";
+  const cue: PenlightCue = {
+    color: typeof color === "string" ? (color.startsWith("#") ? color.toUpperCase() : color) : null,
+    move: (move as PenlightMove | null | undefined) ?? null,
+    ...(trimmed ? { note: trimmed } : {}),
+  };
+  if (!cue.color && !cue.move && !cue.note) {
+    return { ok: false, error: `${at}.penlight needs a color, a move or a note` };
+  }
+  return { ok: true, cue };
+}
+
+/** 保存済みの値を読み直す (未知の値が入っていても落とさない)。 */
+function normalizePenlight(raw: unknown): PenlightCue | null {
+  if (!isPlainObject(raw)) return null;
+  const color = typeof raw.color === "string" && PENLIGHT_COLOR_RE.test(raw.color) ? raw.color : null;
+  const move = typeof raw.move === "string" && PENLIGHT_MOVES.has(raw.move) ? (raw.move as PenlightMove) : null;
+  const note = typeof raw.note === "string" && raw.note ? raw.note : undefined;
+  if (!color && !move && !note) return null;
+  return { color, move, ...(note ? { note } : {}) };
+}
+
 export interface LyricCall {
   /** 'cl_<uuid>' 相当。クライアントが採番した ID があればそれを尊重する。 */
   id: string;
@@ -66,6 +156,15 @@ export interface LyricCall {
    * コールの保存・歌詞の差し替えでは id ごとに引き継ぐ (消さない)。
    */
   startMs?: number | null;
+  /**
+   * コールの種類。省略は叫ぶコール。"penlight" はペンライトの指示 (ペンラ芸) で、
+   * penlight に中身が載る。そのとき text は古いアプリ向けの代わりの文言
+   * (ペンライトを知らないアプリでも「ペンライト: 青・左右に振る」と読めるように)。
+   * ペンライトもアンカー・タイミング・再生位置はコールと同じ仕組みに乗る
+   * (歌詞の差し替え・行の結合や分割・退避からの付け直しで一緒に動く)。
+   */
+  kind?: "penlight";
+  penlight?: PenlightCue;
 }
 
 /** 1 行ぶんのコール注釈。lines_json の各行に直接埋め込まれる。 */
@@ -144,10 +243,15 @@ function isIndex(v: unknown): v is number {
  * @param body        リクエストボディ (未検証)
  * @param lineTextById 既存行の id → 本文。**歌詞本文はこちらが正**で、
  *                     ボディ側から本文を受け取らない (この経路で歌詞を書き換えられないようにするため)。
+ * @param existingPenlightById 保存済みのペンライトの指示 (コール id → 中身)。
+ *                     ペンライトを知らない古いアプリは kind / penlight を送らずに保存してくるので、
+ *                     id が一致すればペンライトのまま残す (古いアプリの保存でペンラ芸が
+ *                     ただのコールに化けないように)。
  */
 export function validateCallsBody(
   body: unknown,
-  lineTextById: ReadonlyMap<string, string>
+  lineTextById: ReadonlyMap<string, string>,
+  existingPenlightById: ReadonlyMap<string, PenlightCue> = new Map()
 ): ValidateResult {
   if (!isPlainObject(body)) return { ok: false, error: "body must be an object" };
   const { lines } = body;
@@ -204,7 +308,8 @@ export function validateCallsBody(
       const call = rawCalls[j];
       if (!isPlainObject(call)) return { ok: false, error: `${at} must be an object` };
 
-      const { id: callId, start, end, text, emphasis, timing } = call;
+      const { id: callId, start, end, emphasis, timing, kind } = call;
+      let { text } = call;
       // iOS の APIClient は keyEncodingStrategy = .convertToSnakeCase なので、
       // anchorText は実際には anchor_text で飛んでくる。ここで両方を受ける。
       // (保存値・応答は camelCase の anchorText 一本。iOS 側のデコーダは
@@ -246,6 +351,21 @@ export function validateCallsBody(
         }
       }
 
+      if (kind !== undefined && kind !== null && kind !== "call" && kind !== "penlight") {
+        return { ok: false, error: `${at}.kind must be "call" or "penlight"` };
+      }
+      let penlight: PenlightCue | null = null;
+      if (kind === "penlight") {
+        const p = validatePenlight(call.penlight, at);
+        if (!p.ok) return p;
+        penlight = p.cue;
+        // 代わりの文言はアプリが色の名前入りで作って送る。無ければここで作る。
+        if (text === undefined || text === null || text === "") text = penlightFallbackText(penlight);
+      } else if (kind === undefined && typeof callId === "string") {
+        // 古いアプリの保存: 種類を知らないだけなので、保存済みのペンライトはそのまま残す。
+        penlight = existingPenlightById.get(callId) ?? null;
+      }
+
       if (typeof text !== "string" || !text) {
         return { ok: false, error: `${at}.text must be a non-empty string` };
       }
@@ -285,6 +405,7 @@ export function validateCallsBody(
         emphasis: (emphasis as CallEmphasis) ?? "normal",
         timing: resolvedTiming,
         // 今まさに本文と突き合わせた直後なのでズレは無い。stale は立てない。
+        ...(penlight ? { kind: "penlight" as const, penlight } : {}),
       });
       // 同一アンカーに複数のコールを許す (重複チェックはしない)。配列順が表示順。
     }
@@ -353,8 +474,30 @@ export function carryOverAnnotation(
       // stale は false のとき省略する (歌詞を直して元に戻したら印も消える)。
       ...(stale ? { stale: true } : {}),
       ...(typeof raw.startMs === "number" ? { startMs: raw.startMs } : {}),
+      ...penlightFields(raw),
     });
   }
 
   return { clap, calls };
+}
+
+/** 保存済みのコールからペンライトの指示を引き継ぐ (ペンライトでなければ何も足さない)。 */
+function penlightFields(raw: Record<string, unknown>): { kind?: "penlight"; penlight?: PenlightCue } {
+  if (raw.kind !== "penlight") return {};
+  const penlight = normalizePenlight(raw.penlight);
+  return penlight ? { kind: "penlight", penlight } : {};
+}
+
+/** 行の並びから、保存済みのペンライトの指示を コール id → 中身 で引く。 */
+export function penlightsById(lines: ReadonlyArray<{ calls?: unknown }>): Map<string, PenlightCue> {
+  const out = new Map<string, PenlightCue>();
+  for (const line of lines) {
+    if (!Array.isArray(line.calls)) continue;
+    for (const raw of line.calls) {
+      if (!isPlainObject(raw) || typeof raw.id !== "string") continue;
+      const { penlight } = penlightFields(raw);
+      if (penlight) out.set(raw.id, penlight);
+    }
+  }
+  return out;
 }
