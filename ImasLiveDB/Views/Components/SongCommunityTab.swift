@@ -30,6 +30,11 @@ struct SongCommunityTab: View {
     let navigate: (DetailDestination) -> Void
     let onIntent: (SongCommunityIntent) -> Void
 
+    /// いまその場で再生している参考動画 (1 本だけ。別の動画を押すと前のは止まる)。
+    @State private var playingVideoID: String?
+    /// 押してみて埋め込みを止めていると分かった動画。以後は案内を出し、押すと YouTube で開く。
+    @State private var unplayableVideoIDs: Set<String> = []
+
     private var permission: EditPermissionRules { EditPermission.rules }
 
     var body: some View {
@@ -141,12 +146,26 @@ struct SongCommunityTab: View {
         let videoID = ref?.videoId
         return VStack(alignment: .leading, spacing: DS.sp3) {
             if let ref, videoID != nil, let url = URL.safeHTTP(string: video.youtubeUrl) {
-                // 公式 MV は埋め込み無効が多くアプリ内再生不可 (YouTube仕様) のため、
-                // サムネタップで YouTube アプリ/Safari を開く。
-                Button { openURL(url) } label: {
-                    videoThumbnail(ref)
+                // サムネを押すとその場で再生する。公式 MV のように埋め込みを止めている動画は
+                // YouTube の仕様で再生できないので、分かった時点で「YouTube で開く」案内に替える。
+                if unplayableVideoIDs.contains(video.id) {
+                    YouTubeUnplayableNotice { openURL(url) }
+                } else if playingVideoID == video.id, let player = youtubeEmbedPlayer(url: video.youtubeUrl) {
+                    YouTubeInlinePlayer(player: player) {
+                        unplayableVideoIDs.insert(video.id)
+                        if playingVideoID == video.id { playingVideoID = nil }
+                    }
+                    .id(video.id)
+                } else {
+                    Button {
+                        AppAnalytics.tap("song_detail.video_play")
+                        playingVideoID = video.id
+                    } label: {
+                        videoThumbnail(ref)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("\(video.videoTitle ?? "参考動画") を再生")
                 }
-                .buttonStyle(.plain)
             }
             if let title = video.videoTitle {
                 Text(title).imasText(.value)
@@ -167,6 +186,14 @@ struct SongCommunityTab: View {
                     Text("投稿者: \(author)").imasText(.meta, color: DS.ink3)
                 }
                 Spacer(minLength: 4)
+                if videoID != nil, let url = URL.safeHTTP(string: video.youtubeUrl) {
+                    // その場で再生するようになったので、YouTube アプリで見たい人の口を残す。
+                    Button { openURL(url) } label: {
+                        Image(systemName: "arrow.up.right.square").imasText(.meta)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("YouTube で開く")
+                }
                 if permission.showEditAffordance {
                     Button { onIntent(.editVideo(video)) } label: {
                         Image(systemName: "pencil").imasText(.meta)

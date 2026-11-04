@@ -23,6 +23,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.runtime.key
+import uniffi.imas_core.youtubeEmbedPlayer
+import com.fugaif.imaslivedb.ui.components.YouTubeUnplayableNotice
+import com.fugaif.imaslivedb.ui.components.YouTubeInlinePlayer
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
@@ -1193,10 +1198,23 @@ private fun CommunityTab(
             } else {
                 // id とサムネイルの URL はコアが読む (一覧で 1 回)。
                 val refs = remember(state.songVideos) { youtubeVideoRefs(state.songVideos.map { it.youtubeUrl }) }
+                // いまその場で再生している動画 (1 本だけ) と、埋め込みを止めていると分かった動画。
+                var playingVideoId by remember { mutableStateOf<String?>(null) }
+                var unplayableVideoIds by remember { mutableStateOf(emptySet<String>()) }
                 ImasCardList {
                     state.songVideos.forEachIndexed { index, video ->
                         if (index > 0) ImasRowDivider(inset = DS.sp5)
-                        VideoRow(video, refs.getOrNull(index), canEditHere, onEditVideo) { openUrl(context, video.youtubeUrl) }
+                        VideoRow(
+                            video, refs.getOrNull(index), canEditHere, onEditVideo,
+                            isPlaying = playingVideoId == video.id,
+                            isUnplayable = video.id in unplayableVideoIds,
+                            onPlay = { playingVideoId = video.id },
+                            onUnplayable = {
+                                unplayableVideoIds = unplayableVideoIds + video.id
+                                if (playingVideoId == video.id) playingVideoId = null
+                            },
+                            onOpenVideo = { openUrl(context, video.youtubeUrl) }
+                        )
                     }
                 }
             }
@@ -1210,10 +1228,22 @@ private fun VideoRow(
     ref: uniffi.imas_core.YouTubeVideoRef?,
     canEditHere: Boolean,
     onEditVideo: (SongVideo) -> Unit,
+    isPlaying: Boolean,
+    isUnplayable: Boolean,
+    onPlay: () -> Unit,
+    onUnplayable: () -> Unit,
     onOpenVideo: () -> Unit
 ) {
+    // 動画 id が読めれば行を押すとその場で再生する (埋め込みを止めている動画は案内に替える)。
+    // 読めない URL はこれまでどおり外へ開く。
+    val player = remember(video.youtubeUrl) { if (ref?.videoId != null) youtubeEmbedPlayer(video.youtubeUrl) else null }
+    val onRowClick = when {
+        player == null || isUnplayable -> onOpenVideo
+        else -> onPlay
+    }
+    Column {
     Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenVideo).padding(horizontal = DS.Space.rowH, vertical = DS.Space.rowV),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onRowClick).padding(horizontal = DS.Space.rowH, vertical = DS.Space.rowV),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
@@ -1252,12 +1282,28 @@ private fun VideoRow(
             video.note?.takeIf { it.isNotEmpty() }?.let { note -> ImasText(note, ImasTextRole.META, maxLines = 1, overflow = TextOverflow.Ellipsis) }
             video.authorDisplayName?.takeIf { it.isNotEmpty() }?.let { author -> ImasText("投稿者: $author", ImasTextRole.META, color = DS.ink3) }
         }
+        if (player != null) {
+            // その場で再生するようになったので、YouTube アプリで見たい人の口を残す。
+            ImasIconButton(
+                icon = Icons.AutoMirrored.Filled.OpenInNew, label = "YouTube で開く", size = ImasIconButtonSize.SMALL,
+                style = ImasIconButtonStyle.PLAIN, onClick = onOpenVideo
+            )
+        }
         if (canEditHere) {
             ImasIconButton(
                 icon = Icons.Filled.Edit, label = "参考動画を編集", size = ImasIconButtonSize.SMALL,
                 style = ImasIconButtonStyle.PLAIN, onClick = { onEditVideo(video) }
             )
         }
+    }
+    if (player != null && (isPlaying || isUnplayable)) {
+        val stage = Modifier.padding(start = DS.Space.rowH, end = DS.Space.rowH, bottom = DS.Space.rowV)
+        if (isUnplayable) {
+            YouTubeUnplayableNotice(onOpen = onOpenVideo, modifier = stage)
+        } else {
+            key(video.id) { YouTubeInlinePlayer(player, onUnplayable = onUnplayable, modifier = stage) }
+        }
+    }
     }
 }
 
