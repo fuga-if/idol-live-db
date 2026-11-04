@@ -67,7 +67,44 @@ enum ProducerCardFiles {
                 try image.jpeg.write(to: faceFile(cardId, side: .front), options: .atomic)
             case .faceBack:
                 try image.jpeg.write(to: faceFile(cardId, side: .back), options: .atomic)
+            case .sticker:
+                break
             }
+        }
+        // 素材は届いた並びで置き換える (相手が素材を外した名刺を送り直したら、古い素材を出し続けない)。
+        try saveReceivedStickers(cardId: cardId, images: images.filter { $0.kind == .sticker })
+    }
+
+    // MARK: 受け取った素材
+
+    private static func stickerLayoutFile(_ cardId: String) -> URL {
+        folder(cardId).appendingPathComponent("stickers.json")
+    }
+
+    private static func stickerFile(_ cardId: String, id: String) -> URL {
+        folder(cardId).appendingPathComponent("sticker_\(safeName(id)).img")
+    }
+
+    private static func saveReceivedStickers(cardId: String, images: [CardFileImage]) throws {
+        for old in receivedStickerLayout(cardId: cardId) {
+            try? FileManager.default.removeItem(at: stickerFile(cardId, id: old.id))
+        }
+        let placed = images.compactMap { image in image.sticker.map { ($0, image.jpeg) } }
+        for (sticker, data) in placed {
+            try data.write(to: stickerFile(cardId, id: sticker.id), options: .atomic)
+        }
+        try Data(cardStickersToJson(stickers: placed.map(\.0)).utf8).write(to: stickerLayoutFile(cardId), options: .atomic)
+    }
+
+    private static func receivedStickerLayout(cardId: String) -> [CardSticker] {
+        (try? String(contentsOf: stickerLayoutFile(cardId), encoding: .utf8)).map { cardStickersFromJson(json: $0) } ?? []
+    }
+
+    /// 受け取った名刺の素材 (重なりの順。画像の無いものは除く)。
+    static func receivedStickers(cardId: String) -> [(sticker: CardSticker, url: URL)] {
+        receivedStickerLayout(cardId: cardId).compactMap { sticker in
+            let url = stickerFile(cardId, id: sticker.id)
+            return FileManager.default.fileExists(atPath: url.path) ? (sticker, url) : nil
         }
     }
 
@@ -177,6 +214,55 @@ enum ProducerCardFiles {
 
     static func deleteMyPhoto() {
         try? FileManager.default.removeItem(at: myFolder)
+    }
+
+    // MARK: 自分の名刺の素材
+
+    /// 名刺の表に置く素材の置き場所 (`Documents/producer_card_stickers/`)。画像は `<id>.png` (透過のまま)、
+    /// 置き方は `stickers.json` (コアの保存の形 `cardStickersToJson`)。名刺の行には持たない (画像と一緒に消えるように)。
+    private static var myStickerFolder: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("producer_card_stickers", isDirectory: true)
+    }
+
+    static func myStickerURL(id: String) -> URL? {
+        let url = myStickerFolder.appendingPathComponent("\(safeName(id)).png")
+        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+    }
+
+    /// 自分の名刺の素材の置き方 (重なりの順。画像の無いものは除く)。
+    static var myStickers: [CardSticker] {
+        let url = myStickerFolder.appendingPathComponent("stickers.json")
+        let stored = (try? String(contentsOf: url, encoding: .utf8)).map { cardStickersFromJson(json: $0) } ?? []
+        return stored.filter { myStickerURL(id: $0.id) != nil }
+    }
+
+    /// 素材を書き直す (置き方の並びと、新しく足した画像)。並びに無い画像は消す。
+    static func saveMyStickers(_ stickers: [CardSticker], newImages: [String: Data]) throws {
+        try FileManager.default.createDirectory(at: myStickerFolder, withIntermediateDirectories: true)
+        for (id, data) in newImages where stickers.contains(where: { $0.id == id }) {
+            try data.write(to: myStickerFolder.appendingPathComponent("\(safeName(id)).png"), options: .atomic)
+        }
+        let keep = Set(stickers.map { "\(safeName($0.id)).png" })
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: myStickerFolder.path)) ?? []
+        for name in names where name.hasSuffix(".png") && !keep.contains(name) {
+            try? FileManager.default.removeItem(at: myStickerFolder.appendingPathComponent(name))
+        }
+        try Data(cardStickersToJson(stickers: stickers).utf8)
+            .write(to: myStickerFolder.appendingPathComponent("stickers.json"), options: .atomic)
+    }
+
+    /// 素材の画像を名刺に置く形にする (長辺 1200px までの PNG。透過を残す)。
+    static func stickerPNG(_ image: UIImage) -> Data? {
+        let longest = max(image.size.width, image.size.height) * image.scale
+        let ratio = min(1, 1200 / max(longest, 1))
+        let size = CGSize(width: image.size.width * image.scale * ratio, height: image.size.height * image.scale * ratio)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = false
+        return UIGraphicsImageRenderer(size: size, format: format).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: size))
+        }.pngData()
     }
 
     // MARK: 自分の名刺用の担当の画像

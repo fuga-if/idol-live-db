@@ -69,6 +69,8 @@ struct ProducerCardPrintMaterials {
     var faceBack: UIImage?
     /// 担当の写真 (アイドルの id → 画像)。
     var oshiImages: [String: UIImage] = [:]
+    /// 表に重ねる素材 (重なりの順、読み込み済み)。
+    var stickers: [ImasMeishiSticker] = []
 
     /// 自分の名刺の画像 (名刺の写真・担当の代表画像・自作の画像) を読む。
     @MainActor
@@ -82,6 +84,11 @@ struct ProducerCardPrintMaterials {
         for id in card.oshiIdolIds {
             if let url = ProducerCardFiles.cardOshiImageURL(idolId: id),
                let image = ProducerCardFiles.printImage(at: url, maxPixels: oshiPixels) { out.oshiImages[id] = image }
+        }
+        out.stickers = ProducerCardFiles.myStickers.compactMap { s in
+            ProducerCardFiles.myStickerURL(id: s.id)
+                .flatMap { ProducerCardFiles.printImage(at: $0, maxPixels: 1400) }
+                .map { ProducerCardDisplay.stickerView(s, picture: .image($0)) }
         }
         if ProducerCardDisplay.design(card, face: face).usesFaceImage, let face {
             out.faceFront = ProducerCardFiles.printImage(at: face.front, maxPixels: 2000)
@@ -147,7 +154,8 @@ struct ProducerCardPrintSheet {
             handle: face.handle?.display,
             nameFont: ProducerCardDisplay.nameFont(card.card),
             portrait: materials.portrait,
-            portraitRound: materials.portraitRound
+            portraitRound: materials.portraitRound,
+            stickers: materials.stickers
         )
     }
 

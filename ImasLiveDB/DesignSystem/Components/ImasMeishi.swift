@@ -91,6 +91,16 @@ struct ImasMeishiOshiGroup: Identifiable {
     var id: String { oshi.first?.id ?? label }
 }
 
+/// 名刺の表に重ねる素材 1 枚 (置き方はコアの `CardSticker`: 紙に対する中心・幅・傾き)。
+struct ImasMeishiSticker: Identifiable {
+    let id: String
+    let picture: ImasMeishiPicture
+    let x: CGFloat
+    let y: CGFloat
+    let width: CGFloat
+    let rotationDegrees: Double
+}
+
 /// 名刺の表に並べる担当 1 人。
 struct ImasMeishiOshi: Identifiable {
     let id: String
@@ -127,6 +137,8 @@ struct ImasMeishiFront: View {
     var portrait: ImasMeishiPicture? = nil
     /// 名刺の写真を丸く切る (X のアイコン。切り方はコアの `cardPhotoShape`)。
     var portraitRound = false
+    /// 表の上に重ねる素材 (重なりの順)。
+    var stickers: [ImasMeishiSticker] = []
     /// 渡された紙と墨 (夜公演はここから黒い紙を組む。描くときは `ink`)。
     private let baseInk: ImasMeishiInk
     /// 紙の上の寸法を何倍で描くか (画面は幅に合わせる)。
@@ -135,7 +147,7 @@ struct ImasMeishiFront: View {
     init(look: Look = .pass, name: String, sinceImprint: String? = nil, oshiGroups: [ImasMeishiOshiGroup] = [],
          hero: [ImasMeishiOshi] = [], oshiCaption: String? = nil, moreOshi: Int = 0, handle: String? = nil,
          nameFont: String? = nil, portrait: ImasMeishiPicture? = nil, portraitRound: Bool = false,
-         ink: ImasMeishiInk, scale: CGFloat = 1) {
+         stickers: [ImasMeishiSticker] = [], ink: ImasMeishiInk, scale: CGFloat = 1) {
         self.look = look
         self.name = name
         self.sinceImprint = sinceImprint
@@ -147,6 +159,7 @@ struct ImasMeishiFront: View {
         self.nameFont = nameFont
         self.portrait = portrait
         self.portraitRound = portraitRound
+        self.stickers = stickers
         self.baseInk = ink
         self.scale = scale
     }
@@ -170,6 +183,8 @@ struct ImasMeishiFront: View {
         }
         .frame(width: p(ImasMeishi.canvas.width), height: p(ImasMeishi.canvas.height))
         .background(ink.paper)
+        .overlay { ImasMeishiStickerLayer(stickers: stickers, scale: scale) }
+        .clipped()
     }
 
     // MARK: 入場証 (担当色の縦の帯)
@@ -809,5 +824,29 @@ struct ImasMeishiVerticalText: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(text)
+    }
+}
+
+// MARK: - 素材
+
+/// 名刺の表に重ねる素材の層。素材は紙の大きさに対する割合で置き、紙の外にはみ出した分は切る。
+struct ImasMeishiStickerLayer: View {
+    let stickers: [ImasMeishiSticker]
+    var scale: CGFloat = 1
+
+    var body: some View {
+        let w = ImasMeishi.canvas.width * scale, h = ImasMeishi.canvas.height * scale
+        ZStack(alignment: .topLeading) {
+            ForEach(stickers) { sticker in
+                ImasMeishiPictureView(picture: sticker.picture, contentMode: .fit, fallback: Color.clear)
+                    .frame(width: w * sticker.width)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .rotationEffect(.degrees(sticker.rotationDegrees))
+                    .position(x: w * sticker.x, y: h * sticker.y)
+            }
+        }
+        .frame(width: w, height: h, alignment: .topLeading)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }

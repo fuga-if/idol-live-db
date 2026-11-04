@@ -34,6 +34,15 @@ struct ProducerCardEditorView: View {
     @State private var oshiImagePick: PhotosPickerItem?
     @State private var showingOshiImagePicker = false
     @State private var oshiImageMenuTarget: Idol?
+    /// 表に重ねる素材 (置き方の並び) と、見本に出す画像 (端末の画像か書きかけの一時ファイル)。✓ で端末に書く。
+    @State private var stickers: [CardSticker] = ProducerCardFiles.myStickers
+    @State private var stickerImages: [String: URL] = Dictionary(
+        uniqueKeysWithValues: ProducerCardFiles.myStickers.compactMap { s in ProducerCardFiles.myStickerURL(id: s.id).map { (s.id, $0) } }
+    )
+    @State private var stickerNewData: [String: Data] = [:]
+    @State private var stickerPick: PhotosPickerItem?
+    @State private var stickerSource: StickerSource?
+    @State private var placingStickers = false
     @State private var brands: [String: Brand] = [:]
     @State private var isSaving = false
     @State private var error: String?
@@ -177,6 +186,9 @@ struct ProducerCardEditorView: View {
             #if DEBUG
             .onAppear {
                 // シミュレータでの見た目確認 (PRODUCER_CARD_SCROLL=look|oshi|qr|image)。
+                if ProcessInfo.processInfo.environment["PRODUCER_CARD_PLACE"] == "1" {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) { placingStickers = true }
+                }
                 if let target = ProcessInfo.processInfo.environment["PRODUCER_CARD_SCROLL"] {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1) { proxy.scrollTo(target, anchor: .top) }
                 }
@@ -198,6 +210,23 @@ struct ProducerCardEditorView: View {
                                    round: cardPhotoShape(source: draft.origin) == .round) { result in
                     Task { await applyCrop(image: draft.image, crop: result, origin: draft.origin) }
                 }
+            }
+            .onChange(of: stickerPick) { _, item in
+                guard let item else { return }
+                stickerPick = nil
+                Task {
+                    guard let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) else {
+                        error = "画像を読み込めませんでした。"
+                        return
+                    }
+                    stickerSource = StickerSource(image: image)
+                }
+            }
+            .sheet(item: $stickerSource) { source in
+                StickerPrepSheet(image: source.image) { png in addSticker(png) }
+            }
+            .fullScreenCover(isPresented: $placingStickers) {
+                StickerPlacementView(card: stickerBaseCard, images: stickerImages, stickers: $stickers)
             }
             .photosPicker(isPresented: $showingOshiImagePicker, selection: $oshiImagePick, matching: .images)
             .onChange(of: oshiImagePick) { _, item in
@@ -258,21 +287,28 @@ struct ProducerCardEditorView: View {
     /// 今の入力で組んだ名刺の表 (保存前でもその場で見た目に出す)。名刺は 91:55 の紙 1 枚なので、
     /// 入力で背が変わらない (名刺の下の詳細は出さない・返さない)。
     private var preview: some View {
+        var display = previewCard(withStickers: true)
+        display.isFlippable = false
+        return display
+            .accessibilityLabel("名刺の見本")
+    }
+
+    /// 今の入力で組んだ名刺。
+    private func previewCard(withStickers: Bool) -> ImasProducerCard {
         let rec = record ?? ProducerCardMyRecord(oshiIds: [], attended: [], songCount: 0)
         var sample = draft
         if sample.name.isEmpty { sample.name = "名前" }
         let card = encodeProducerCard(input: ProducerCardAssembler.input(card: sample, record: rec)).card
-        var display = ProducerCardDisplay.view(
+        let placed = withStickers ? stickers.compactMap { s in stickerImages[s.id].map { (sticker: s, url: $0) } } : []
+        return ProducerCardDisplay.view(
             card, directory: directory,
             imageURL: { oshiImageURL($0) },
             portraitURL: previewPortrait,
             portraitSource: photoOrigin,
             face: previewFace,
+            stickers: ProducerCardDisplay.stickers(placed),
             onOpenLink: nil, onOpenOshi: nil
         )
-        display.isFlippable = false
-        return display
-            .accessibilityLabel("名刺の見本")
     }
 
     // MARK: - デザイン
@@ -308,6 +344,39 @@ struct ProducerCardEditorView: View {
                 faceField
             } else {
                 inkField
+                stickerField
+            }
+        }
+    }
+
+    /// 素材: 表に重ねる好きな画像 (背景を切り抜いた透過の画像も)。3 枚まで。
+    private var stickerField: some View {
+        let max = Int(cardStickersMax())
+        return ImasFormField(label: "素材", imprint: "STICKER") {
+            VStack(alignment: .leading, spacing: DS.Space.gap) {
+                if !stickers.isEmpty {
+                    HStack(spacing: DS.Space.gap) {
+                        ForEach(stickers, id: \.id) { s in
+                            if let url = stickerImages[s.id] { ImasStickerThumb(url: url) }
+                        }
+                    }
+                    Button { placingStickers = true } label: {
+                        ImasNavRow(title: "素材を置く", subtitle: "名刺の上で動かす・大きさ・傾き・重なり",
+                                   systemImage: "hand.draw")
+                    }
+                    .buttonStyle(.plain)
+                }
+                if stickers.count < max {
+                    PhotosPicker(selection: $stickerPick, matching: .images) {
+                        ImasNavRow(title: "素材を足す", subtitle: "写真から選んで、背景を切り抜くこともできます",
+                                   systemImage: "plus.square.on.square", showsChevron: false, subtitleLineLimit: 2)
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Text("素材は \(max) 枚までです。").imasText(.note)
+                }
+                Text("素材は名刺ファイルと近くの端末で渡した相手に届きます。QR だけで受け取った人と Web では出ません。")
+                    .imasText(.note)
             }
         }
     }
@@ -739,7 +808,7 @@ struct ProducerCardEditorView: View {
             || hidden != card.hidden || draft.linksJson != card.linksJson
             || draft.cardDesign != card.cardDesign || draft.ink != card.ink || draft.qrUrl != card.qrUrl || photoDirty || !faceDirty.isEmpty
             || songs != card.profile.songs || oshiChoice != card.cardOshiChoice || renewedCardId != nil
-            || !oshiImageDraft.isEmpty
+            || !oshiImageDraft.isEmpty || stickers != ProducerCardFiles.myStickers || !stickerNewData.isEmpty
     }
 
     private func cancel() {
@@ -763,6 +832,9 @@ struct ProducerCardEditorView: View {
                     ProducerCardFiles.deleteMyPhoto()
                 }
             }
+            if stickers != ProducerCardFiles.myStickers || !stickerNewData.isEmpty {
+                try ProducerCardFiles.saveMyStickers(stickers, newImages: stickerNewData)
+            }
             for (id, url) in oshiImageDraft {
                 if let url, let image = UIImage(contentsOfFile: url.path) {
                     try ProducerCardFiles.saveMyOshiImage(image, idolId: id)
@@ -782,6 +854,36 @@ struct ProducerCardEditorView: View {
         } catch {
             self.error = "保存できませんでした。\(error.localizedDescription)"
         }
+    }
+
+    // MARK: - 素材
+
+    /// 素材にする元の画像 (整える画面に渡す)。
+    struct StickerSource: Identifiable {
+        let id = UUID()
+        let image: UIImage
+    }
+
+    /// 整えた素材を足す (見本には一時ファイルで出し、✓ で端末に書く)。
+    private func addSticker(_ png: Data) {
+        let id = String(UUID().uuidString.prefix(8)).lowercased()
+        let dir = Self.previewFolder
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let url = dir.appendingPathComponent("sticker-\(id).png")
+        guard (try? png.write(to: url, options: .atomic)) != nil else { return }
+        let next = cardStickersAdd(stickers: stickers, id: id)
+        guard next.count > stickers.count else { return }
+        stickers = next
+        stickerImages[id] = url
+        stickerNewData[id] = png
+        placingStickers = true
+    }
+
+    /// 素材を置く画面の下敷き (今の入力で組んだ名刺、素材は重ねない)。
+    private var stickerBaseCard: ImasProducerCard {
+        var display = previewCard(withStickers: false)
+        display.isFlippable = false
+        return display
     }
 
     // MARK: - 名刺用の担当の画像

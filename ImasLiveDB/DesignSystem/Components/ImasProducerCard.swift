@@ -137,6 +137,8 @@ struct ImasProducerCard: View {
     var accentOshiId: String? = nil
     /// 墨一色で刷る (刷る色に墨を選んだ。コアの `CardFace.accentIdolId` が無い)。
     var sumiInk = false
+    /// 表の上に重ねる素材 (重なりの順。自作の画像の名刺には重ねない)。
+    var stickers: [ImasMeishiSticker] = []
     /// 裏。nil なら返さない (自作の画像に裏の画像があればそれを裏にする)。
     var back: Back? = nil
     /// 押して裏返せる (編集画面の固定の見本は返さない)。
@@ -249,6 +251,7 @@ struct ImasProducerCard: View {
                 nameFont: nameFont,
                 portrait: portraitURL.map { .url($0) },
                 portraitRound: portraitRound,
+                stickers: stickers,
                 ink: ink,
                 scale: scale
             )

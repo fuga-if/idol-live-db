@@ -106,6 +106,21 @@ enum ProducerCardDisplay {
         }
     }
 
+    /// 素材の置き方と画像を名刺に重ねる形にする。
+    static func stickers(_ placed: [(sticker: CardSticker, url: URL)]) -> [ImasMeishiSticker] {
+        placed.map { stickerView($0.sticker, picture: .url($0.url)) }
+    }
+
+    static func stickerView(_ s: CardSticker, picture: ImasMeishiPicture) -> ImasMeishiSticker {
+        ImasMeishiSticker(id: s.id, picture: picture, x: CGFloat(s.x), y: CGFloat(s.y), width: CGFloat(s.width),
+                          rotationDegrees: s.rotationDegrees)
+    }
+
+    /// 自分の名刺の素材。
+    static func myStickers() -> [ImasMeishiSticker] {
+        stickers(ProducerCardFiles.myStickers.compactMap { s in ProducerCardFiles.myStickerURL(id: s.id).map { (s, $0) } })
+    }
+
     /// 自分の名刺の顔 (自作の画像の表があれば)。
     static func myFace() -> Face? {
         ProducerCardFiles.myFaceURL(.front).map { Face(front: $0, back: ProducerCardFiles.myFaceURL(.back)) }
@@ -188,6 +203,7 @@ enum ProducerCardDisplay {
                      imageURL: (String) -> URL?, portraitURL: URL? = nil,
                      portraitSource: CardPhotoSource = .picked, face: Face? = nil,
                      back: ImasProducerCard.Back? = nil, payload: String? = nil, showsRecord: Bool = true,
+                     stickers: [ImasMeishiSticker] = [],
                      onOpenLink: ((ImasProducerCard.Link) -> Void)?,
                      onOpenOshi: ((ImasProducerCard.Oshi) -> Void)?) -> ImasProducerCard {
         let oshi = oshi(card, directory: directory, sharedWith: myOshi, imageURL: imageURL)
@@ -215,6 +231,7 @@ enum ProducerCardDisplay {
             nameFont: nameFont(card, face: face),
             accentOshiId: cardFace.accentIdolId,
             sumiInk: cardFace.accentIdolId == nil,
+            stickers: stickers,
             back: Self.back(card, face: cardFace, payload: payload, qr: back),
             onOpenLink: onOpenLink,
             onOpenOshi: onOpenOshi

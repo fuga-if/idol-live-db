@@ -80,6 +80,8 @@ struct ProducerCardPrintFront: View {
     var portrait: UIImage? = nil
     /// 名刺の写真を丸く切る (X のアイコン)。
     var portraitRound = false
+    /// 表に重ねる素材 (画像は読み込み済みのもの)。
+    var stickers: [ImasMeishiSticker] = []
 
     var body: some View {
         ImasMeishiFront(
@@ -92,6 +94,7 @@ struct ProducerCardPrintFront: View {
             moreOshi: moreOshi, handle: handle, nameFont: nameFont,
             portrait: portrait.map { .image($0) },
             portraitRound: portraitRound,
+            stickers: stickers,
             ink: ProducerCardPrint.colors(seed: seed)
         )
     }

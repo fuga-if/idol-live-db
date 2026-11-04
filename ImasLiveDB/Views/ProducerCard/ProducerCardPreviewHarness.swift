@@ -81,6 +81,7 @@ struct ProducerCardPreviewHarness: View {
                 try? database.saveMyProducerCard(mine)
                 if key == "custom" { Samples.saveMyFaces() }
             }
+            if ProcessInfo.processInfo.environment["PRODUCER_CARD_STICKERS"] == "1" { Samples.saveMyStickers() }
             if let names = Self.envOshiChosen, var mine = try? database.myProducerCard() {
                 let idols = (try? await AppContainer.shared.idolReading.idols(
                     ids: (try? await AppContainer.shared.markReading.markedEntityIds(entity: .idol, kind: .myPick)) ?? []
@@ -448,6 +449,44 @@ struct ProducerCardPreviewHarness: View {
                 }
             }
             return count
+        }
+
+        /// 見本の素材 2 枚 (透過の星と、透過の丸に人の形)。`PRODUCER_CARD_STICKERS=1`。
+        @MainActor
+        static func saveMyStickers() {
+            func png(_ draw: (CGRect) -> Void) -> Data? {
+                let format = UIGraphicsImageRendererFormat()
+                format.scale = 1
+                format.opaque = false
+                let rect = CGRect(x: 0, y: 0, width: 600, height: 600)
+                return UIGraphicsImageRenderer(size: rect.size, format: format).image { _ in draw(rect) }.pngData()
+            }
+            let star = png { rect in
+                let path = UIBezierPath()
+                for i in 0..<10 {
+                    let r = i % 2 == 0 ? rect.width / 2 : rect.width / 5
+                    let a = Double(i) * .pi / 5 - .pi / 2
+                    let p = CGPoint(x: rect.midX + r * cos(a), y: rect.midY + r * sin(a))
+                    if i == 0 { path.move(to: p) } else { path.addLine(to: p) }
+                }
+                path.close()
+                UIColor(hue: 0.13, saturation: 0.8, brightness: 0.98, alpha: 1).setFill()
+                path.fill()
+            }
+            let person = png { rect in
+                UIColor(hue: 0.95, saturation: 0.45, brightness: 0.85, alpha: 1).setFill()
+                UIBezierPath(ovalIn: rect.insetBy(dx: 40, dy: 40)).fill()
+                UIImage(systemName: "person.fill")?.withTintColor(UIColor(white: 1, alpha: 1), renderingMode: .alwaysOriginal)
+                    .draw(in: rect.insetBy(dx: 150, dy: 150))
+            }
+            guard let star, let person else { return }
+            var list = cardStickersAdd(stickers: [], id: "star")
+            list = cardStickersAdd(stickers: list, id: "person")
+            list = cardStickersUpdate(stickers: list, sticker: CardSticker(id: "star", x: 0.62, y: 0.28, width: 0.16,
+                                                                           rotationDegrees: -12))
+            list = cardStickersUpdate(stickers: list, sticker: CardSticker(id: "person", x: 0.5, y: 0.78, width: 0.24,
+                                                                           rotationDegrees: 8))
+            try? ProducerCardFiles.saveMyStickers(list, newImages: ["star": star, "person": person])
         }
 
         /// 実機の担当の画像のような大きな写真 (縦長 1200×3000 / 横長 3000×1200)。上下・左右の端に印を付けて、

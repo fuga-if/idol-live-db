@@ -118,9 +118,20 @@ enum ProducerCardAssembler {
         }
     }
 
-    /// 自分の名刺ファイル (名刺 + 担当の画像 + 名刺の写真 + 自作の名刺の画像)。
+    /// 名刺の表に置いた素材 (置き方と、透過のままの PNG)。
+    static func myStickerImages() -> [CardFileImage] {
+        ProducerCardFiles.myStickers.compactMap { sticker in
+            guard let url = ProducerCardFiles.myStickerURL(id: sticker.id), let png = try? Data(contentsOf: url) else {
+                return nil
+            }
+            return CardFileImage(idolId: "", jpeg: png, kind: .sticker, sticker: sticker)
+        }
+    }
+
+    /// 自分の名刺ファイル (名刺 + 担当の画像 + 名刺の写真 + 自作の名刺の画像 + 素材)。
     static func myCardFile(_ encoded: EncodedProducerCard) -> Data? {
         let images = myOshiImages(for: encoded.card) + [myPhotoImage()].compactMap { $0 } + myFaceImages()
+            + myStickerImages()
         return encodeCardFile(payload: payload(of: encoded), images: images)
     }
 

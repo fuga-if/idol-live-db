@@ -122,6 +122,7 @@ struct MyProducerCardView: View {
                                          songCount: encoded.card.songCount,
                                          issuedLabel: cardIssuedLabel(issuedOn: encoded.card.issuedOn)),
             showsRecord: false,
+            stickers: ProducerCardDisplay.myStickers(),
             onOpenLink: { link in if let url = URL(string: link.url) { openURL(url) } },
             onOpenOshi: nil
         )

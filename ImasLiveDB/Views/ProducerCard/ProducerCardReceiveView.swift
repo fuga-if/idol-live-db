@@ -26,6 +26,8 @@ struct ProducerCardReceiveView: View {
     @State private var portraitURL: URL?
     /// 届いた自作の名刺の画像 (名刺ファイル・近くの iPhone から。QR だけなら無いので入場証で描く)。
     @State private var face: ProducerCardDisplay.Face?
+    /// 届いた素材 (置き方と一時ファイル)。
+    @State private var stickers: [(sticker: CardSticker, url: URL)] = []
     @State private var show: ProducerCardShowInfo?
     @State private var showOptions: [LedgerShowOption] = []
     @State private var pickingShow = false
@@ -45,7 +47,8 @@ struct ProducerCardReceiveView: View {
                     card, directory: directory, sharedWith: Set(record?.oshiIds ?? []),
                     imageURL: { imageURLs[$0] }, portraitURL: portraitURL,
                     portraitSource: images.first { $0.kind == .photo }?.photoSource ?? .picked, face: face,
-                    payload: incoming.payload, onOpenLink: nil, onOpenOshi: nil)
+                    payload: incoming.payload, stickers: ProducerCardDisplay.stickers(stickers),
+                    onOpenLink: nil, onOpenOshi: nil)
                 display
                 display.details
                 commonSection(card)
@@ -187,16 +190,19 @@ struct ProducerCardReceiveView: View {
         var portrait: URL?
         var front: URL?
         var back: URL?
+        var placed: [(sticker: CardSticker, url: URL)] = []
         for (i, image) in new.enumerated() {
-            let url = dir.appendingPathComponent("\(i).jpg")
+            let url = dir.appendingPathComponent("\(i).img")
             guard (try? image.jpeg.write(to: url, options: .atomic)) != nil else { continue }
             switch image.kind {
             case .oshi: urls[image.idolId] = url
             case .photo: portrait = url
             case .faceFront: front = url
             case .faceBack: back = url
+            case .sticker: if let s = image.sticker { placed.append((s, url)) }
             }
         }
+        stickers = placed
         imageURLs = urls
         portraitURL = portrait
         face = front.map { ProducerCardDisplay.Face(front: $0, back: back) }
