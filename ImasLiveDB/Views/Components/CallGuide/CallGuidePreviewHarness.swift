@@ -20,6 +20,8 @@ struct CallGuidePreviewHarness: View {
         case edit
         /// コール入力シート単体。
         case sheet
+        /// コール入力シートの「ペンライト」側 (既存の指示を開いたところ)。
+        case penlight
         /// 再生への追従 (ダミーの時刻を振り、起動からの経過時間を再生位置とみなす)。
         case sync
         /// タイミング編集。
@@ -50,7 +52,7 @@ struct CallGuidePreviewHarness: View {
     init(mode: Mode) {
         self.mode = mode
         _vm = State(initialValue: DetailSheetViewModel(
-            songDetailReading: HarnessSongDetailReading(timed: mode != .view && mode != .edit && mode != .sheet)))
+            songDetailReading: HarnessSongDetailReading(timed: mode != .view && mode != .edit && mode != .sheet && mode != .penlight)))
     }
 
     private var fakePlayback: SongLyricsTab.Playback {
@@ -104,8 +106,19 @@ struct CallGuidePreviewHarness: View {
                                    anchorText: "ダミー",
                                    lineText: "ダミー歌詞のサンプル行です 2", existing: nil),
                     seed: nil,
-                    onSubmit: { _, _, _ in },
+                    onSubmit: { _ in },
                     onDelete: nil
+                )
+            case .penlight:
+                CallEditorSheet(
+                    request: .init(lineId: "ll_5", start: 0, end: 3, anchorText: "ダミー",
+                                   lineText: "ダミー歌詞のサンプル行です 2",
+                                   existing: LyricCall(id: "c_p", start: 0, end: 3, anchorText: "ダミー",
+                                                       text: "ペンライト", emphasis: .normal, timing: .over,
+                                                       penlight: LyricPenlight(color: "#1E50FF", move: .sway))),
+                    seed: nil,
+                    onSubmit: { _ in },
+                    onDelete: {}
                 )
             }
         }

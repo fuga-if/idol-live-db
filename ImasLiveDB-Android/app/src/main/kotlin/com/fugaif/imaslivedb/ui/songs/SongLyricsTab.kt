@@ -431,8 +431,10 @@ private fun ViewingBody(
     val emphases = lyrics.usedEmphases
     val claps = lyrics.usedClaps
     val showsOverTiming = lyrics.usesOverTiming
-    if (emphases.isNotEmpty() || claps.isNotEmpty() || showsOverTiming) {
-        ImasCallLegend(emphases, claps, showsOverTiming, modifier = Modifier.padding(bottom = DS.sp4))
+    val penlightMoves = lyrics.usedPenlightMoves
+    if (emphases.isNotEmpty() || claps.isNotEmpty() || showsOverTiming || penlightMoves.isNotEmpty()) {
+        ImasCallLegend(emphases, claps, showsOverTiming, modifier = Modifier.padding(bottom = DS.sp4),
+            penlightMoves = penlightMoves)
     }
     LikeHeatBar(lyrics = lyrics, seed = seed, song = song, heatTick = heatTick)
     if (likes.isEmpty()) {
@@ -497,7 +499,7 @@ private fun ViewingRow(
                     ImasPartNames(groups = cast.groups(line))
                     // 歌詞と同じ文字の同時コールは行に並べない (歌詞のその部分を濃く敷いて示す)。
                     val listed = line.calls.filter { !line.echoes(it) }
-                    if (listed.isNotEmpty()) ImasCallRows(calls = listed, anchorIndexes = anchorIndexesFor(line))
+                    if (listed.isNotEmpty()) ImasCallRows(calls = listed, anchorIndexes = anchorIndexesFor(line), cast = cast)
                 }
                 if (isLiked) ImasLyricLikeMark(seed = null, modifier = Modifier.padding(top = DS.sp1))
             }
@@ -506,7 +508,7 @@ private fun ViewingRow(
             Column(Modifier.fillMaxWidth()) {
                 SectionMarker(line.text)
                 if (line.calls.isNotEmpty()) {
-                    ImasCallRows(calls = line.calls, anchorIndexes = null, modifier = Modifier.padding(bottom = DS.sp3))
+                    ImasCallRows(calls = line.calls, anchorIndexes = null, modifier = Modifier.padding(bottom = DS.sp3), cast = cast)
                 }
             }
         }

@@ -200,7 +200,11 @@ struct FakeLyricsReading: LyricsReading {
             switch i {
             case 1:
                 clap = .backBeat
-                calls = [call("c_1a", in: text, 0..<3, "(Hi!)")]
+                var cue = call("c_1p", in: text, 0..<3, "ペンライト: 担当色・左右に振る", timing: .over)
+                cue.penlight = LyricPenlight(color: "oshi", move: .sway)
+                var white = trailing("c_1q", in: text, "ペンライト: 白・掲げる")
+                white.penlight = LyricPenlight(color: "#FFFFFF", move: .raise, note: "サビ頭で一斉に")
+                calls = [call("c_1a", in: text, 0..<3, "(Hi!)"), cue, white]
             case 2:
                 // 範囲付き (追っかけ / 同時) と幅ゼロ (行末) が同じ行に混ざった状態。
                 // ①②③ と » の出し分け、「同時」「行末」の札の見え方の確認用。

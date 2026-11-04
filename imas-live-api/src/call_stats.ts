@@ -208,6 +208,7 @@ function sameAnnotation(a: LyricLineRow, b: LyricLineRow): boolean {
       ac[i]?.text !== bc[i]?.text ||
       ac[i]?.emphasis !== bc[i]?.emphasis ||
       ac[i]?.timing !== bc[i]?.timing ||
+      JSON.stringify(ac[i]?.penlight ?? null) !== JSON.stringify(bc[i]?.penlight ?? null) ||
       (ac[i]?.stale ?? false) !== (bc[i]?.stale ?? false)
     ) {
       return false;

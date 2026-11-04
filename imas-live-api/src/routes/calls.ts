@@ -27,7 +27,7 @@
 
 import { getAuthUser } from "../auth";
 import { checkRateLimit } from "../rate_limit";
-import { validateCallsBody } from "../lyrics_calls";
+import { penlightsById, validateCallsBody } from "../lyrics_calls";
 import { maskDisplayName } from "../feed";
 import {
   appendCallEditHistory,
@@ -103,7 +103,8 @@ export async function handleLyricsCalls(ctx: RouteContext): Promise<Response | n
   // 歌詞 PUT と同じ作法で、検証を済ませてからレート枠を消費する。
   const result = validateCallsBody(
     body,
-    new Map(existing.map((l) => [l.id, l.text ?? ""]))
+    new Map(existing.map((l) => [l.id, l.text ?? ""])),
+    penlightsById(existing)
   );
   if (!result.ok) return error(result.error, 400);
 
