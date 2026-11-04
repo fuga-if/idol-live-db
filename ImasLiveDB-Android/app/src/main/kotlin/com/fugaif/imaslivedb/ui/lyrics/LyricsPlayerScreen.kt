@@ -71,6 +71,8 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasLikeHeatSeekBar
 import com.fugaif.imaslivedb.ui.designsystem.ImasNote
 import com.fugaif.imaslivedb.ui.designsystem.ImasPartNames
 import com.fugaif.imaslivedb.ui.designsystem.ImasPlayerCallLine
+import com.fugaif.imaslivedb.ui.designsystem.ImasPlayerPenlightLine
+import com.fugaif.imaslivedb.ui.designsystem.PenlightLook
 import com.fugaif.imaslivedb.ui.designsystem.ImasEcho
 import com.fugaif.imaslivedb.ui.designsystem.ImasPlayerLyricLine
 import com.fugaif.imaslivedb.ui.designsystem.ImasPlayerOverlayLine
@@ -455,12 +457,22 @@ private fun LyricsPlayerRow(
             // コールは行の直下に流す。いま出すコールだけ大きく点ける (歌詞と同じ文字のものは
             // 行に出さず、上の歌詞を点ける)。
             line.calls.filter { !line.echoes(it) }.forEach { call ->
-                ImasPlayerCallLine(
-                    marker = if (call.hasAnchor) "↳" else "»",
-                    text = call.text,
-                    color = call.emphasis.lyricColor(theme.accent),
-                    isActive = call.id == activeCallId
-                )
+                val penlight = call.penlight
+                if (penlight != null) {
+                    // ペンライトは文言でなく、棒と動きの記号で流す。
+                    ImasPlayerPenlightLine(
+                        marker = if (call.hasAnchor) "↳" else "»",
+                        look = PenlightLook(penlight, cast),
+                        isActive = call.id == activeCallId
+                    )
+                } else {
+                    ImasPlayerCallLine(
+                        marker = if (call.hasAnchor) "↳" else "»",
+                        text = call.text,
+                        color = call.emphasis.lyricColor(theme.accent),
+                        isActive = call.id == activeCallId
+                    )
+                }
             }
         }
     }

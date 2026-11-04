@@ -4,7 +4,10 @@ import org.json.JSONArray
 import org.json.JSONObject
 import uniffi.imas_core.LyricPartBreak
 import uniffi.imas_core.LyricPartSegment
+import uniffi.imas_core.PenlightColor
 import uniffi.imas_core.lyricCallEchoesLine
+import uniffi.imas_core.lyricPenlightColor
+import uniffi.imas_core.lyricPenlightMoves
 import uniffi.imas_core.lyricPartInk
 import uniffi.imas_core.lyricPartSegments
 import uniffi.imas_core.lyricPartUnion
@@ -61,6 +64,30 @@ enum class CallTiming(val raw: String, val label: String) {
     }
 }
 
+/** ペンライトの動き (ペンラ芸)。保存値は Worker / コアと 1:1 (iOS `LyricPenlightMove`)。名前はコア。 */
+enum class LyricPenlightMove(val raw: String) {
+    SWAY("sway"), PUMP("pump"), SPIN("spin"), RAISE("raise"), WAVE("wave"), OFF("off"), ON("on");
+
+    val label: String get() = lyricPenlightMoves().firstOrNull { it.key == raw }?.label ?: raw
+
+    companion object {
+        fun of(raw: String?): LyricPenlightMove? = entries.firstOrNull { it.raw == raw }
+    }
+}
+
+/** ペンライトの指示 (コールの一種)。色は `oshi` / `idol:<id>` / `#RRGGBB` (読み方はコア)。iOS `LyricPenlight`。 */
+data class LyricPenlight(val color: String?, val move: LyricPenlightMove?, val note: String?) {
+    val parsedColor: PenlightColor? get() = color?.let { lyricPenlightColor(it) }
+
+    companion object {
+        fun parse(o: JSONObject) = LyricPenlight(
+            color = o.optStringOrNull("color"),
+            move = LyricPenlightMove.of(o.optStringOrNull("move")),
+            note = o.optStringOrNull("note")?.takeIf { it.isNotEmpty() },
+        )
+    }
+}
+
 /** 歌詞行の一部 (アンカー) に紐づくコール 1 件。位置は Unicode スカラー単位。 */
 data class LyricCall(
     val id: String,
@@ -73,7 +100,10 @@ data class LyricCall(
     val stale: Boolean,
     /** コールを出す再生位置 (ms)。 */
     val startMs: Int?,
+    /** ペンライトの指示 (ペンラ芸)。非 null なら叫ぶコールではなく、[text] は古いアプリ向けの代わりの文言。 */
+    val penlight: LyricPenlight? = null,
 ) {
+    val isPenlight: Boolean get() = penlight != null
     /** 歌詞の一部に掛かる (範囲を持つ) コールか。false は行末の追っかけ (幅ゼロ)。 */
     val hasAnchor: Boolean get() = end > start
     val isOverlapping: Boolean get() = timing == CallTiming.OVER && hasAnchor
@@ -89,6 +119,7 @@ data class LyricCall(
             timing = CallTiming.of(o.optStringOrNull("timing")),
             stale = o.optBoolean("stale", false),
             startMs = o.optIntOrNull("startMs"),
+            penlight = if (o.optStringOrNull("kind") == "penlight") o.optJSONObject("penlight")?.let(LyricPenlight::parse) else null,
         )
     }
 }
@@ -133,7 +164,7 @@ data class LyricLine(
     /** この行のコールが、掛かっている歌詞と同じ文字か (同時、または歌詞の被せの括弧の中に掛かっている)。
      * 閲覧では行に並べず、歌詞のその部分に印を付ける (同じ文字を 2 回出さない)。判定はコア。 */
     fun echoes(call: LyricCall): Boolean =
-        call.hasAnchor && lyricCallEchoesLine(text, call.start.toUInt(), call.end.toUInt(), call.text, call.timing.raw)
+        !call.isPenlight && call.hasAnchor && lyricCallEchoesLine(text, call.start.toUInt(), call.end.toUInt(), call.text, call.timing.raw)
 
     companion object {
         fun parse(o: JSONObject) = LyricLine(
@@ -184,10 +215,17 @@ data class Lyrics(
     /** 実際に使われている強調度 (通常を除く)。凡例はここからだけ作る。 */
     val usedEmphases: List<CallEmphasis>
         get() {
-            val used = lines.flatMap { it.calls }.map { it.emphasis }.toSet()
+            val used = lines.flatMap { it.calls }.filter { !it.isPenlight }.map { it.emphasis }.toSet()
             return CallEmphasis.entries.filter { it != CallEmphasis.NORMAL && it in used }
         }
-    val usesOverTiming: Boolean get() = lines.any { l -> l.calls.any { it.isOverlapping } }
+    val usesOverTiming: Boolean get() = lines.any { l -> l.calls.any { it.isOverlapping && !it.isPenlight } }
+
+    /** ペンライトの指示で使われている動き。凡例に記号の読み方を出す。 */
+    val usedPenlightMoves: List<LyricPenlightMove>
+        get() {
+            val used = lines.flatMap { it.calls }.mapNotNull { it.penlight?.move }.toSet()
+            return LyricPenlightMove.entries.filter { it in used }
+        }
     val usedClaps: List<LyricClap>
         get() {
             val used = lines.mapNotNull { it.clap }.toSet()
