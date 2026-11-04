@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -50,7 +49,7 @@ import uniffi.imas_core.YouTubePlayerEvent
 import uniffi.imas_core.youtubePlayerEvent
 
 /**
- * 参考動画をその場で再生する YouTube の埋め込みプレーヤー (16:9・角丸)。iOS `YouTubeInlinePlayer` の移植。
+ * 参考動画を再生する YouTube の埋め込みプレーヤー。大きさと角は置く側 (小窓) が決める。iOS `YouTubeInlinePlayer` の移植。
  *
  * ページの中身 (IFrame Player API・開始秒・名乗る origin) はコア (`youtubeEmbedPlayer`) が組む。
  * ここは WebView に読ませて、ページからの知らせ (`youtubePlayerEvent`) を受けるだけ。
@@ -65,8 +64,6 @@ fun YouTubeInlinePlayer(player: YouTubeEmbedPlayer, onUnplayable: () -> Unit, mo
     Box(
         modifier
             .fillMaxWidth()
-            .aspectRatio(16f / 9f)
-            .clip(RoundedCornerShape(DS.rXS))
             .background(Color.Black)
             .semantics { contentDescription = "動画プレーヤー" },
         contentAlignment = Alignment.Center
@@ -120,14 +117,12 @@ fun YouTubeInlinePlayer(player: YouTubeEmbedPlayer, onUnplayable: () -> Unit, mo
     }
 }
 
-/** 埋め込みを止めている動画を押したときに、動画の場所に出す案内。押すと YouTube で開く。 */
+/** 埋め込みを止めている動画の案内 (小窓の中と、一覧の行の下)。押すと YouTube で開く。大きさは置く側が決める。 */
 @Composable
 fun YouTubeUnplayableNotice(onOpen: () -> Unit, modifier: Modifier = Modifier) {
     Box(
         modifier
             .fillMaxWidth()
-            .aspectRatio(16f / 9f)
-            .clip(RoundedCornerShape(DS.rXS))
             .background(DS.surface2)
             .clickable(onClick = onOpen)
             .padding(DS.sp4),

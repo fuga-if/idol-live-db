@@ -30,10 +30,8 @@ struct SongCommunityTab: View {
     let navigate: (DetailDestination) -> Void
     let onIntent: (SongCommunityIntent) -> Void
 
-    /// いまその場で再生している参考動画 (1 本だけ。別の動画を押すと前のは止まる)。
-    @State private var playingVideoID: String?
-    /// 押してみて埋め込みを止めていると分かった動画。以後は案内を出し、押すと YouTube で開く。
-    @State private var unplayableVideoIDs: Set<String> = []
+    /// 参考動画の小窓 (アプリで 1 つ。別の動画を押すと差し替わる)。
+    private var pip: VideoPiP { VideoPiP.shared }
 
     private var permission: EditPermissionRules { EditPermission.rules }
 
@@ -146,25 +144,27 @@ struct SongCommunityTab: View {
         let videoID = ref?.videoId
         return VStack(alignment: .leading, spacing: DS.sp3) {
             if let ref, videoID != nil, let url = URL.safeHTTP(string: video.youtubeUrl) {
-                // サムネを押すとその場で再生する。公式 MV のように埋め込みを止めている動画は
-                // YouTube の仕様で再生できないので、分かった時点で「YouTube で開く」案内に替える。
-                if unplayableVideoIDs.contains(video.id) {
+                // サムネを押すと小窓 (アプリの中の PiP) で再生する。曲の画面を閉じても流れ続ける。
+                // 公式 MV のように埋め込みを止めている動画は YouTube の仕様で再生できないので、
+                // 分かった時点で「YouTube で開く」案内に替える。
+                if pip.unplayableVideoIDs.contains(video.id) {
                     YouTubeUnplayableNotice { openURL(url) }
-                } else if playingVideoID == video.id, let player = youtubeEmbedPlayer(url: video.youtubeUrl) {
-                    YouTubeInlinePlayer(player: player) {
-                        unplayableVideoIDs.insert(video.id)
-                        if playingVideoID == video.id { playingVideoID = nil }
-                    }
-                    .id(video.id)
+                        .aspectRatio(16.0 / 9.0, contentMode: .fit)
+                        .background(DS.surface2)
+                        .clipShape(RoundedRectangle(cornerRadius: DS.rXS, style: .continuous))
                 } else {
                     Button {
                         AppAnalytics.tap("song_detail.video_play")
-                        playingVideoID = video.id
+                        if let player = youtubeEmbedPlayer(url: video.youtubeUrl) {
+                            pip.play(.init(videoID: video.id, title: video.videoTitle, url: url, player: player))
+                        } else {
+                            openURL(url)
+                        }
                     } label: {
                         videoThumbnail(ref)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("\(video.videoTitle ?? "参考動画") を再生")
+                    .accessibilityLabel("\(video.videoTitle ?? "参考動画") を小窓で再生")
                 }
             }
             if let title = video.videoTitle {

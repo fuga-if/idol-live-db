@@ -1,7 +1,7 @@
 import SwiftUI
 import WebKit
 
-/// 参考動画をその場で再生する YouTube の埋め込みプレーヤー (16:9・角丸)。
+/// 参考動画を再生する YouTube の埋め込みプレーヤー。大きさと角は置く側 (小窓) が決める。
 ///
 /// ページの中身 (IFrame Player API・開始秒・名乗る origin) はコア
 /// (`youtubeEmbedPlayer`) が組む。ここは WKWebView に読ませて、ページからの
@@ -25,16 +25,13 @@ struct YouTubeInlinePlayer: View {
                 ProgressView().tint(.white)
             }
         }
-        .aspectRatio(16.0 / 9.0, contentMode: .fit)
-        .frame(maxWidth: .infinity)
-        .clipShape(RoundedRectangle(cornerRadius: DS.rXS, style: .continuous))
         .accessibilityElement(children: .contain)
         .accessibilityLabel("動画プレーヤー")
     }
 }
 
-/// 埋め込みを止めている動画を押したときに、サムネの場所に出す案内。
-/// 黒い面に一言と「YouTube で開く」(押すとアプリ外へ)。
+/// 埋め込みを止めている動画の案内 (小窓の中と、一覧のサムネの場所)。
+/// 一言と「YouTube で開く」(押すとアプリ外へ)。大きさは置く側が決める。
 struct YouTubeUnplayableNotice: View {
     let open: () -> Void
 
@@ -51,9 +48,7 @@ struct YouTubeUnplayableNotice: View {
                 .multilineTextAlignment(.center)
                 .padding(DS.sp4)
             }
-            .aspectRatio(16.0 / 9.0, contentMode: .fit)
-            .frame(maxWidth: .infinity)
-            .clipShape(RoundedRectangle(cornerRadius: DS.rXS, style: .continuous))
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

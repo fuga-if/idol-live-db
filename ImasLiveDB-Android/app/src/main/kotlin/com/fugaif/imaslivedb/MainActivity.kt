@@ -98,7 +98,11 @@ class MainActivity : ComponentActivity() {
                     DatabaseBoot.State.Preparing -> SyncLoadingScreen(CloudKitSyncEngine.SyncState.Idle, onRetry = {})
                     is DatabaseBoot.State.Failed -> DatabaseRecoveryScreen(bootState.detail, onRetry = ::openDatabase)
                     DatabaseBoot.State.Ready -> {
-                        AppRoot(sync)
+                        androidx.compose.foundation.layout.Box(androidx.compose.ui.Modifier.fillMaxSize()) {
+                            AppRoot(sync)
+                            // 参考動画の小窓。画面を移っても流れ続けるよう、画面の一番上に重ねる。
+                            com.fugaif.imaslivedb.ui.components.VideoPiPHost()
+                        }
                         com.fugaif.imaslivedb.ui.components.SpotifyPlaybackAlert()
                         com.fugaif.imaslivedb.ui.components.UpdateAvailableAlert()
                         // 歌詞のピクチャ・イン・ピクチャの間は、窓いっぱいに歌詞の行だけを出す。
