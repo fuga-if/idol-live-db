@@ -51,6 +51,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import com.fugaif.imaslivedb.data.local.LocalWriteFailure
 import com.fugaif.imaslivedb.data.sync.LocalDataStartup
+import com.fugaif.imaslivedb.data.applink.PollLinkIncoming
+import com.fugaif.imaslivedb.data.applink.PollLinks
 import com.fugaif.imaslivedb.data.producercard.IncomingProducerCard
 import com.fugaif.imaslivedb.data.producercard.ProducerCardIncoming
 import com.fugaif.imaslivedb.data.producercard.ProducerCardIntent
@@ -76,8 +78,9 @@ class MainActivity : ComponentActivity() {
         openDatabase()
         // P名刺のリンク・名刺ファイルで開かれた (回転などで作り直したときは二度受け取らない)。
         if (savedInstanceState == null) {
-            openedByLink = ProducerCardIntents.parse(intent) != null
+            openedByLink = ProducerCardIntents.parse(intent) != null || PollLinks.parse(intent) != null
             handleProducerCardIntent(intent)
+            handlePollLinkIntent(intent)
         }
         setContent {
             ImasLiveDBTheme {
@@ -184,6 +187,12 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         handleProducerCardIntent(intent)
+        handlePollLinkIntent(intent)
+    }
+
+    /** お題の共有 URL を開いたら、お題の画面へ (iOS `ContentView.handleDeeplink` の `.poll`)。 */
+    private fun handlePollLinkIntent(intent: Intent?) {
+        PollLinks.parse(intent)?.let(PollLinkIncoming::present)
     }
 
     /**

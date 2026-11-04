@@ -97,6 +97,38 @@
                 <data android:path="/p" />
                 <data android:path="/p/" />
             </intent-filter>
+            <!--
+              お題の共有 URL (https://idollivedb.fugaapp.site/polls/#poll-{id})。お題は # の後ろ。
+              /polls/ だけで開いたときはお題の一覧。どの形をお題と読むかはコア (sharePollIdFromUrl) 一本 (PollLinks)。
+            -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" />
+                <data android:host="idollivedb.fugaapp.site" />
+                <data android:path="/polls" />
+                <data android:path="/polls/" />
+            </intent-filter>
+            <!--
+              API の着地ページのお題 (配布済みの旧い共有 URL)。
+              assetlinks.json は imas-live-api (routes/app_links.ts) が返す。
+            -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" />
+                <data android:host="imas-live-api.tokata3011.workers.dev" />
+                <data android:pathPrefix="/app/polls/" />
+            </intent-filter>
+            <!-- imaslivedb://polls/{id} (公開サイトの「アプリで投票する」・着地ページの「アプリで開く」)。 -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="imaslivedb" android:host="polls" />
+            </intent-filter>
             <!-- imaslivedb://p#… (アプリどうしで開く形)。 -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

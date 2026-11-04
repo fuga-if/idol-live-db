@@ -16,6 +16,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import com.fugaif.imaslivedb.data.applink.PollLink
+import com.fugaif.imaslivedb.data.applink.PollLinkIncoming
+import kotlinx.coroutines.flow.first
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -158,6 +162,30 @@ fun AppNavigation() {
 
     // One NavController per destination to maintain independent back stacks
     val navControllers = AppDestination.entries.associateWith { rememberNavController() }
+    // お題の共有 URL から開かれたら、お題の画面へ (iOS ContentView の `.poll`)。
+    // お題の行き先がタブにもサイドバーにも無ければ、同じ画面の入口があるプロデュースに積む。
+    // 行き先を切り替えた直後は NavHost がまだ組まれていないので、グラフができるまで待ってから積む。
+    val pollLink by PollLinkIncoming.pending.collectAsState()
+    LaunchedEffect(pollLink) {
+        val link = pollLink ?: return@LaunchedEffect
+        val target = if (wide || tabItems.any { it.destination == AppDestination.POLLS }) {
+            AppDestination.POLLS
+        } else {
+            AppDestination.PRODUCE
+        }
+        current = target
+        val nav = navControllers.getValue(target)
+        nav.currentBackStackEntryFlow.first()
+        when (link) {
+            is PollLink.Detail -> nav.navigate(NavRoutes.PollDetail.createRoute(link.pollId)) { launchSingleTop = true }
+            PollLink.List -> if (target == AppDestination.POLLS) {
+                nav.popBackStack(nav.graph.startDestinationId, inclusive = false)
+            } else {
+                nav.navigate(NavRoutes.Polls.route) { launchSingleTop = true }
+            }
+        }
+        PollLinkIncoming.consume()
+    }
     // 今いるタブをもう一度押したら、そのタブの最初の画面まで戻る (iOS のタブと同じ)。
     // 押しても何も起きないと、戻る矢印の無い画面から抜ける手が「戻る」ジェスチャーしか無くなる。
     val selectDestination: (AppDestination) -> Unit = { destination ->
