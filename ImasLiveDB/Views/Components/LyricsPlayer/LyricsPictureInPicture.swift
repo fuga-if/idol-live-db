@@ -374,19 +374,24 @@ final class LyricsPictureInPicture: NSObject {
                                                      parts: parts)
             y += drawRuby(attributed, at: CGPoint(x: margin, y: y), width: width, maxHeight: 250, in: context)
             y += 10
-            // 歌う人: アイコン (写真か判子) を並べ、その右に名前。
-            let singers = line.allSingers.compactMap { id in entry.cast.artists.first { $0.id == id } }
+            // 歌う人: 写真を設定している人はアイコンを並べ、その右に名前 (写真の無い人は名前だけ)。
+            let photos = line.allSingers.compactMap { id -> (Idol, UIImage)? in
+                guard let idol = entry.cast.artists.first(where: { $0.id == id }),
+                      let photo = avatarPhoto(idolId: id) else { return nil }
+                return (idol, photo)
+            }
             let groups = entry.cast.groups(line).filter { !$0.isEmpty }
-            if !singers.isEmpty || !groups.isEmpty {
-                let iconSize: CGFloat = 60
+            if !photos.isEmpty || !groups.isEmpty {
+                let iconSize: CGFloat = photos.isEmpty ? 38 : 60
                 var x = margin
-                let shown = singers.prefix(singers.count > avatarMax ? avatarMax - 1 : avatarMax)
-                for idol in shown {
-                    drawAvatar(idol, at: CGPoint(x: x, y: y), size: iconSize, scheme: scheme, traits: traits, in: context)
+                let shown = photos.prefix(photos.count > avatarMax ? avatarMax - 1 : avatarMax)
+                for (idol, photo) in shown {
+                    drawAvatar(idol, photo: photo, at: CGPoint(x: x, y: y), size: iconSize, scheme: scheme,
+                               traits: traits, in: context)
                     x += iconSize + 8
                 }
-                if singers.count > shown.count {
-                    drawPlain("+\(singers.count - shown.count)", font: font(26, .bold), color: ink2,
+                if photos.count > shown.count {
+                    drawPlain("+\(photos.count - shown.count)", font: font(26, .bold), color: ink2,
                               at: CGPoint(x: x, y: y + (iconSize - 32) / 2), width: 60)
                     x += 60
                 }
@@ -427,44 +432,19 @@ final class LyricsPictureInPicture: NSObject {
     /// 歌う人のアイコンを並べる上限 (超えたら最後の 1 つを「+N」にする)。
     private static let avatarMax = 6
 
-    /// アイドルのアイコン (`ImasAvatar` と同じ形)。設定した写真があれば写真、無ければ判子
-    /// (紙の白の丸に、実体色の輪と実体色の名前)。
-    private static func drawAvatar(_ idol: Idol, at point: CGPoint, size: CGFloat, scheme: ColorScheme,
-                                   traits: UITraitCollection, in context: CGContext) {
+    /// 設定した写真のアイコン (丸に切り抜き、担当色の輪)。写真の無い人は描かない (名前の文字だけにする)。
+    private static func drawAvatar(_ idol: Idol, photo: UIImage, at point: CGPoint, size: CGFloat,
+                                   scheme: ColorScheme, traits: UITraitCollection, in context: CGContext) {
         let accent = UIColor(ImasTheme.derive(seed: idol.color, scheme: scheme).accent).resolvedColor(with: traits)
         let rect = CGRect(origin: point, size: CGSize(width: size, height: size))
         context.saveGState()
         context.addEllipse(in: rect)
         context.clip()
-        if let photo = avatarPhoto(idolId: idol.id) {
-            // 丸に合わせて切り抜く (はみ出す方を切る)。
-            let scale = max(size / photo.size.width, size / photo.size.height)
-            let drawn = CGSize(width: photo.size.width * scale, height: photo.size.height * scale)
-            photo.draw(in: CGRect(x: rect.midX - drawn.width / 2, y: rect.midY - drawn.height / 2,
-                                  width: drawn.width, height: drawn.height))
-        } else {
-            context.setFillColor(UIColor(DS.paper).resolvedColor(with: traits).cgColor)
-            context.fill(rect)
-            let label = font(size * 0.34, .bold)
-            let paragraph = NSMutableParagraphStyle()
-            paragraph.alignment = .center
-            paragraph.lineBreakMode = .byClipping
-            let text = NSAttributedString(string: idol.shortName, attributes: [
-                .font: label, .foregroundColor: accent, .paragraphStyle: paragraph,
-            ])
-            let inset = size * 0.1
-            let width = size - inset * 2
-            // 長い名前は丸に収まるまで縮める (`ImasAvatar` の minimumScaleFactor 0.5 と同じ)。
-            let natural = text.size().width
-            let fitted = natural > width
-                ? NSAttributedString(string: idol.shortName, attributes: [
-                    .font: font(size * 0.34 * max(0.5, width / natural), .bold), .foregroundColor: accent,
-                    .paragraphStyle: paragraph,
-                ])
-                : text
-            let height = fitted.size().height
-            fitted.draw(in: CGRect(x: rect.minX + inset, y: rect.midY - height / 2, width: width, height: height))
-        }
+        // 丸に合わせて切り抜く (はみ出す方を切る)。
+        let scale = max(size / photo.size.width, size / photo.size.height)
+        let drawn = CGSize(width: photo.size.width * scale, height: photo.size.height * scale)
+        photo.draw(in: CGRect(x: rect.midX - drawn.width / 2, y: rect.midY - drawn.height / 2,
+                              width: drawn.width, height: drawn.height))
         context.restoreGState()
         context.setStrokeColor(accent.cgColor)
         context.setLineWidth(2)

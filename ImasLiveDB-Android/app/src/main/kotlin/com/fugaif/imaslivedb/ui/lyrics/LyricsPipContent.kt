@@ -29,6 +29,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import com.fugaif.imaslivedb.data.image.GalleryKind
 import com.fugaif.imaslivedb.data.lyrics.LyricLineKind
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.player.LyricsSession
@@ -121,8 +122,13 @@ private fun PipLines(entry: LyricsSession.Entry, positionMs: Int) {
             }
         }
         if (current != null) {
-            // 歌う人: アイコン (写真か判子) を並べ、その右に名前。
-            val singers = current.allSingers.mapNotNull { id -> entry.cast.artists.firstOrNull { it.id == id } }
+            // 歌う人: 写真を設定している人はアイコンを並べ、その右に名前 (写真の無い人は名前だけ)。
+            val store = AppModule.from(LocalContext.current).customImageStore
+            val galleryVersion by store.galleryVersion.collectAsState()
+            val singers = remember(current, galleryVersion) {
+                current.allSingers.mapNotNull { id -> entry.cast.artists.firstOrNull { it.id == id } }
+                    .filter { store.primaryImageFile(it.id, GalleryKind.IDOL) != null }
+            }
             val shown = singers.take(if (singers.size > AVATAR_MAX) AVATAR_MAX - 1 else AVATAR_MAX)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DS.sp2)) {
                 shown.forEach { idol ->
