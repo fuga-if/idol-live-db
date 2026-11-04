@@ -507,6 +507,35 @@ a.chip--selected:hover {
 .lyrics__call-item--performer_request {
   color: var(--ds-danger);
 }
+/* ペンライトの指示。棒は角のある平らな色の面 (光・ぼかしは使わない)。白が地に溶けないよう縁を引く。 */
+.lyrics__penlight {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  vertical-align: middle;
+}
+.lyrics__penlight-stick {
+  display: inline-block;
+  inline-size: 5px;
+  block-size: 14px;
+  border-radius: 1.5px;
+  border: 1px solid color-mix(in srgb, var(--ds-ink) 45%, transparent);
+}
+.lyrics__penlight-stick[data-fill="theme"] {
+  background: var(--accent);
+}
+/* 各自の担当色。人によって違うので、くっきり区切った縞で。 */
+.lyrics__penlight-stick[data-fill="oshi"] {
+  background-image: linear-gradient(#e5484d 0 25%, #f2c12e 25% 50%, #3fb27f 50% 75%, #3a8ee6 75% 100%);
+}
+.lyrics__penlight-stick[data-off] {
+  border-style: dashed;
+  border-color: var(--ds-ink3);
+}
+.lyrics__penlight-move {
+  color: var(--ds-ink);
+  font-weight: 700;
+}
 /* 札はズレ (歌詞が直されて位置が合わないもの) だけ。 */
 .lyrics__tag {
   font-size: var(--fs-caption2);
