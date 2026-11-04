@@ -80,6 +80,7 @@ pub mod play_queue;
 pub mod poll_result_card;
 pub mod prng;
 pub mod card_meetings;
+pub mod card_stickers;
 pub mod producer_card;
 pub mod streetpass;
 pub mod producer_card_avatar;

@@ -2085,6 +2085,8 @@ pub fn card_links_from_json(json: &str) -> Vec<CardLink> {
 // どれも JPEG)。古い版のアプリは担当の画像の後ろを読まないので、写真の入ったファイルも
 // そのまま開ける (写真だけが出ない)。知らない種類の区画は飛ばす (表・裏を足す前の版のアプリは
 // 写真だけを読む)。区画が無いファイル (足す前のもの) は今まで通り読む。
+// 種類 5 = 名刺の表に置く素材 (`card_stickers`。中身は置き方 16 バイト + PNG か JPEG。3 枚まで、重なりの順)。
+// 素材を知らない版のアプリは飛ばす (素材なしの名刺で出る)。
 // ---------------------------------------------------------------------------
 
 const CARD_FILE_MAGIC: &[u8; 8] = b"IMASCARD";
@@ -2099,6 +2101,8 @@ const SECTION_FACE_BACK: u8 = 3;
 /// 名刺の写真の出どころ (中身は 1 バイトの `photo_source_code`)。写真から選んだ写真では書かない。
 /// 足す前のアプリは知らない区画として飛ばし、写真は写真のまま (正方形で) 出す。
 const SECTION_PHOTO_SOURCE: u8 = 4;
+/// 名刺の表に置く素材 (置き方 16 バイト + 画像)。
+const SECTION_STICKER: u8 = 5;
 
 /// 名刺の写真の出どころ。端末に写真と一緒に残し、名刺ファイル・近くの端末で相手にも渡す
 /// (切り方は `card_photo_shape`)。
@@ -2181,6 +2185,8 @@ pub enum CardFileImageKind {
     FaceFront,
     /// 自作の名刺の画像の裏 (任意。表がある名刺だけ。`idol_id` は空)。
     FaceBack,
+    /// 名刺の表に置く素材 (PNG か JPEG。置き方は `sticker`。3 枚まで、重なりの順。`idol_id` は空)。
+    Sticker,
 }
 
 impl CardFileImageKind {
@@ -2190,6 +2196,7 @@ impl CardFileImageKind {
             CardFileImageKind::Photo => Some(SECTION_PHOTO),
             CardFileImageKind::FaceFront => Some(SECTION_FACE_FRONT),
             CardFileImageKind::FaceBack => Some(SECTION_FACE_BACK),
+            CardFileImageKind::Sticker => Some(SECTION_STICKER),
         }
     }
 
@@ -2201,11 +2208,12 @@ impl CardFileImageKind {
         ]
         .into_iter()
         .find(|k| k.section() == Some(section))
+        .filter(|k| *k != CardFileImageKind::Sticker)
     }
 }
 
 /// 名刺ファイルに入れる画像 1 枚 (担当の画像か名刺の写真)。
-#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+#[derive(uniffi::Record, Clone, Debug, PartialEq)]
 pub struct CardFileImage {
     pub idol_id: String,
     pub jpeg: Vec<u8>,
@@ -2213,10 +2221,13 @@ pub struct CardFileImage {
     /// 名刺の写真 (`Photo`) の出どころ。None は写真から選んだ写真 (足す前のファイルも)。写真のほかは None。
     #[uniffi(default = None)]
     pub photo_source: Option<CardPhotoSource>,
+    /// 素材 (`Sticker`) の置き方。素材のほかは None。
+    #[uniffi(default = None)]
+    pub sticker: Option<crate::domain::card_stickers::CardSticker>,
 }
 
 /// 名刺ファイルを開いた中身。
-#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+#[derive(uniffi::Record, Clone, Debug, PartialEq)]
 pub struct CardFileContents {
     pub payload: String,
     pub card: ProducerCard,
@@ -2286,7 +2297,17 @@ pub fn encode_card_file(payload: &str, images: &[CardFileImage]) -> Option<Vec<u
         );
         for image in &sections {
             w.push(image.kind.section()?);
-            put_varint(&mut w, image.jpeg.len() as u64);
+            if let Some(sticker) = image
+                .sticker
+                .as_ref()
+                .filter(|_| image.kind == CardFileImageKind::Sticker)
+            {
+                let placement = crate::domain::card_stickers::sticker_placement_bytes(sticker);
+                put_varint(&mut w, (placement.len() + image.jpeg.len()) as u64);
+                w.extend_from_slice(&placement);
+            } else {
+                put_varint(&mut w, image.jpeg.len() as u64);
+            }
             w.extend_from_slice(&image.jpeg);
         }
         if let Some(source) = photo_source {
@@ -2325,6 +2346,7 @@ pub fn decode_card_file(bytes: &[u8]) -> Option<CardFileContents> {
             jpeg,
             kind: CardFileImageKind::Oshi,
             photo_source: None,
+            sticker: None,
         });
     }
     // 追加の区画 (足す前のファイルには無い)。あるなら最後まで読み切れること。
@@ -2345,6 +2367,26 @@ pub fn decode_card_file(bytes: &[u8]) -> Option<CardFileContents> {
                 });
                 continue;
             }
+            if kind == SECTION_STICKER {
+                // 受け取った素材の id は受け取った順に振る (相手の端末の id は使わない)。
+                let n = images
+                    .iter()
+                    .filter(|i| i.kind == CardFileImageKind::Sticker)
+                    .count();
+                let placed = body.get(..16).and_then(|p| {
+                    crate::domain::card_stickers::sticker_from_placement(format!("r{}", n + 1), p)
+                });
+                if let (Some(sticker), Some(image)) = (placed, body.get(16..)) {
+                    images.push(CardFileImage {
+                        idol_id: String::new(),
+                        jpeg: image.to_vec(),
+                        kind: CardFileImageKind::Sticker,
+                        photo_source: None,
+                        sticker: Some(sticker),
+                    });
+                }
+                continue;
+            }
             let known = CardFileImageKind::from_section(kind);
             if let Some(kind) = known.filter(|k| !images.iter().any(|i| i.kind == *k)) {
                 images.push(CardFileImage {
@@ -2352,6 +2394,7 @@ pub fn decode_card_file(bytes: &[u8]) -> Option<CardFileContents> {
                     jpeg: body.to_vec(),
                     kind,
                     photo_source: None,
+                    sticker: None,
                 });
             }
         }
@@ -2377,9 +2420,12 @@ pub fn decode_card_file(bytes: &[u8]) -> Option<CardFileContents> {
 /// 名刺の写真・自作の名刺の画像の表・裏があれば、この順に 1 枚ずつ足す。
 /// 自作の画像はデザインが自作の画像の名刺のときだけ、裏は表があるときだけ残す。
 fn card_file_images(card: &ProducerCard, images: Vec<CardFileImage>) -> Vec<CardFileImage> {
-    // JPEG だけを通す (画像を開く側に任意の形式を渡さない)。
+    // JPEG だけを通す (画像を開く側に任意の形式を渡さない)。素材だけは透過のある PNG も通す。
+    let is_jpeg = |b: &[u8]| b.starts_with(&[0xFF, 0xD8, 0xFF]);
+    let is_png = |b: &[u8]| b.starts_with(&[0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A]);
     let usable = |i: &&CardFileImage| {
-        i.jpeg.starts_with(&[0xFF, 0xD8, 0xFF]) && i.jpeg.len() <= MAX_CARD_FILE_IMAGE_BYTES
+        let format = is_jpeg(&i.jpeg) || (i.kind == CardFileImageKind::Sticker && is_png(&i.jpeg));
+        format && i.jpeg.len() <= MAX_CARD_FILE_IMAGE_BYTES
     };
     let mut out: Vec<CardFileImage> = Vec::new();
     for id in &card.oshi_idol_ids {
@@ -2415,9 +2461,27 @@ fn card_file_images(card: &ProducerCard, images: Vec<CardFileImage>) -> Vec<Card
             out.push(CardFileImage {
                 idol_id: String::new(),
                 photo_source,
+                sticker: None,
                 ..image.clone()
             });
         }
+    }
+    // 素材 (重なりの順に、置き方のあるものだけ上限まで)。
+    let stickers = images
+        .iter()
+        .filter(|i| i.kind == CardFileImageKind::Sticker && i.sticker.is_some())
+        .filter(usable)
+        .take(crate::domain::card_stickers::MAX_CARD_STICKERS);
+    for image in stickers {
+        out.push(CardFileImage {
+            idol_id: String::new(),
+            photo_source: None,
+            sticker: image
+                .sticker
+                .as_ref()
+                .map(crate::domain::card_stickers::card_sticker_clamp),
+            ..image.clone()
+        });
     }
     out
 }
@@ -3254,24 +3318,28 @@ mod tests {
                 jpeg: vec![0xFF, 0xD8, 0xFF, 3],
                 kind: CardFileImageKind::Oshi,
                 photo_source: None,
+                sticker: None,
             },
             CardFileImage {
                 idol_id: "961_黒井".into(),
                 jpeg: vec![0xFF, 0xD8, 0xFF, 9],
                 kind: CardFileImageKind::Oshi,
                 photo_source: None,
+                sticker: None,
             },
             CardFileImage {
                 idol_id: "765_天海春香".into(),
                 jpeg: vec![0xFF, 0xD8, 0xFF, 5],
                 kind: CardFileImageKind::Oshi,
                 photo_source: None,
+                sticker: None,
             },
             CardFileImage {
                 idol_id: "765_天海春香".into(),
                 jpeg: vec![],
                 kind: CardFileImageKind::Oshi,
                 photo_source: None,
+                sticker: None,
             },
         ];
         // URL を渡しても `#` の後ろだけを入れる。
@@ -3345,6 +3413,7 @@ mod tests {
             jpeg: vec![0x89, b'P', b'N', b'G'],
             kind: CardFileImageKind::Oshi,
             photo_source: None,
+            sticker: None,
         };
         let file = decode_card_file(&encode_card_file(&enc.url, &[png]).unwrap()).unwrap();
         assert!(file.images.is_empty());
@@ -3693,6 +3762,7 @@ mod tests {
             jpeg: jpeg(tag),
             kind,
             photo_source: None,
+            sticker: None,
         };
         let images = vec![
             face(CardFileImageKind::FaceBack, 2),
@@ -3748,6 +3818,85 @@ mod tests {
         assert_eq!(r.pos, r.bytes.len());
     }
 
+    #[test]
+    fn card_file_carries_stickers_with_placement_png_or_jpeg() {
+        use crate::domain::card_stickers::CardSticker;
+        let png = |tag: u8| vec![0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A, tag];
+        let sticker = |id: &str, x: f64, image: Vec<u8>| CardFileImage {
+            idol_id: String::new(),
+            jpeg: image,
+            kind: CardFileImageKind::Sticker,
+            photo_source: None,
+            sticker: Some(CardSticker {
+                id: id.into(),
+                x,
+                y: 0.4,
+                width: 0.5,
+                rotation_degrees: -15.0,
+            }),
+        };
+        let mut images = vec![
+            sticker("a", 0.25, png(1)),
+            sticker("b", 0.5, jpeg(2)),
+            sticker("c", 0.75, png(3)),
+            sticker("d", 0.9, png(4)),
+            // 置き方の無い素材は入れない。
+            CardFileImage {
+                sticker: None,
+                ..sticker("e", 0.1, png(5))
+            },
+        ];
+        images.push(CardFileImage {
+            kind: CardFileImageKind::Photo,
+            sticker: None,
+            ..sticker("p", 0.0, jpeg(9))
+        });
+        let enc = encode_producer_card(&input());
+        // PNG の写真は入れない (透過を通すのは素材だけ)。
+        let png_photo = vec![CardFileImage {
+            kind: CardFileImageKind::Photo,
+            sticker: None,
+            ..sticker("f", 0.1, png(6))
+        }];
+        assert!(
+            decode_card_file(&encode_card_file(&enc.url, &png_photo).unwrap())
+                .unwrap()
+                .images
+                .is_empty()
+        );
+        let file = decode_card_file(&encode_card_file(&enc.url, &images).unwrap()).unwrap();
+        let got: Vec<(CardFileImageKind, u8)> = file
+            .images
+            .iter()
+            .map(|i| (i.kind, *i.jpeg.last().unwrap()))
+            .collect();
+        assert_eq!(
+            got,
+            vec![
+                (CardFileImageKind::Photo, 9),
+                (CardFileImageKind::Sticker, 1),
+                (CardFileImageKind::Sticker, 2),
+                (CardFileImageKind::Sticker, 3),
+            ]
+        );
+        let placed: Vec<(String, f64)> = file
+            .images
+            .iter()
+            .filter_map(|i| i.sticker.as_ref())
+            .map(|s| (s.id.clone(), (s.x * 100.0).round()))
+            .collect();
+        assert_eq!(
+            placed,
+            vec![
+                ("r1".into(), 25.0),
+                ("r2".into(), 50.0),
+                ("r3".into(), 75.0)
+            ]
+        );
+        let first = file.images[1].sticker.as_ref().unwrap();
+        assert!((first.rotation_degrees + 15.0).abs() < 1e-4 && (first.width - 0.5).abs() < 1e-6);
+    }
+
     /// 書体・自分の QR を足す前のコア (7826fcba) が `input()` から作った名刺の中身。
     const V1_PAYLOAD: &str = "AQ8H44G144GMUC7nj77lnLDmtL7jg7tQ44Op44Kk44OW55qG5Yuk55uu5oyH44GX44Gm44G-44GZ3g9XnAMnc2hfZTY1NmUzMGUtZTRhNi00ZjhlLTg0ZmUtYWI4M2JjN2Y3ZWI4r0wCEDc2NV_lpKnmtbfmmKXpppkQNzY1X-WmguaciOWNg-aXqQIABmZ1Z2FfcAEQZnVnYS5ic2t5LnNvY2lhbAKtLCeAgSCygA";
 
@@ -3764,18 +3913,21 @@ mod tests {
                 jpeg: jpeg(3),
                 kind: CardFileImageKind::Oshi,
                 photo_source: None,
+                sticker: None,
             },
             CardFileImage {
                 idol_id: "whatever".into(),
                 jpeg: jpeg(7),
                 kind: CardFileImageKind::Photo,
                 photo_source: None,
+                sticker: None,
             },
             CardFileImage {
                 idol_id: String::new(),
                 jpeg: jpeg(8),
                 kind: CardFileImageKind::Photo,
                 photo_source: None,
+                sticker: None,
             },
         ];
         let bytes = encode_card_file(&enc.url, &images).unwrap();
@@ -3826,6 +3978,7 @@ mod tests {
             jpeg: jpeg(7),
             kind: CardFileImageKind::Photo,
             photo_source: source,
+            sticker: None,
         };
         // X のアイコンは出どころが届く (丸く出す)。
         let bytes = encode_card_file(&enc.url, &[photo(Some(CardPhotoSource::XIcon))]).unwrap();
@@ -3863,6 +4016,7 @@ mod tests {
             jpeg: jpeg(3),
             kind: CardFileImageKind::Oshi,
             photo_source: Some(CardPhotoSource::XIcon),
+            sticker: None,
         };
         let file = decode_card_file(&encode_card_file(&enc.url, &[oshi]).unwrap()).unwrap();
         assert_eq!(file.images[0].photo_source, None);
