@@ -18,9 +18,15 @@ import uniffi.imas_core.CardFileImage
 import uniffi.imas_core.CardFileImageKind
 import uniffi.imas_core.CardPhotoShape
 import uniffi.imas_core.CardPhotoSource
+import uniffi.imas_core.CardSticker
 import uniffi.imas_core.cardPhotoShape
 import uniffi.imas_core.cardPhotoSourceFromKey
 import uniffi.imas_core.cardPhotoSourceKey
+import uniffi.imas_core.cardStickersFromJson
+import uniffi.imas_core.cardStickersToJson
+
+/** 名刺に置く素材 1 枚 (置き方と画像の在り処)。 */
+data class StickerFile(val sticker: CardSticker, val url: String)
 
 /**
  * 名刺入れの画像ファイル (受け取った担当の画像・名刺の写真・紙の名刺の写真・自作の名刺の画像) と、
@@ -49,6 +55,12 @@ object ProducerCardFiles {
      * Auto Backup から外す)。iOS `Documents/producer_card_oshi/`。
      */
     const val MY_OSHI_DIRECTORY_NAME = "producer_card_oshi"
+
+    /**
+     * 名刺の表に置く素材 (好きな画像・背景を切り抜いた透過の画像) の置き場所 (filesDir の下。名刺の行には持たない。
+     * Auto Backup から外す)。画像は `<id>.png`、置き方は `stickers.json`。iOS `Documents/producer_card_stickers/`。
+     */
+    const val MY_STICKER_DIRECTORY_NAME = "producer_card_stickers"
 
     /**
      * 前の版のプロフィール帳だけの写真の置き場所 (filesDir の下)。プロフィール帳は P名刺の画像に一本化し、
@@ -101,9 +113,36 @@ object ProducerCardFiles {
                 }
                 CardFileImageKind.FACE_FRONT -> writeAtomically(faceFile(context, cardId, Side.FRONT), image.jpeg)
                 CardFileImageKind.FACE_BACK -> writeAtomically(faceFile(context, cardId, Side.BACK), image.jpeg)
+                CardFileImageKind.STICKER -> Unit
             }
         }
+        // 素材は届いた並びで置き換える (相手が素材を外した名刺を送り直したら、古い素材を出し続けない)。
+        saveReceivedStickers(context, cardId, images.filter { it.kind == CardFileImageKind.STICKER })
     }
+
+    // ---- 受け取った素材 (相手が名刺の表に置いた画像) ----
+
+    private fun stickerLayoutFile(context: Context, cardId: String): File = File(folder(context, cardId), "stickers.json")
+
+    private fun stickerFile(context: Context, cardId: String, id: String): File =
+        File(folder(context, cardId), "sticker_${safeName(id)}.img")
+
+    private fun saveReceivedStickers(context: Context, cardId: String, images: List<CardFileImage>) {
+        receivedStickerLayout(context, cardId).forEach { stickerFile(context, cardId, it.id).delete() }
+        val placed = images.mapNotNull { image -> image.sticker?.let { it to image.jpeg } }
+        placed.forEach { (sticker, data) -> writeAtomically(stickerFile(context, cardId, sticker.id), data) }
+        writeAtomically(stickerLayoutFile(context, cardId), cardStickersToJson(placed.map { it.first }).toByteArray())
+    }
+
+    private fun receivedStickerLayout(context: Context, cardId: String): List<CardSticker> =
+        runCatching { cardStickersFromJson(stickerLayoutFile(context, cardId).readText()) }.getOrDefault(emptyList())
+
+    /** 受け取った名刺の素材 (重なりの順。画像の無いものは除く)。 */
+    fun receivedStickers(context: Context, cardId: String): List<StickerFile> =
+        receivedStickerLayout(context, cardId).mapNotNull { sticker ->
+            val file = stickerFile(context, cardId, sticker.id)
+            if (file.exists()) StickerFile(sticker, Uri.fromFile(file).toString()) else null
+        }
 
     // ---- 受け取った自作の名刺の画像 (相手が自分で作った名刺の表・裏) ----
 
@@ -207,6 +246,48 @@ object ProducerCardFiles {
         val dir = File(context.filesDir, LEGACY_PROFILE_SHEET_DIRECTORY_NAME)
         if (dir.exists()) dir.deleteRecursively()
     }
+
+    // ---- 自分の名刺の素材 ----
+
+    private fun myStickerFolder(context: Context): File = File(context.filesDir, MY_STICKER_DIRECTORY_NAME)
+
+    fun myStickerFile(context: Context, id: String): File? =
+        File(myStickerFolder(context), "${safeName(id)}.png").takeIf { it.exists() }
+
+    /** 自分の名刺の素材の置き方 (重なりの順。画像の無いものは除く)。 */
+    fun myStickers(context: Context): List<CardSticker> {
+        val stored = runCatching { cardStickersFromJson(File(myStickerFolder(context), "stickers.json").readText()) }
+            .getOrDefault(emptyList())
+        return stored.filter { myStickerFile(context, it.id) != null }
+    }
+
+    /** 自分の名刺の素材 (置き方と画像の在り処)。 */
+    fun myStickerFiles(context: Context): List<StickerFile> =
+        myStickers(context).mapNotNull { s -> myStickerFile(context, s.id)?.let { StickerFile(s, Uri.fromFile(it).toString()) } }
+
+    /** 素材を書き直す (置き方の並びと、新しく足した画像)。並びに無い画像は消す。書けなければ投げる。 */
+    fun saveMyStickers(context: Context, stickers: List<CardSticker>, newImages: Map<String, ByteArray>) {
+        val dir = myStickerFolder(context).apply { mkdirs() }
+        newImages.forEach { (id, data) ->
+            if (stickers.any { it.id == id }) writeAtomically(File(dir, "${safeName(id)}.png"), data)
+        }
+        val keep = stickers.map { "${safeName(it.id)}.png" }.toSet()
+        dir.listFiles()?.filter { it.name.endsWith(".png") && it.name !in keep }?.forEach { it.delete() }
+        writeAtomically(File(dir, "stickers.json"), cardStickersToJson(stickers).toByteArray())
+    }
+
+    /** 素材の画像を名刺に置く形にする (長辺 1200px までの PNG。透過を残す)。 */
+    fun stickerPng(bitmap: Bitmap): ByteArray? = runCatching {
+        val longest = max(bitmap.width, bitmap.height)
+        val ratio = if (longest > 1200) 1200f / longest else 1f
+        val w = (bitmap.width * ratio).roundToInt().coerceAtLeast(1)
+        val h = (bitmap.height * ratio).roundToInt().coerceAtLeast(1)
+        val scaled = if (ratio < 1f) Bitmap.createScaledBitmap(bitmap, w, h, true) else bitmap
+        ByteArrayOutputStream().use { out ->
+            scaled.compress(Bitmap.CompressFormat.PNG, 100, out)
+            out.toByteArray()
+        }
+    }.getOrNull()
 
     // ---- 自分の名刺用の担当の画像 ----
 

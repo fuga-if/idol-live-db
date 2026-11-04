@@ -16,6 +16,11 @@ import com.fugaif.imaslivedb.data.producercard.FavoriteSongSource
 import com.fugaif.imaslivedb.data.local.BrandRoleStore
 import com.fugaif.imaslivedb.ui.designsystem.ImasFullScreenDialog
 import com.fugaif.imaslivedb.ui.designsystem.ImasNavRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasMeishiPicture
+import com.fugaif.imaslivedb.ui.designsystem.ImasMeishiSticker
+import com.fugaif.imaslivedb.ui.designsystem.ImasProducerCardContent
+import uniffi.imas_core.CardSticker
+import uniffi.imas_core.cardStickersAdd
 import com.fugaif.imaslivedb.ui.settings.BrandRoleSettingsScreen
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.RadioButtonChecked
@@ -249,6 +254,14 @@ fun ProducerCardEditorSheet(
     val oshiImageDraft = remember { mutableStateMapOf<String, String?>() }
     var oshiImageTarget by remember { mutableStateOf<String?>(null) }
     var oshiImageMenuTarget by remember { mutableStateOf<Idol?>(null) }
+    // 表に重ねる素材 (置き方の並び)・端末に書いてある並び・見本に出す画像 (端末の画像か書きかけの一時ファイル)。✓ で端末に書く。
+    var stickers by remember { mutableStateOf<List<CardSticker>>(emptyList()) }
+    var savedStickers by remember { mutableStateOf<List<CardSticker>>(emptyList()) }
+    val stickerImages = remember { mutableStateMapOf<String, String>() }
+    val stickerNewData = remember { mutableMapOf<String, ByteArray>() }
+    var stickerNewCount by remember { mutableStateOf(0) }
+    var stickerSource by remember { mutableStateOf<Bitmap?>(null) }
+    var placingStickers by remember { mutableStateOf(false) }
     // 写真を選び直した (元の写真も書き直す)。位置を直しただけなら元の写真は書き直さない。
     var photoSourceChanged by remember { mutableStateOf(false) }
     // 切り抜きを決めて見本を作っている間は保存させない (写真が書かれずに閉じないように)。
@@ -332,6 +345,15 @@ fun ProducerCardEditorSheet(
         }
     }
     LaunchedEffect(Unit) {
+        val saved = withContext(Dispatchers.IO) { ProducerCardFiles.myStickerFiles(context) }
+        savedStickers = saved.map { it.sticker }
+        // 読み込み中に足した素材があれば、そちらを残す。
+        if (stickers.isEmpty() && stickerNewCount == 0) {
+            stickers = savedStickers
+            saved.forEach { stickerImages[it.sticker.id] = it.url }
+        }
+    }
+    LaunchedEffect(Unit) {
         if (faceDirty.isNotEmpty()) return@LaunchedEffect
         val saved = withContext(Dispatchers.IO) {
             faceFolder(context).deleteRecursively()
@@ -351,6 +373,37 @@ fun ProducerCardEditorSheet(
                 return@launch
             }
             cropping = CropDraft(image, ImasPortraitCrop(), CardPhotoSource.PICKED)
+        }
+    }
+
+    /** 素材にする写真を選ぶ。整える画面を開く。 */
+    val pickSticker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            val image = PaperCardCodeReader.loadBitmap(context, uri)
+            if (image == null) {
+                error = "画像を読み込めませんでした。"
+                return@launch
+            }
+            stickerSource = image
+        }
+    }
+
+    /** 整えた素材を足す (見本には一時ファイルで出し、✓ で端末に書く)。 */
+    fun addSticker(png: ByteArray) {
+        val id = UUID.randomUUID().toString().take(8).lowercase()
+        scope.launch {
+            val url = withContext(Dispatchers.IO) {
+                val file = File(previewFolder(context).apply { mkdirs() }, "sticker-$id.png")
+                runCatching { file.writeBytes(png) }.getOrNull()?.let { Uri.fromFile(file).toString() }
+            } ?: return@launch
+            val next = cardStickersAdd(stickers, id)
+            if (next.size <= stickers.size) return@launch
+            stickers = next
+            stickerImages[id] = url
+            stickerNewData[id] = png
+            stickerNewCount = stickerNewData.size
+            placingStickers = true
         }
     }
 
@@ -566,7 +619,7 @@ fun ProducerCardEditorSheet(
         hidden != card.hidden || draft().linksJson != card.linksJson ||
         draft().cardDesign != card.cardDesign || draft().ink != card.ink || draft().qrUrl != card.qrUrl || photoDirty || faceDirty.isNotEmpty() ||
         songs != card.profile.songs || oshiChoice != card.cardOshiChoice || renewedCardId != null ||
-        oshiImageDraft.isNotEmpty()
+        oshiImageDraft.isNotEmpty() || stickers != savedStickers || stickerNewCount > 0
     val qrInvalid = qrUrl.isNotBlank() && normalizeCardQrUrl(qrUrl) == null
 
     // ✕・✓ と払う動きは、押した時点の判定で決める (下の関数は組み立てたときの値を抱えたまま
@@ -618,6 +671,11 @@ fun ProducerCardEditorSheet(
                         else ProducerCardFiles.deleteMyOshiImage(context, id)
                     }
                 }
+                val placed = stickers
+                val newStickers = stickerNewData.toMap()
+                if (placed != savedStickers || newStickers.isNotEmpty()) {
+                    withContext(Dispatchers.IO) { ProducerCardFiles.saveMyStickers(context, placed, newStickers) }
+                }
                 val faces = faceDirty.associateWith { faceImages[it] }
                 withContext(Dispatchers.IO) {
                     faces.forEach { (side, image) ->
@@ -654,7 +712,8 @@ fun ProducerCardEditorSheet(
                     CardPreview(
                         draft(), record, directory, previewPortrait, photoOrigin,
                         facePreview[ProducerCardFiles.Side.FRONT]?.let { ProducerCardFace(it, facePreview[ProducerCardFiles.Side.BACK]) },
-                        oshiImageDraft
+                        oshiImageDraft,
+                        previewStickers(stickers, stickerImages)
                     )
                 }
                 Column(
@@ -733,6 +792,11 @@ fun ProducerCardEditorSheet(
                             }
                         } else {
                             InkField(ink = ink, oshi = oshi, onSelect = { ink = it })
+                            CardStickerField(
+                                stickers = stickers, images = stickerImages,
+                                onPlace = { placingStickers = true },
+                                onAdd = { pickSticker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
+                            )
                         }
                     }
 
@@ -950,6 +1014,23 @@ fun ProducerCardEditorSheet(
             )
         }
     }
+    stickerSource?.let { image ->
+        StickerPrepSheet(image = image, onUse = { png -> addSticker(png) }, onDismiss = { stickerSource = null })
+    }
+    if (placingStickers) {
+        ImasFullScreenDialog(onDismissRequest = { placingStickers = false }) {
+            StickerPlacementScreen(
+                card = rememberPreviewContent(
+                    draft(), record, directory, previewPortrait, photoOrigin,
+                    facePreview[ProducerCardFiles.Side.FRONT]?.let { ProducerCardFace(it, facePreview[ProducerCardFiles.Side.BACK]) },
+                    oshiImageDraft, emptyList()
+                ),
+                images = stickerImages, stickers = stickers,
+                onChange = { stickers = it },
+                onBack = { placingStickers = false }
+            )
+        }
+    }
     if (showingBrandSettings) {
         ImasFullScreenDialog(onDismissRequest = { showingBrandSettings = false }) { BrandRoleSettingsScreen(onBack = { showingBrandSettings = false }) }
     }
@@ -1033,17 +1114,37 @@ private fun CardPreview(
     portraitUrl: String?,
     portraitSource: CardPhotoSource,
     face: ProducerCardFace?,
-    oshiImageDraft: Map<String, String?>
+    oshiImageDraft: Map<String, String?>,
+    stickers: List<ImasMeishiSticker>
 ) {
+    val content = rememberPreviewContent(draft, record, directory, portraitUrl, portraitSource, face, oshiImageDraft, stickers)
+    ImasProducerCard(content, isFlippable = false, modifier = Modifier.semantics { contentDescription = "名刺の見本" })
+}
+
+/** 今の入力で組んだ名刺の中身 (素材を重ねるかは [stickers] で決める。素材を置く画面の下敷きは空で渡す)。 */
+@Composable
+private fun rememberPreviewContent(
+    draft: MyProducerCard,
+    record: ProducerCardMyRecord?,
+    directory: ProducerCardDirectory,
+    portraitUrl: String?,
+    portraitSource: CardPhotoSource,
+    face: ProducerCardFace?,
+    oshiImageDraft: Map<String, String?>,
+    stickers: List<ImasMeishiSticker>
+): ImasProducerCardContent {
     val rec = record ?: ProducerCardMyRecord(oshiIds = emptyList(), attended = emptyList(), songCount = 0)
     val sample = draft.copy(name = draft.name.ifEmpty { "名前" })
     val card = encodeProducerCard(ProducerCardAssembler.input(sample, rec)).card
-    val content = rememberProducerCardContent(
+    return rememberProducerCardContent(
         card = card, directory = directory, ownImages = true, portraitUrl = portraitUrl, portraitSource = portraitSource, face = face,
-        ownOshiDraft = oshiImageDraft
+        ownOshiDraft = oshiImageDraft, stickers = stickers
     )
-    ImasProducerCard(content, isFlippable = false, modifier = Modifier.semantics { contentDescription = "名刺の見本" })
 }
+
+/** 見本に重ねる素材 (画像の在り処が分かるものだけ。重なりの順)。 */
+private fun previewStickers(stickers: List<CardSticker>, images: Map<String, String>): List<ImasMeishiSticker> =
+    stickers.mapNotNull { s -> images[s.id]?.let { ProducerCardDisplay.stickerView(s, ImasMeishiPicture.Url(it)) } }
 
 /** 自分の QR の欄 (URL を打つ・名刺のリンクから選ぶ・写真の QR を読む)。 */
 @Composable

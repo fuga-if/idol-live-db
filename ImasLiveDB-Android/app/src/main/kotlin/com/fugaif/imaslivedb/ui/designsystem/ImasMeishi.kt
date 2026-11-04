@@ -180,6 +180,17 @@ sealed interface ImasMeishiPicture {
     data class Image(val bitmap: Bitmap) : ImasMeishiPicture
 }
 
+/** 名刺の表に重ねる素材 1 枚 (置き方はコアの `CardSticker`: 紙に対する中心・幅・傾き)。iOS `ImasMeishiSticker`。 */
+@Immutable
+data class ImasMeishiSticker(
+    val id: String,
+    val picture: ImasMeishiPicture,
+    val x: Float,
+    val y: Float,
+    val width: Float,
+    val rotationDegrees: Float
+)
+
 /** 名刺の表に並べる担当 1 人。 */
 @Immutable
 data class ImasMeishiOshi(
@@ -237,6 +248,7 @@ private enum class MeishiFace(val family: FontFamily) {
  * @param nameFamily 名前の書体 (デザインの書体)。null は見出しの書体の極太。
  * @param portrait 名刺の写真 (右に正方形の枠で)。
  * @param portraitRound 名刺の写真を丸く切る (X のアイコン。切り方はコアの `cardPhotoShape`)。
+ * @param stickers 表の上に重ねる素材 (重なりの順。紙の外にはみ出した分は切る)。
  */
 @Composable
 fun ImasMeishiFront(
@@ -253,13 +265,14 @@ fun ImasMeishiFront(
     nameFamily: FontFamily? = null,
     portrait: ImasMeishiPicture? = null,
     portraitRound: Boolean = false,
+    stickers: List<ImasMeishiSticker> = emptyList(),
     scale: Float = 1f
 ) {
     val p = rememberMeishiScale(scale)
     // 夜公演は渡された墨から黒い紙を組む。
     val drawn = if (look == ImasMeishiLook.NIGHT) ink.night() else ink
     val parts = MeishiFrontParts(name, drawn, sinceImprint, oshiGroups, hero, oshiCaption, moreOshi, handle, nameFamily, portrait, portraitRound, p)
-    Box(modifier.requiredSize(p.dp(ImasMeishi.WIDTH), p.dp(ImasMeishi.HEIGHT)).background(drawn.paper)) {
+    Box(modifier.requiredSize(p.dp(ImasMeishi.WIDTH), p.dp(ImasMeishi.HEIGHT)).background(drawn.paper).clipToBounds()) {
         when (look) {
             ImasMeishiLook.PASS -> PassFront(parts)
             ImasMeishiLook.TICKET -> TicketFront(parts)
@@ -270,6 +283,7 @@ fun ImasMeishiFront(
             ImasMeishiLook.NIGHT -> NightFront(parts)
             ImasMeishiLook.OSHI -> OshiFront(parts)
         }
+        ImasMeishiStickerLayer(stickers, Modifier.fillMaxSize())
     }
 }
 
@@ -846,6 +860,17 @@ fun ImasMeishiPictureView(
     }
 }
 
+
+// MARK: - 素材
+
+/** 名刺の表に重ねる素材の層。素材は紙の大きさに対する割合で置き、紙の外にはみ出した分は切る (切るのは置いた側)。 */
+@Composable
+fun ImasMeishiStickerLayer(stickers: List<ImasMeishiSticker>, modifier: Modifier = Modifier) {
+    if (stickers.isEmpty()) return
+    ImasStickerPlacement(stickers, modifier.clearAndSetSemantics { }) { sticker ->
+        ImasMeishiPictureView(sticker.picture, contentScale = ContentScale.FillWidth, fallback = {})
+    }
+}
 
 // MARK: - 縦書き
 

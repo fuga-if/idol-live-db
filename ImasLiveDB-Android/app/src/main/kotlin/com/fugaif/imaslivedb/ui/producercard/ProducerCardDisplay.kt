@@ -19,6 +19,10 @@ import java.text.NumberFormat
 import java.util.Locale
 import android.content.Context
 import com.fugaif.imaslivedb.data.producercard.ProducerCardFiles
+import com.fugaif.imaslivedb.data.producercard.StickerFile
+import com.fugaif.imaslivedb.ui.designsystem.ImasMeishiPicture
+import com.fugaif.imaslivedb.ui.designsystem.ImasMeishiSticker
+import uniffi.imas_core.CardSticker
 import com.fugaif.imaslivedb.ui.designsystem.ImasProducerCardDesign
 import uniffi.imas_core.CardDesign
 import uniffi.imas_core.CardDesignInfo
@@ -81,7 +85,9 @@ data class ReceivedCardImages(
     val portraitSource: CardPhotoSource = CardPhotoSource.PICKED,
     val face: ProducerCardFace? = null,
     /** 紙の名刺の写真 (表・裏)。 */
-    val paperPhotos: List<String> = emptyList()
+    val paperPhotos: List<String> = emptyList(),
+    /** 受け取った素材 (重なりの順)。 */
+    val stickers: List<StickerFile> = emptyList()
 ) {
     /** 名刺の写真を丸く出すか (切り方はコアの `cardPhotoShape`)。 */
     val portraitRound: Boolean get() = cardPhotoShape(portraitSource) == CardPhotoShape.ROUND
@@ -93,7 +99,8 @@ data class ReceivedCardImages(
             portraitUrl = ProducerCardFiles.cardPhotoUrl(context, cardId),
             portraitSource = ProducerCardFiles.cardPhotoSource(context, cardId),
             face = ProducerCardDisplay.receivedFace(context, cardId),
-            paperPhotos = ProducerCardFiles.Side.entries.mapNotNull { ProducerCardFiles.photoUrl(context, cardId, it) }
+            paperPhotos = ProducerCardFiles.Side.entries.mapNotNull { ProducerCardFiles.photoUrl(context, cardId, it) },
+            stickers = ProducerCardFiles.receivedStickers(context, cardId)
         )
     }
 }
@@ -167,6 +174,18 @@ object ProducerCardDisplay {
         CardDesign.CUSTOM -> face?.let { ImasProducerCardDesign.Face(it.front, it.back) } ?: ImasProducerCardDesign.Pass
     }
 
+    /** 素材の置き方と画像を名刺に重ねる形にする。 */
+    fun stickers(placed: List<StickerFile>): List<ImasMeishiSticker> =
+        placed.map { stickerView(it.sticker, ImasMeishiPicture.Url(it.url)) }
+
+    fun stickerView(s: CardSticker, picture: ImasMeishiPicture): ImasMeishiSticker = ImasMeishiSticker(
+        id = s.id, picture = picture, x = s.x.toFloat(), y = s.y.toFloat(), width = s.width.toFloat(),
+        rotationDegrees = s.rotationDegrees.toFloat()
+    )
+
+    /** 自分の名刺の素材。ファイルを見るのでメインの外で呼ぶ。 */
+    fun myStickers(context: Context): List<ImasMeishiSticker> = stickers(ProducerCardFiles.myStickerFiles(context))
+
     /** 自分の名刺の顔 (自作の画像の表があれば)。ファイルを見るのでメインの外で呼ぶ。 */
     fun myFace(context: Context): ProducerCardFace? =
         ProducerCardFiles.myFaceUrl(context, ProducerCardFiles.Side.FRONT)?.let {
@@ -223,6 +242,7 @@ object ProducerCardDisplay {
  * 新しい版のアプリが足した項目を落とした QR になる)。
  * [imageUrls] は担当の画像 (アイドルの id → 画像。受け取った名刺は受け取った画像。近くの端末から後で届いても組み直す)。
  * [showsRecord] は名刺の下の記録の掲示板 (自分の名刺は出さない。自分の記録は P名刺の画像で見せる)。
+ * [stickers] は表に重ねる素材 (重なりの順)。
  */
 @Composable
 fun rememberProducerCardContent(
@@ -237,7 +257,8 @@ fun rememberProducerCardContent(
     back: ImasProducerCardBack? = null,
     payload: String? = null,
     showsRecord: Boolean = true,
-    ownOshiDraft: Map<String, String?> = emptyMap()
+    ownOshiDraft: Map<String, String?> = emptyMap(),
+    stickers: List<ImasMeishiSticker> = emptyList()
 ): ImasProducerCardContent {
     val context = androidx.compose.ui.platform.LocalContext.current
     val nameFamily = rememberCardNameFamily(ProducerCardDisplay.nameFont(card, face))
@@ -249,7 +270,7 @@ fun rememberProducerCardContent(
     val photoEntityId = if (ownImages) firstWithImage(card, directory, ownOshiImages) else null
     return remember(
         card, directory, sharedWith, ownImages, imageUrls, portraitUrl, portraitSource, face, back, payload, showsRecord,
-        nameFamily, photoEntityId, ownOshiImages
+        nameFamily, photoEntityId, ownOshiImages, stickers
     ) {
         val oshi = ProducerCardDisplay.oshi(card, directory, sharedWith, ownImages, imageUrls, ownOshiImages)
         val cardFace = producerCardFace(card, directory.oshiEntries(oshi.map { it.id }))
@@ -277,6 +298,7 @@ fun rememberProducerCardContent(
             nameFamily = nameFamily,
             accentOshiId = cardFace.accentIdolId,
             sumiInk = cardFace.accentIdolId == null,
+            stickers = stickers,
             back = back ?: ImasProducerCardBack(
                 qr = producerCardUrlFromPayload(payload ?: producerCardPayload(card)),
                 issuedLabel = cardFace.issuedLabel,

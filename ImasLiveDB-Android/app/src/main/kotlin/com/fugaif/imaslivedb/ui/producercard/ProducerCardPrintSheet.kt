@@ -25,6 +25,8 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasButton
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonSize
 import com.fugaif.imaslivedb.data.producercard.ProducerCardFiles
+import com.fugaif.imaslivedb.ui.designsystem.ImasMeishiPicture
+import com.fugaif.imaslivedb.ui.designsystem.ImasMeishiSticker
 import com.fugaif.imaslivedb.ui.designsystem.ImasSection
 import com.fugaif.imaslivedb.ui.designsystem.ImasSegmented
 import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeaderStyle
@@ -122,7 +124,8 @@ fun ProducerCardPrintSheet(card: EncodedProducerCard, directory: ProducerCardDir
                             handle = face.handle?.display,
                             nameFamily = nameFamily,
                             portrait = materials.portrait,
-                            portraitRound = materials.portraitRound
+                            portraitRound = materials.portraitRound,
+                            stickers = materials.stickers
                         )
                     }
                 }
@@ -188,7 +191,9 @@ data class ProducerCardPrintMaterials(
     val faceFront: Bitmap? = null,
     val faceBack: Bitmap? = null,
     /** 担当の写真 (アイドルの id → 画像)。 */
-    val oshiImages: Map<String, Bitmap> = emptyMap()
+    val oshiImages: Map<String, Bitmap> = emptyMap(),
+    /** 表に重ねる素材 (重なりの順、読み込み済み)。 */
+    val stickers: List<ImasMeishiSticker> = emptyList()
 ) {
     companion object {
         /** 自分の名刺の画像 (名刺の写真・担当の代表画像・自作の画像) を読む。大きな写真を丸ごと読まない。 */
@@ -206,7 +211,11 @@ data class ProducerCardPrintMaterials(
                     faceBack = if (usesFace) ProducerCardFiles.myFaceFile(context, ProducerCardFiles.Side.BACK)?.let { ProducerCardFiles.decodeBounded(it, 2000) } else null,
                     oshiImages = card.oshiIdolIds.mapNotNull { id ->
                         ProducerCardFiles.cardOshiImageFile(context, id, module.customImageStore.primaryImageFile(id))?.let { ProducerCardFiles.decodeBounded(it, oshiPixels) }?.let { id to it }
-                    }.toMap()
+                    }.toMap(),
+                    stickers = ProducerCardFiles.myStickers(context).mapNotNull { s ->
+                        ProducerCardFiles.myStickerFile(context, s.id)?.let { ProducerCardFiles.decodeBounded(it, 1400) }
+                            ?.let { ProducerCardDisplay.stickerView(s, ImasMeishiPicture.Image(it)) }
+                    }
                 )
             }
     }

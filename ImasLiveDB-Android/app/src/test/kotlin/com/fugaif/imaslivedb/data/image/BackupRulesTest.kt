@@ -22,6 +22,7 @@ class BackupRulesTest {
         (GalleryKind.entries.map { it.directoryName } + CustomImageStore.BRAND_DIRECTORY_NAME +
             ProducerCardFiles.DIRECTORY_NAME + ProducerCardFiles.MY_DIRECTORY_NAME +
             ProducerCardFiles.MY_FACE_DIRECTORY_NAME + ProducerCardFiles.MY_OSHI_DIRECTORY_NAME +
+            ProducerCardFiles.MY_STICKER_DIRECTORY_NAME +
             ProducerCardFiles.LEGACY_PROFILE_SHEET_DIRECTORY_NAME)
             .map { "$it/" }.toSet()
 

@@ -176,7 +176,8 @@ fun ReceivedCardDetailScreen(
                         portraitUrl = images.portraitUrl,
                         portraitSource = images.portraitSource,
                         face = images.face,
-                        payload = r.payload
+                        payload = r.payload,
+                        stickers = ProducerCardDisplay.stickers(images.stickers)
                     )
                     ImasProducerCard(content)
                     ImasProducerCardDetails(

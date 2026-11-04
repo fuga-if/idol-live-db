@@ -282,6 +282,8 @@ dependencies {
     implementation(libs.androidx.camera.view)
     implementation(libs.mlkit.barcode.scanning)
     implementation(libs.mlkit.document.scanner)
+    // 名刺の素材の背景を切り抜く (端末内。モデルは Play 開発者サービスが取る)
+    implementation(libs.mlkit.subject.segmentation)
     implementation(libs.zxing.core)
     // 歌詞カードの文字認識 (端末内だけ。画像は送らず保存もしない)
     implementation(libs.mlkit.text.recognition.japanese)

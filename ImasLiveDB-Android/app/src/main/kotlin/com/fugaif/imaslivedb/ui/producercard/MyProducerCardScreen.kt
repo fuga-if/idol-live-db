@@ -60,6 +60,7 @@ import uniffi.imas_core.EncodedProducerCard
 import uniffi.imas_core.cardQrLinkView
 import uniffi.imas_core.cardIssuedLabel
 import uniffi.imas_core.CardPhotoSource
+import com.fugaif.imaslivedb.ui.designsystem.ImasMeishiSticker
 
 /**
  * 自分の P名刺。iOS `MyProducerCardView` の移植。91:55 の名刺 1 枚と、名刺に収まらない詳細 (ひとこと・担当・リンク) を下に並べる。
@@ -92,6 +93,7 @@ fun MyProducerCardScreen(onBack: () -> Unit, onOpenCardCase: () -> Unit, onOpenI
     var portraitUrl by remember { mutableStateOf<String?>(null) }
     var portraitSource by remember { mutableStateOf(CardPhotoSource.PICKED) }
     var face by remember { mutableStateOf<ProducerCardFace?>(null) }
+    var stickers by remember { mutableStateOf<List<ImasMeishiSticker>>(emptyList()) }
 
     suspend fun load() {
         val repo = module.producerCardRepository
@@ -105,6 +107,7 @@ fun MyProducerCardScreen(onBack: () -> Unit, onOpenCardCase: () -> Unit, onOpenI
         }
         portraitSource = withContext(Dispatchers.IO) { ProducerCardFiles.myPhotoSource(context) }
         face = withContext(Dispatchers.IO) { ProducerCardDisplay.myFace(context) }
+        stickers = withContext(Dispatchers.IO) { ProducerCardDisplay.myStickers(context) }
         val mine = myCard
         val rec = record
         val enc = if (mine != null && rec != null) ProducerCardAssembler.encode(mine, rec) else null
@@ -158,7 +161,7 @@ fun MyProducerCardScreen(onBack: () -> Unit, onOpenCardCase: () -> Unit, onOpenI
                                 qr = enc.url, issuedLabel = cardIssuedLabel(enc.card.issuedOn),
                                 showCount = enc.card.showCount?.toLong(), songCount = enc.card.songCount?.toLong()
                             ),
-                        showsRecord = false
+                        showsRecord = false, stickers = stickers
                     )
                     Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)) {
                         ImasProducerCard(content)

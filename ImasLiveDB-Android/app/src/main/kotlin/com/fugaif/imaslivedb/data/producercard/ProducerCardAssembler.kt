@@ -147,13 +147,22 @@ object ProducerCardAssembler {
                 CardFileImage(idolId = "", jpeg = jpeg, kind = kind)
             }
 
+    /** 名刺の表に置いた素材 (置き方と、透過のままの PNG)。 */
+    fun myStickerImages(context: Context): List<CardFileImage> =
+        ProducerCardFiles.myStickers(context).mapNotNull { sticker ->
+            val png = ProducerCardFiles.myStickerFile(context, sticker.id)?.let { runCatching { it.readBytes() }.getOrNull() }
+                ?: return@mapNotNull null
+            CardFileImage(idolId = "", jpeg = png, kind = CardFileImageKind.STICKER, sticker = sticker)
+        }
+
     /**
-     * 自分の名刺ファイル (名刺 + 担当の画像 + 名刺の写真 + 自作の名刺の画像)。画像を JPEG にするので
+     * 自分の名刺ファイル (名刺 + 担当の画像 + 名刺の写真 + 自作の名刺の画像 + 素材)。画像を JPEG にするので
      * メインの外で呼ぶ。近くの端末との交換も同じファイルを渡す。
      */
     suspend fun myCardFile(context: Context, module: AppModule, encoded: EncodedProducerCard): ByteArray? =
         withContext(Dispatchers.Default) {
-            val images = myOshiImages(context, module, encoded.card) + listOfNotNull(myPhotoImage(context)) + myFaceImages(context)
+            val images = myOshiImages(context, module, encoded.card) + listOfNotNull(myPhotoImage(context)) + myFaceImages(context) +
+                myStickerImages(context)
             encodeCardFile(payload(encoded), images)
         }
 

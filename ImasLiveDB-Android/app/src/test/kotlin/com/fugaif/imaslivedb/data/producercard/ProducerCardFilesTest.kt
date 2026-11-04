@@ -15,6 +15,8 @@ import org.robolectric.RuntimeEnvironment
 import uniffi.imas_core.CardFileImage
 import uniffi.imas_core.CardFileImageKind
 import uniffi.imas_core.CardPhotoSource
+import uniffi.imas_core.CardSticker
+import uniffi.imas_core.cardStickersAdd
 
 /** 名刺の画像の置き方 (iOS `ProducerCardStoreTests` の画像の部分と対)。 */
 @RunWith(RobolectricTestRunner::class)
@@ -28,6 +30,32 @@ class ProducerCardFilesTest {
         ProducerCardFiles.deleteMyPhoto(context)
         ProducerCardFiles.deleteMyFace(context, ProducerCardFiles.Side.FRONT)
         ProducerCardFiles.deleteMyFace(context, ProducerCardFiles.Side.BACK)
+        ProducerCardFiles.saveMyStickers(context, emptyList(), emptyMap())
+    }
+
+    /** 自分の素材は並びに無い画像を消し、画像の無い置き方は除く。 */
+    @Test
+    fun myStickersKeepOnlyListedImages() {
+        val list = cardStickersAdd(cardStickersAdd(emptyList(), "aaaa1111"), "bbbb2222")
+        ProducerCardFiles.saveMyStickers(context, list, mapOf("aaaa1111" to byteArrayOf(1), "bbbb2222" to byteArrayOf(2)))
+        assertEquals(listOf("aaaa1111", "bbbb2222"), ProducerCardFiles.myStickers(context).map { it.id })
+        // bbbb を外す: 画像も消える。
+        ProducerCardFiles.saveMyStickers(context, list.filter { it.id == "aaaa1111" }, emptyMap())
+        assertEquals(listOf("aaaa1111"), ProducerCardFiles.myStickers(context).map { it.id })
+        assertNull(ProducerCardFiles.myStickerFile(context, "bbbb2222"))
+    }
+
+    /** 受け取った素材は届いた並びで置き換える (外して送り直したら古い素材は残らない)。 */
+    @Test
+    fun receivedStickersAreReplaced() {
+        fun image(id: String) = CardFileImage(
+            idolId = "", jpeg = byteArrayOf(9), kind = CardFileImageKind.STICKER,
+            sticker = cardStickersAdd(emptyList(), id).first()
+        )
+        ProducerCardFiles.saveImages(context, "c1", listOf(image("s1"), image("s2")))
+        assertEquals(listOf("s1", "s2"), ProducerCardFiles.receivedStickers(context, "c1").map { it.sticker.id })
+        ProducerCardFiles.saveImages(context, "c1", listOf(image("s2")))
+        assertEquals(listOf("s2"), ProducerCardFiles.receivedStickers(context, "c1").map { it.sticker.id })
     }
 
     /** 名刺ファイルの自作の画像 (表・裏) は受け取った名刺の顔として書き、写真とは混ぜない。表が届けば前の裏は捨てる。 */

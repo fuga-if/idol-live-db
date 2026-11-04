@@ -27,6 +27,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasMeishiLook
 import com.fugaif.imaslivedb.ui.designsystem.ImasMeishiOshi
 import com.fugaif.imaslivedb.ui.designsystem.ImasMeishiOshiGroup
 import com.fugaif.imaslivedb.ui.designsystem.ImasMeishiPicture
+import com.fugaif.imaslivedb.ui.designsystem.ImasMeishiSticker
 import com.fugaif.imaslivedb.ui.designsystem.imasQrMatrix
 import com.fugaif.imaslivedb.ui.theme.DS
 
@@ -99,7 +100,9 @@ fun ProducerCardPrintFront(
     /** 名刺の写真 (右に正方形の枠で刷る)。 */
     portrait: Bitmap? = null,
     /** 名刺の写真を丸く切る (X のアイコン)。 */
-    portraitRound: Boolean = false
+    portraitRound: Boolean = false,
+    /** 表に重ねる素材 (画像は読み込み済みのもの)。 */
+    stickers: List<ImasMeishiSticker> = emptyList()
 ) {
     val colors = ProducerCardPrint.colors(seed)
     ImasMeishiFront(
@@ -109,6 +112,7 @@ fun ProducerCardPrintFront(
         oshiCaption = caption, moreOshi = moreOshi, handle = handle, nameFamily = nameFamily,
         portrait = portrait?.let { ImasMeishiPicture.Image(it) },
         portraitRound = portraitRound,
+        stickers = stickers,
         scale = ProducerCardPrint.PAPER_SCALE
     )
 }

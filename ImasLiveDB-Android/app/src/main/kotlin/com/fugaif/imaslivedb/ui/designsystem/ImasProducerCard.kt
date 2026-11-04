@@ -192,6 +192,7 @@ data class ImasProducerCardBack(
  * @param nameFamily 名前の書体。null は見出しの書体。
  * @param accentOshiId 帯・罫・判子を刷る色の担当 (コアの `CardFace.accentIdolId`)。null は先頭の担当。
  * @param sumiInk 墨一色で刷る。
+ * @param stickers 表の上に重ねる素材 (重なりの順。自作の画像の名刺には重ねない)。
  * @param back 裏。null なら返さない (自作の画像に裏の画像があればそれを裏にする)。
  */
 @Immutable
@@ -218,6 +219,7 @@ data class ImasProducerCardContent(
     val accentOshiId: String? = null,
     /** 墨一色で刷る (刷る色に墨を選んだ。コアの `CardFace.accentIdolId` が無い)。 */
     val sumiInk: Boolean = false,
+    val stickers: List<ImasMeishiSticker> = emptyList(),
     val back: ImasProducerCardBack? = null
 ) {
     /** 裏があるか (自作の画像の裏、または QR の裏)。 */
@@ -342,6 +344,7 @@ private fun MeishiFrontSide(content: ImasProducerCardContent, ink: ImasMeishiInk
             nameFamily = content.nameFamily,
             portrait = content.portraitUrl?.let { ImasMeishiPicture.Url(it) },
             portraitRound = content.portraitRound,
+            stickers = content.stickers,
             scale = scale
         )
     }

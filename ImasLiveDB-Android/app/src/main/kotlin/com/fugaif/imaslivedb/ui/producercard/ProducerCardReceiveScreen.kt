@@ -33,6 +33,7 @@ import com.fugaif.imaslivedb.data.producercard.NearbyCardExchange
 import com.fugaif.imaslivedb.data.producercard.ProducerCardAssembler
 import com.fugaif.imaslivedb.data.producercard.ProducerCardInbox
 import com.fugaif.imaslivedb.data.producercard.ProducerCardMyRecord
+import com.fugaif.imaslivedb.data.producercard.StickerFile
 import com.fugaif.imaslivedb.data.repository.LedgerShowOption
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.designsystem.ImasCard
@@ -103,6 +104,8 @@ fun ProducerCardReceiveContent(
     var portraitUrl by remember { mutableStateOf<String?>(null) }
     // 届いた自作の名刺の画像 (名刺ファイル・近くの端末から。QR だけなら無いので入場証で描く)。
     var face by remember { mutableStateOf<ProducerCardFace?>(null) }
+    // 届いた素材 (置き方と一時ファイル)。
+    var stickers by remember { mutableStateOf<List<StickerFile>>(emptyList()) }
     var show by remember { mutableStateOf<ProducerCardShowInfo?>(null) }
     var showOptions by remember { mutableStateOf<List<LedgerShowOption>>(emptyList()) }
     var pickingShow by remember { mutableStateOf(false) }
@@ -120,6 +123,7 @@ fun ProducerCardReceiveContent(
         imageUrls = preview.oshi
         portraitUrl = preview.portrait
         face = preview.face
+        stickers = preview.stickers
     }
 
     LaunchedEffect(incoming) {
@@ -178,7 +182,7 @@ fun ProducerCardReceiveContent(
                         card = card, directory = directory, sharedWith = record?.oshiIds.orEmpty().toSet(),
                         imageUrls = imageUrls, portraitUrl = portraitUrl,
                         portraitSource = images.firstOrNull { it.kind == CardFileImageKind.PHOTO }?.photoSource ?: CardPhotoSource.PICKED,
-                        face = face, payload = incoming.payload
+                        face = face, payload = incoming.payload, stickers = ProducerCardDisplay.stickers(stickers)
                     )
                     ImasProducerCard(content)
                     ImasProducerCardDetails(content)
@@ -292,8 +296,13 @@ private fun CommonSummary(card: ProducerCard, record: ProducerCardMyRecord, dire
     }
 }
 
-/** 届いた画像の画面に渡す在り処 (担当の id → 担当の画像、名刺の写真、自作の名刺の画像)。 */
-private class PreviewImages(val oshi: Map<String, String>, val portrait: String?, val face: ProducerCardFace?)
+/** 届いた画像の画面に渡す在り処 (担当の id → 担当の画像、名刺の写真、自作の名刺の画像、素材)。 */
+private class PreviewImages(
+    val oshi: Map<String, String>,
+    val portrait: String?,
+    val face: ProducerCardFace?,
+    val stickers: List<StickerFile>
+)
 
 /** 届いた画像を一時フォルダに書き、画面に渡す在り処を返す。 */
 private suspend fun writePreviewImages(context: Context, images: List<CardFileImage>): PreviewImages =
@@ -303,8 +312,9 @@ private suspend fun writePreviewImages(context: Context, images: List<CardFileIm
         var portrait: String? = null
         var front: String? = null
         var back: String? = null
+        val placed = mutableListOf<StickerFile>()
         images.forEachIndexed { i, image ->
-            val file = File(dir, "$i.jpg")
+            val file = File(dir, "$i.img")
             runCatching { file.writeBytes(image.jpeg) }.getOrNull() ?: return@forEachIndexed
             val url = Uri.fromFile(file).toString()
             when (image.kind) {
@@ -312,9 +322,10 @@ private suspend fun writePreviewImages(context: Context, images: List<CardFileIm
                 CardFileImageKind.PHOTO -> portrait = url
                 CardFileImageKind.FACE_FRONT -> front = url
                 CardFileImageKind.FACE_BACK -> back = url
+                CardFileImageKind.STICKER -> image.sticker?.let { placed += StickerFile(it, url) }
             }
         }
-        PreviewImages(oshi, portrait, front?.let { ProducerCardFace(it, back) })
+        PreviewImages(oshi, portrait, front?.let { ProducerCardFace(it, back) }, placed)
     }
 
 /** 名刺のリンク・名刺ファイルを開いたときのシート (アプリのどこからでも)。iOS `ProducerCardReceiveSheet` と対。 */

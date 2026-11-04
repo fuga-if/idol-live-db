@@ -58,6 +58,8 @@ camerax = "1.4.1"
 mlkitBarcode = "17.3.0"
 # P名刺: 紙の名刺を撮る (名刺の形に切り抜く。iOS の書類カメラの対)
 mlkitDocumentScanner = "16.0.0-beta1"
+# P名刺: 素材の背景を切り抜く (被写体の切り出し。モデルは Play 開発者サービスが端末に取る。iOS の Vision の対)
+mlkitSubjectSegmentation = "16.0.0-beta1"
 # P名刺: QR を刷る (誤り訂正 L。iOS の CIQRCodeGenerator の対)
 zxing = "3.5.3"
 # 歌詞カードの文字認識 (端末内の日本語モデル・bundled 版。iOS の Vision の対)
@@ -129,6 +131,7 @@ androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycl
 androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
 mlkit-barcode-scanning = { group = "com.google.mlkit", name = "barcode-scanning", version.ref = "mlkitBarcode" }
 mlkit-document-scanner = { group = "com.google.android.gms", name = "play-services-mlkit-document-scanner", version.ref = "mlkitDocumentScanner" }
+mlkit-subject-segmentation = { group = "com.google.android.gms", name = "play-services-mlkit-subject-segmentation", version.ref = "mlkitSubjectSegmentation" }
 zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 mlkit-text-recognition-japanese = { group = "com.google.mlkit", name = "text-recognition-japanese", version.ref = "mlkitTextRecognitionJapanese" }
 
