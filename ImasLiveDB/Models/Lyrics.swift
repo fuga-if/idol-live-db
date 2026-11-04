@@ -246,6 +246,11 @@ struct LyricLine: Decodable, Identifiable, Sendable, Hashable {
         lyricPartSegments(len: UInt32(text.unicodeScalars.count), singers: singers, breaks: partBreaks.map(\.core))
     }
 
+    /// 字を歌う人の色で塗るひと続き (空白と、歌う人のいない所を抜く)。規則はコア。
+    var partInkSegments: [LyricPartSegment] {
+        lyricPartInk(text: text, singers: singers, breaks: partBreaks.map(\.core))
+    }
+
     /// 被せの行か (歌詞プレイヤーで 2 段目に出す行)。
     var isOverlay: Bool { kind != .blank && lyricIsOverlayLine(text: text, layer: layer) }
 

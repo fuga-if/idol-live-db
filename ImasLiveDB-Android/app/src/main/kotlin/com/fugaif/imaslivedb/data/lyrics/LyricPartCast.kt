@@ -16,12 +16,12 @@ class LyricPartCast(val artists: List<Idol>) {
     fun names(ids: List<String>): List<String> = ids.mapNotNull { byId[it]?.shortName }
 
     /**
-     * 行の字を塗る、歌う人の担当色 (ひと続きごと)。[mapRange] で表示する本文の中の位置に置き直す
+     * 行の字を塗る、歌う人の担当色 (ひと続きごと。空白は塗らない)。[mapRange] で表示する本文の中の位置に置き直す
      * (歌詞プレイヤーは被せの括弧を外した本文を出すので)。歌う人のいない範囲は出さない。
      */
     fun marks(line: LyricLine, mapRange: ((Int, Int) -> Pair<Int, Int>?)? = null): List<LyricPartMark> {
         if (line.allSingers.isEmpty()) return emptyList()
-        return line.partSegments.mapNotNull { segment ->
+        return line.partInkSegments.mapNotNull { segment ->
             val cs = colors(segment.singers)
             if (cs.isEmpty()) return@mapNotNull null
             // mapRange が無ければそのまま。あれば呼んだ結果を使う (呼んで null ならこの印は出さない。

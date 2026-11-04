@@ -1,7 +1,9 @@
 package com.fugaif.imaslivedb.ui.lyrics
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -31,6 +33,7 @@ import androidx.compose.material.icons.filled.Replay5
 import androidx.compose.material.icons.filled.Forward5
 import androidx.compose.material.icons.filled.PanTool
 import androidx.compose.material.icons.filled.AutoFixNormal
+import androidx.compose.material.icons.filled.FormatColorFill
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -67,6 +70,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasButtonSize
 import com.fugaif.imaslivedb.ui.designsystem.ImasConfirmDestructive
 import com.fugaif.imaslivedb.ui.designsystem.ImasErrorAlert
 import com.fugaif.imaslivedb.ui.designsystem.ImasIconButton
+import com.fugaif.imaslivedb.ui.designsystem.ImasIconButtonSize
 import com.fugaif.imaslivedb.ui.designsystem.ImasIconButtonStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasLyricLineRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasLyricLineState
@@ -110,6 +114,7 @@ private data class CallRef(val call: LyricCall, val line: Int)
  *
  * 保存するまでサーバにも端末にも残さない。行の本文は画面に出すだけで、送らない。
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LyricTimingEditorScreen(
     song: Song,
@@ -304,6 +309,7 @@ fun LyricTimingEditorScreen(
             isPartsList = isPartsList,
             onPaint = { lineId, start, end -> paint(lineId, start, end) },
             partsTargetId = partsTargetId,
+            partsErasing = partsErasing,
             listState = laneListState,
             followPausedUntil = { followPausedUntil },
             onUserScroll = { followPausedUntil = System.currentTimeMillis() + 4000 },
@@ -391,7 +397,7 @@ fun LyricTimingEditorScreen(
         }
 
         if (recorder.lane == LyricTimingRecorder.Lane.PARTS) {
-            // 歌う人のアイコン (筆)。タップで筆に足す / 外す (何人でも)。「全員を選ぶ」で原唱者みんな。
+            // 歌う人のアイコン (筆)。タップでその人 1 人に持ち替え、長押しで一緒に歌う人を足す / 外す。「全員を選ぶ」で原唱者みんな。
             val everyone = cast.artists.map { it.id }
             val isEveryone = brush.toSet() == everyone.toSet()
             Column(
@@ -414,23 +420,32 @@ fun LyricTimingEditorScreen(
                     }
                     cast.artists.forEach { idol ->
                         val isOn = !partsErasing && idol.id in brush
+                        // 筆をその人 1 人に持ち替える (消しゴムからも持ち替える)。
+                        val pick = {
+                            partsErasing = false
+                            partsBrushIds = listOf(idol.id)
+                        }
+                        // 一緒に歌う人として筆に足す / 外す (筆は 1 人は残す。空の筆では塗れない)。
+                        val toggle = {
+                            haptics.selection()
+                            if (partsErasing) {
+                                pick()
+                            } else {
+                                val next = brush.toMutableList()
+                                if (idol.id in next) { if (next.size > 1) next.remove(idol.id) } else next.add(idol.id)
+                                partsBrushIds = everyone.filter { it in next }
+                            }
+                        }
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() }, indication = null
-                                ) {
-                                    if (partsErasing) {
-                                        // 消しゴムから筆に持ち替える (その人 1 人の筆にする)。
-                                        partsErasing = false
-                                        partsBrushIds = listOf(idol.id)
-                                        return@clickable
-                                    }
-                                    val next = brush.toMutableList()
-                                    // 筆は 1 人は残す (空の筆では塗れない)。
-                                    if (idol.id in next) { if (next.size > 1) next.remove(idol.id) } else next.add(idol.id)
-                                    partsBrushIds = everyone.filter { it in next }
-                                }
+                                // タップはその人 1 人に持ち替える (パートチェンジ)。一緒に歌う人は長押しで足す / 外す。
+                                .combinedClickable(
+                                    interactionSource = remember { MutableInteractionSource() }, indication = null,
+                                    onLongClickLabel = "一緒に歌う人に足す・外す",
+                                    onLongClick = toggle,
+                                    onClick = pick
+                                )
                                 .semantics { contentDescription = "${idol.shortName}で塗る"; selected = isOn }
                         ) {
                             ImasAvatar(label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 48.dp, isPick = isOn, entityId = idol.id)
@@ -438,6 +453,10 @@ fun LyricTimingEditorScreen(
                         }
                     }
                 }
+                ImasNote(
+                    "タップでその人に替えて塗ります。一緒に歌う人は長押しで足せます。",
+                    modifier = Modifier.padding(horizontal = DS.sp5), icon = Icons.Filled.TouchApp
+                )
                 Row(Modifier.padding(horizontal = DS.sp5), horizontalArrangement = Arrangement.spacedBy(DS.sp2)) {
                     ImasButton(
                         title = if (isEveryone) "1 人に戻す" else "全員を選ぶ", icon = Icons.Filled.Groups,
@@ -514,6 +533,7 @@ private fun LaneLyricsList(
     isPartsList: Boolean,
     onPaint: (String, Int, Int) -> Unit,
     partsTargetId: String?,
+    partsErasing: Boolean,
     listState: LazyListState,
     followPausedUntil: () -> Long,
     onUserScroll: () -> Unit,
@@ -589,7 +609,7 @@ private fun LaneLyricsList(
                 else -> if (isParts) {
                     PartsLaneRow(
                         line = line, isCurrent = isCurrent, isTarget = line.id == partsTargetId,
-                        recorder = recorder, cast = cast,
+                        isErasing = partsErasing, recorder = recorder, cast = cast,
                         onSelectTarget = { onSelect(line.id) },
                         onPaint = { start, end -> onPaint(line.id, start, end) }
                     )
@@ -713,36 +733,52 @@ private fun CallsLaneRow(
 /**
  * パートの段の 1 行。歌う人 (筆) を選んでから、行をタップすると行まるごと塗る / 外す。
  * 選んだ行 (いま歌っている行) は語をタップ・長押しでなぞると、その字だけ塗る / 外す。
+ * 選んだ行でも右の印 1 タップで行まるごと塗れる (行の端から端までなぞらなくてよい)。
+ * 塗ると前に歌っていた人と入れ替わる (パートチェンジ)。2 人で歌う所は筆に 2 人選んで塗る。
  */
 @Composable
 private fun PartsLaneRow(
     line: LyricLine,
     isCurrent: Boolean,
     isTarget: Boolean,
+    isErasing: Boolean,
     recorder: LyricTimingRecorder,
     cast: LyricPartCast,
     onSelectTarget: () -> Unit,
     onPaint: (Int, Int) -> Unit
 ) {
     val segments: List<LyricPartSegment> = recorder.segments(line.id)
+    // 色は空白に置かない (語と語のあいだに色の塊が浮く)。
+    val ink: List<LyricPartSegment> = recorder.inkSegments(line.id, line.text)
+    val length = line.text.codePointCount(0, line.text.length)
     Column(verticalArrangement = Arrangement.spacedBy(DS.sp1)) {
         if (isTarget) {
-            // 塗った字には歌う人 (先頭の人) の色を敷く。語のタップ・なぞりは [ImasPartsSelectableLine] が担う。
-            val highlights = segments.mapNotNull { segment ->
-                cast.colors(segment.singers).firstOrNull()?.let { hex ->
-                    ImasPartsHighlight(segment.start.toInt(), segment.end.toInt(), imasTheme(seed = hex).accent)
+            Row(horizontalArrangement = Arrangement.spacedBy(DS.sp2), verticalAlignment = Alignment.Top) {
+                // 塗った字には歌う人 (先頭の人) の色を敷く。語のタップ・なぞりは [ImasPartsSelectableLine] が担う。
+                val highlights = ink.mapNotNull { segment ->
+                    cast.colors(segment.singers).firstOrNull()?.let { hex ->
+                        ImasPartsHighlight(segment.start.toInt(), segment.end.toInt(), imasTheme(seed = hex).accent)
+                    }
                 }
+                ImasPartsSelectableLine(
+                    text = line.text, highlights = highlights, onSelect = onPaint, modifier = Modifier.weight(1f)
+                )
+                ImasIconButton(
+                    icon = if (isErasing) Icons.Filled.AutoFixNormal else Icons.Filled.FormatColorFill,
+                    label = if (isErasing) "行まるごと消す" else "行まるごと塗る",
+                    size = ImasIconButtonSize.SMALL,
+                    onClick = { onPaint(0, length) }
+                )
             }
-            ImasPartsSelectableLine(text = line.text, highlights = highlights, onSelect = onPaint)
         } else {
-            val marks: List<LyricPartMark> = segments.mapNotNull { segment ->
+            val marks: List<LyricPartMark> = ink.mapNotNull { segment ->
                 val colors = cast.colors(segment.singers)
                 if (colors.isEmpty()) null else LyricPartMark(segment.start.toInt(), segment.end.toInt(), colors)
             }
             Row(
                 Modifier.clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
                     onSelectTarget()
-                    onPaint(0, line.text.codePointCount(0, line.text.length))
+                    onPaint(0, length)
                 }
             ) {
                 LaneLyricText(line.text, isCurrent, parts = marks)

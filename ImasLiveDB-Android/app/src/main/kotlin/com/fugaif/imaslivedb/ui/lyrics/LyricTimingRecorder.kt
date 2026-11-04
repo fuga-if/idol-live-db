@@ -12,6 +12,7 @@ import uniffi.imas_core.LyricPartSegment
 import uniffi.imas_core.lyricNextRecordable
 import uniffi.imas_core.lyricRecordCursorAt
 import uniffi.imas_core.lyricPartErase
+import uniffi.imas_core.lyricPartInk
 import uniffi.imas_core.lyricPartPaint
 import uniffi.imas_core.lyricPartSegments
 
@@ -124,7 +125,8 @@ class LyricTimingRecorder(lyrics: Lyrics, val songId: String) {
     }
 
     /**
-     * 行の字の範囲 [start]..[end] に [idolIds] (筆。複数人を一度に) を塗る / 外す (範囲の字がみな筆の全員入りなら外す)。
+     * 行の字の範囲 [start]..[end] を [idolIds] (筆。複数人を一度に) に塗り替える (前の人と入れ替え。
+     * 範囲の字がみなもう筆の人たちちょうどなら外す)。
      * 区切りは塗った結果から作り直す。並びは [order] (原唱者の並び) にそろえる。規則はコア
      * ([lyricPartPaint])。タイミング編集で、歌う人を選んでから歌詞の語をタップ・なぞって塗るのに使う。
      */
@@ -158,6 +160,13 @@ class LyricTimingRecorder(lyrics: Lyrics, val songId: String) {
         val i = lineIds.indexOf(lineId)
         if (i < 0) return emptyList()
         return lyricPartSegments(lengths[i].toUInt(), singers[i], breaks[i].map { it.core })
+    }
+
+    /** 行の字を歌う人の色で塗るひと続き (空白と歌う人のいない所を抜く)。[text] はその行の本文。規則はコア。 */
+    fun inkSegments(lineId: String, text: String): List<LyricPartSegment> {
+        val i = lineIds.indexOf(lineId)
+        if (i < 0) return emptyList()
+        return lyricPartInk(text, singers[i], breaks[i].map { it.core })
     }
 
     /** 行の歌唱者を、ひとつ前の歌詞の行と同じにする (同じ人が続く所を 1 タップで)。 */

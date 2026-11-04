@@ -363,27 +363,38 @@ struct LyricTimingEditorView: View {
 
     /// パートの段の 1 行。歌う人 (筆) を選んでから、行をタップすると行まるごと塗る / 外す。
     /// 選んだ行 (いま歌っている行) は語をタップ・長押しでなぞると、その字だけ塗る / 外す。
+    /// 選んだ行でも右の印 1 タップで行まるごと塗れる (行の端から端までなぞらなくてよい)。
+    /// 塗ると前に歌っていた人と入れ替わる (パートチェンジ)。2 人で歌う所は筆に 2 人選んで塗る。
     @ViewBuilder
     private func partsLaneRow(line: LyricLine, isCurrent: Bool) -> some View {
         let segments = recorder.segments(for: line.id)
+        // 色は空白に置かない (語と語のあいだに色の塊が浮く)。
+        let ink = recorder.inkSegments(for: line.id, text: line.text)
         let isTarget = line.id == partsTargetId
-        let marks = segments.compactMap { segment -> ImasRubyText.PartMark? in
+        let marks = ink.compactMap { segment -> ImasRubyText.PartMark? in
             let colors = cast.colors(segment.singers).map { UIColor(ImasTheme.derive(seed: $0, scheme: scheme).accent) }
             return colors.isEmpty ? nil : .init(start: Int(segment.start), end: Int(segment.end), colors: colors)
         }
         VStack(alignment: .leading, spacing: DS.sp1) {
             if isTarget {
-                // 塗った字には歌う人 (先頭の人) の色を敷く。語のタップ・なぞりはコール編集と同じ部品。
-                CallGuideSelectableLine(
-                    text: line.text,
-                    highlights: segments.compactMap { segment in
-                        cast.colors(segment.singers).first.map {
-                            CallGuideText.Highlight(start: Int(segment.start), end: Int(segment.end),
-                                                    color: ImasTheme.derive(seed: $0, scheme: scheme).accent)
-                        }
-                    },
-                    onSelect: { start, end, _ in paint(line.id, start: start, end: end) }
-                )
+                HStack(alignment: .top, spacing: DS.sp2) {
+                    // 塗った字には歌う人 (先頭の人) の色を敷く。語のタップ・なぞりはコール編集と同じ部品。
+                    CallGuideSelectableLine(
+                        text: line.text,
+                        highlights: ink.compactMap { segment in
+                            cast.colors(segment.singers).first.map {
+                                CallGuideText.Highlight(start: Int(segment.start), end: Int(segment.end),
+                                                        color: ImasTheme.derive(seed: $0, scheme: scheme).accent)
+                            }
+                        },
+                        onSelect: { start, end, _ in paint(line.id, start: start, end: end) }
+                    )
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    ImasIconButton(systemImage: partsErasing ? "eraser.fill" : "paintbrush.fill",
+                                   label: partsErasing ? "行まるごと消す" : "行まるごと塗る", size: .small) {
+                        paint(line.id, start: 0, end: line.text.unicodeScalars.count)
+                    }
+                }
             } else {
                 Button {
                     selectedId = line.id
@@ -401,7 +412,7 @@ struct LyricTimingEditorView: View {
     /// いまの筆 (選んでいなければ原唱者の先頭 1 人)。
     private var brush: [String] { partsBrushIds ?? cast.artists.first.map { [$0.id] } ?? [] }
 
-    /// 筆の人たちを、行の字の範囲に塗る / 外す (範囲の字がみな筆の全員入りなら外す)。規則はコア。
+    /// 行の字の範囲を筆の人たちに塗り替える (前の人と入れ替え。範囲がもう筆の人たちちょうどなら外す)。規則はコア。
     private func paint(_ lineId: String, start: Int, end: Int) {
         if partsErasing {
             AppAnalytics.tap("lyric_timing.erase_part")
@@ -442,7 +453,30 @@ struct LyricTimingEditorView: View {
         return currentIndex.flatMap { lyrics.lines[$0].kind == .lyric ? lyrics.lines[$0].id : nil }
     }
 
-    /// 歌う人のアイコン (筆)。タップで筆に足す / 外す (何人でも)。「全員」で原唱者みんなを筆にする。
+    /// 筆をその人 1 人に持ち替える (消しゴムからも持ち替える)。
+    private func pickBrush(_ id: String) {
+        partsErasing = false
+        partsBrushIds = [id]
+    }
+
+    /// 一緒に歌う人として筆に足す / 外す (筆は 1 人は残す。空の筆では塗れない)。
+    private func toggleBrush(_ id: String) {
+        recordToken += 1
+        if partsErasing {
+            pickBrush(id)
+            return
+        }
+        var next = brush
+        if let i = next.firstIndex(of: id) {
+            if next.count > 1 { next.remove(at: i) }
+        } else {
+            next.append(id)
+        }
+        partsBrushIds = cast.ordered(next)
+    }
+
+    /// 歌う人のアイコン (筆)。タップでその人 1 人に持ち替え、長押しで一緒に歌う人を足す / 外す。
+    /// 「全員」で原唱者みんなを筆にする。
     private var partsBrush: some View {
         let everyone = cast.artists.map(\.id)
         let isEveryone = Set(brush) == Set(everyone)
@@ -458,34 +492,26 @@ struct LyricTimingEditorView: View {
                     }
                     ForEach(cast.artists, id: \.id) { idol in
                         let isOn = !partsErasing && brush.contains(idol.id)
-                        Button {
-                            if partsErasing {
-                                // 消しゴムから筆に持ち替える (その人 1 人の筆にする)。
-                                partsErasing = false
-                                partsBrushIds = [idol.id]
-                                return
-                            }
-                            var next = brush
-                            if let i = next.firstIndex(of: idol.id) {
-                                // 筆は 1 人は残す (空の筆では塗れない)。
-                                if next.count > 1 { next.remove(at: i) }
-                            } else {
-                                next.append(idol.id)
-                            }
-                            partsBrushIds = cast.ordered(next)
-                        } label: {
-                            VStack(spacing: DS.sp1) {
-                                IdolAvatarView(idol: idol, size: 48, isPick: isOn)
-                                Text(idol.shortName).imasText(.meta, color: isOn ? DS.ink : DS.ink3)
-                            }
+                        VStack(spacing: DS.sp1) {
+                            IdolAvatarView(idol: idol, size: 48, isPick: isOn)
+                            Text(idol.shortName).imasText(.meta, color: isOn ? DS.ink : DS.ink3)
                         }
-                        .buttonStyle(.imasPress)
+                        .contentShape(Rectangle())
+                        // タップはその人 1 人に持ち替える (パートチェンジ)。一緒に歌う人は長押しで足す / 外す。
+                        .onTapGesture { pickBrush(idol.id) }
+                        .onLongPressGesture(minimumDuration: 0.35) { toggleBrush(idol.id) }
+                        .accessibilityElement(children: .combine)
                         .accessibilityLabel("\(idol.shortName)で塗る")
-                        .accessibilityAddTraits(isOn ? .isSelected : [])
+                        .accessibilityAddTraits(isOn ? [.isButton, .isSelected] : .isButton)
+                        .accessibilityAction { pickBrush(idol.id) }
+                        .accessibilityAction(named: "一緒に歌う人に足す・外す") { toggleBrush(idol.id) }
                     }
                 }
                 .padding(.horizontal, DS.sp5)
             }
+            ImasNote("タップでその人に替えて塗ります。一緒に歌う人は長押しで足せます。", systemImage: "hand.tap")
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, DS.sp5)
             HStack(spacing: DS.sp2) {
                 ImasButton(title: isEveryone ? "1 人に戻す" : "全員を選ぶ", systemImage: "person.3.fill",
                            role: .secondary, size: .small) {

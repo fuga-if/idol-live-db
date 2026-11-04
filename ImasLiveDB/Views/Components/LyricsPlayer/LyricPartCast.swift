@@ -19,12 +19,12 @@ struct LyricPartCast {
 
     func colors(_ ids: [String]) -> [String] { ids.compactMap { byId[$0]?.color } }
     func names(_ ids: [String]) -> [String] { ids.compactMap { byId[$0]?.shortName } }
-    /// 行の字の下に引く、歌う人の色の線 (ひと続きごと)。`mapRange` で表示する本文の中の位置に置き直す
+    /// 行の字を塗る、歌う人の色 (ひと続きごと。空白は塗らない)。`mapRange` で表示する本文の中の位置に置き直す
     /// (歌詞プレイヤーは被せの括弧を外した本文を出すので)。
     func marks(_ line: LyricLine, scheme: ColorScheme,
                mapRange: ((Int, Int) -> (Int, Int)?)? = nil) -> [ImasRubyText.PartMark] {
         guard !line.allSingers.isEmpty else { return [] }
-        return line.partSegments.compactMap { segment in
+        return line.partInkSegments.compactMap { segment in
             let colors = colors(segment.singers).map { UIColor(ImasTheme.derive(seed: $0, scheme: scheme).accent) }
             guard !colors.isEmpty else { return nil }
             let range = mapRange.map { $0(Int(segment.start), Int(segment.end)) } ?? (Int(segment.start), Int(segment.end))

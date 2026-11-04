@@ -782,6 +782,8 @@ struct ImasRubyLabel: UIViewRepresentable {
                         shapes.addPath(shape, transform: CGAffineTransform(translationX: origin.x + position.x,
                                                                            y: textRect.minY + origin.y + position.y))
                     }
+                    // 字の形の無い run (空白だけ) は切り抜けない。空の道で clip すると切り抜かれず、四角く塗られてしまう。
+                    guard !shapes.isEmpty else { continue }
                     var ascent: CGFloat = 0, descent: CGFloat = 0
                     let width = CTRunGetTypographicBounds(run, CFRange(location: 0, length: 0), &ascent, &descent, nil)
                     let x = origin.x + CTLineGetOffsetForStringIndex(line, CTRunGetStringRange(run).location, nil)

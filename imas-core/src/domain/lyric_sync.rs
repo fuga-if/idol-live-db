@@ -714,10 +714,11 @@ pub struct LyricPartPaint {
     pub breaks: Vec<LyricPartBreak>,
 }
 
-/// 字の範囲 `start..end` に `idols` (筆。複数人を一度に塗れる) を塗る / 外す
-/// (範囲の字がみな筆の全員入りなら外す、そうでなければ足す)。
+/// 字の範囲 `start..end` を `idols` (筆。複数人を一度に塗れる) の歌う所に塗り替える (パートチェンジ)。
+/// 前に歌っていた人は外して筆の人に入れ替える (足すのではない。2 人で歌う所は筆に 2 人選んで塗る)。
+/// 範囲の字がみなもう筆の人たちちょうどなら外す (塗った所をもう一度で戻せる)。
 /// 区切りは塗った結果から作り直す (歌う人が変わる字に置く)。並びは `order` (原唱者の順) にそろえる。
-/// タイミング編集で、歌う人を選んでから歌詞の語をタップ・なぞって塗るのに使う。
+/// タイミング編集で、歌う人を選んでから歌詞の行・語をタップ・なぞって塗るのに使う。
 pub fn part_paint(
     len: u32,
     singers: &[String],
@@ -756,19 +757,19 @@ fn repaint(
     match brush {
         None if start < end => per_char[start..end].iter_mut().for_each(Vec::clear),
         Some((idols, order)) if start < end && !idols.is_empty() => {
-            let all_have = per_char[start..end].iter().all(|who| idols.iter().all(|i| who.contains(i)));
             let rank = |id: &String| order.iter().position(|o| o == id).unwrap_or(usize::MAX);
-            for who in &mut per_char[start..end] {
-                if all_have {
-                    who.retain(|w| !idols.contains(w));
-                } else {
-                    for idol in idols {
-                        if !who.contains(idol) {
-                            who.push(idol.clone());
-                        }
-                    }
-                    who.sort_by_key(|id| rank(id));
+            let mut painted: Vec<String> = Vec::new();
+            for idol in idols {
+                if !painted.contains(idol) {
+                    painted.push(idol.clone());
                 }
+            }
+            painted.sort_by_key(|id| rank(id));
+            let already = per_char[start..end].iter().all(|who| {
+                who.len() == painted.len() && painted.iter().all(|i| who.contains(i))
+            });
+            for who in &mut per_char[start..end] {
+                *who = if already { Vec::new() } else { painted.clone() };
             }
         }
         _ => {}
@@ -781,6 +782,33 @@ fn repaint(
     }
     if n == 0 {
         out.singers = singers.to_vec();
+    }
+    out
+}
+
+/// 字を歌う人の色で塗るひと続き。[`part_segments`] から空白 (半角・全角) を抜いて割ったもの。
+/// 空白には字の形が無いので、色の縞や地の色を置くと語と語のあいだに色の塊が浮く。
+/// 歌う人のいないひと続きも出さない。位置は本文 `text` のスカラー位置。
+pub fn part_ink_segments(text: &str, singers: &[String], breaks: &[LyricPartBreak]) -> Vec<LyricPartSegment> {
+    let chars: Vec<char> = text.chars().collect();
+    let mut out = Vec::new();
+    for seg in part_segments(chars.len() as u32, singers, breaks) {
+        if seg.singers.is_empty() {
+            continue;
+        }
+        let mut k = seg.start as usize;
+        let end = seg.end as usize;
+        while k < end {
+            if chars[k].is_whitespace() {
+                k += 1;
+                continue;
+            }
+            let from = k;
+            while k < end && !chars[k].is_whitespace() {
+                k += 1;
+            }
+            out.push(LyricPartSegment { start: from as u32, end: k as u32, singers: seg.singers.clone() });
+        }
     }
     out
 }
@@ -1070,14 +1098,17 @@ mod tests {
     #[test]
     fn part_paint_adds_and_removes() {
         let order: Vec<String> = ["a", "b"].iter().map(|s| s.to_string()).collect();
-        // 頭 2 字だけ b を足す → 頭は a,b、2 から a
+        // 頭 2 字を b に塗る → a から b への入れ替え (足すのではない)。頭は b、2 から a
         let b = vec!["b".to_string()];
         let p = part_paint(5, &["a".to_string()], &[], 0, 2, &b, &order);
-        assert_eq!(p.singers, vec!["a".to_string(), "b".to_string()]);
+        assert_eq!(p.singers, b);
         assert_eq!(p.breaks, vec![LyricPartBreak { at: 2, singers: vec!["a".to_string()] }]);
-        // 同じ範囲をもう一度で外れ、区切りも消える
+        // 同じ範囲をもう一度で外れる (空になる)
         let q = part_paint(5, &p.singers, &p.breaks, 0, 2, &b, &order);
-        assert_eq!(q, LyricPartPaint { singers: vec!["a".to_string()], breaks: vec![] });
+        assert_eq!(q.singers, Vec::<String>::new());
+        // a,b で歌っている所を b で塗ると b だけになる (ちょうど b ではないので外さない)
+        let both = part_paint(3, &order, &[], 0, 3, &b, &order);
+        assert_eq!(both, LyricPartPaint { singers: b.clone(), breaks: vec![] });
         // 空の行に途中だけ塗る
         let r = part_paint(4, &[], &[], 2, 4, &["a".to_string()], &order);
         assert_eq!(r, LyricPartPaint { singers: vec![], breaks: vec![LyricPartBreak { at: 2, singers: vec!["a".to_string()] }] });
@@ -1085,6 +1116,17 @@ mod tests {
         let all = part_paint(3, &["a".to_string()], &[], 0, 3, &order, &order);
         assert_eq!(all.singers, order);
         assert!(part_paint(3, &all.singers, &all.breaks, 0, 3, &order, &order).singers.is_empty());
+    }
+
+
+    #[test]
+    fn part_ink_skips_spaces_and_unsung() {
+        let a = vec!["a".to_string()];
+        let br = |at: u32, who: &[&str]| LyricPartBreak { at, singers: who.iter().map(|s| s.to_string()).collect() };
+        // 「あい　う えお」: 全角・半角の空白を抜き、歌う人のいない所は出さない。
+        let ink = part_ink_segments("あい　う えお", &a, &[br(5, &[])]);
+        assert_eq!(ink.iter().map(|s| (s.start, s.end)).collect::<Vec<_>>(), vec![(0, 2), (3, 4)]);
+        assert!(part_ink_segments("  ", &a, &[]).is_empty());
     }
 
 

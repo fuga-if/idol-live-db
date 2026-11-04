@@ -141,7 +141,8 @@ final class LyricTimingRecorder: Identifiable {
         breaks[i] = erased.breaks.map(LyricLinePartBreak.init)
     }
 
-    /// 行の字の範囲 `start..end` に `idolIds` (筆。複数人を一度に) を塗る / 外す (範囲の字がみな筆の全員入りなら外す)。
+    /// 行の字の範囲 `start..end` を `idolIds` (筆。複数人を一度に) に塗り替える (前の人と入れ替え。
+    /// 範囲の字がみなもう筆の人たちちょうどなら外す)。
     /// 区切りは塗った結果から作り直す。規則はコア (`lyricPartPaint`)。
     func paint(lineId: String, start: Int, end: Int, idolIds: [String], order: [String]) {
         guard let i = lineIds.firstIndex(of: lineId), kinds[i] == "lyric" else { return }
@@ -164,6 +165,12 @@ final class LyricTimingRecorder: Identifiable {
     func segments(for lineId: String) -> [LyricPartSegment] {
         guard let i = lineIds.firstIndex(of: lineId) else { return [] }
         return lyricPartSegments(len: UInt32(lengths[i]), singers: singers[i], breaks: breaks[i].map(\.core))
+    }
+
+    /// 行の字を歌う人の色で塗るひと続き (空白と歌う人のいない所を抜く)。`text` はその行の本文。
+    func inkSegments(for lineId: String, text: String) -> [LyricPartSegment] {
+        guard let i = lineIds.firstIndex(of: lineId) else { return [] }
+        return lyricPartInk(text: text, singers: singers[i], breaks: breaks[i].map(\.core))
     }
 
     /// 行の歌唱者を、ひとつ前の歌詞の行と同じにする (同じ人が続く所を 1 タップで)。

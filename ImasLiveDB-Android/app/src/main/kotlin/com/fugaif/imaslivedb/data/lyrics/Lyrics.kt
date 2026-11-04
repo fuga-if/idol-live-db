@@ -5,6 +5,7 @@ import org.json.JSONObject
 import uniffi.imas_core.LyricPartBreak
 import uniffi.imas_core.LyricPartSegment
 import uniffi.imas_core.lyricCallEchoesLine
+import uniffi.imas_core.lyricPartInk
 import uniffi.imas_core.lyricPartSegments
 import uniffi.imas_core.lyricPartUnion
 
@@ -124,6 +125,10 @@ data class LyricLine(
     /** 行を歌う人ごとのひと続き (区切りが無ければ行まるごと 1 つ)。規則はコア。 */
     val partSegments: List<LyricPartSegment>
         get() = lyricPartSegments(text.codePointCount(0, text.length).toUInt(), singers, partBreaks.map { it.core })
+
+    /** 字を歌う人の色で塗るひと続き (空白と、歌う人のいない所を抜く)。規則はコア。 */
+    val partInkSegments: List<LyricPartSegment>
+        get() = lyricPartInk(text, singers, partBreaks.map { it.core })
 
     /** この行のコールが、掛かっている歌詞と同じ文字か (同時、または歌詞の被せの括弧の中に掛かっている)。
      * 閲覧では行に並べず、歌詞のその部分に印を付ける (同じ文字を 2 回出さない)。判定はコア。 */

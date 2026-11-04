@@ -149,7 +149,8 @@ pub fn lyric_part_union(singers: Vec<String>, breaks: Vec<LyricPartBreak>) -> Ve
     d::part_union(&singers, &breaks)
 }
 
-/// 字の範囲に歌う人 (筆、複数人可) を塗る / 外す (範囲の字がみな筆の全員入りなら外す)。区切りは塗った結果から作り直す。
+/// 字の範囲を歌う人 (筆、複数人可) に塗り替える (前の人と入れ替え。範囲がもう筆の人たちちょうどなら外す)。
+/// 区切りは塗った結果から作り直す。
 #[uniffi::export]
 pub fn lyric_part_paint(
     len: u32,
@@ -161,6 +162,12 @@ pub fn lyric_part_paint(
     order: Vec<String>,
 ) -> LyricPartPaint {
     d::part_paint(len, &singers, &breaks, start, end, &idols, &order)
+}
+
+/// 字を歌う人の色で塗るひと続き (空白と歌う人のいない所を抜く)。位置は `text` のスカラー位置。
+#[uniffi::export]
+pub fn lyric_part_ink(text: String, singers: Vec<String>, breaks: Vec<LyricPartBreak>) -> Vec<LyricPartSegment> {
+    d::part_ink_segments(&text, &singers, &breaks)
 }
 
 /// 字の範囲から歌う人をみな外す (消しゴム)。区切りは消した結果から作り直す。
