@@ -278,8 +278,8 @@ struct LyricTimingEditorView: View {
         case .lines: "行をタップすると、その行から記録します。押すたびに次の行へ進みます。"
         case .calls: "コールをタップして選ぶと、前後に寄せられます。"
         case .parts where isPartsList:
-            "行をタップして選び、語をタップ・なぞるか、コールの印か刷毛で塗ります。もう一度で外れます。"
-        case .parts: "いま歌っている行を塗ります。過ぎた行はタップするとそこへ戻って聴き直せます。語をタップ・なぞるか、コールの印か刷毛で塗ります。"
+            "行をタップして選び、語をタップ・なぞるか、括弧・コールの印か刷毛で塗ります。もう一度で外れます。"
+        case .parts: "いま歌っている行を塗ります。過ぎた行はタップするとそこへ戻って聴き直せます。語をタップ・なぞるか、括弧・コールの印か刷毛で塗ります。"
         }
     }
 
@@ -402,10 +402,21 @@ struct LyricTimingEditorView: View {
                         paint(line.id, start: 0, end: line.text.unicodeScalars.count)
                     }
                 }
-                // コールの掛かる字 (歌詞と同じ文字を一緒に歌う所など) を、範囲ぴったりに塗る。
+                // コールの掛かる字 (歌詞と同じ文字を一緒に歌う所など) と、括弧の中 (被せ・コーラス) を、
+                // 範囲ぴったりに塗る。括弧は括弧ごと塗る (範囲はコアの lyricAsideSpans)。
                 let anchored = line.calls.filter { $0.hasAnchor && !$0.isPenlight }
-                if !anchored.isEmpty {
+                let scalars = Array(line.text.unicodeScalars)
+                let asides = lyricAsideSpans(text: line.text).filter { $0.end > $0.start && Int($0.end) <= scalars.count }
+                if !anchored.isEmpty || !asides.isEmpty {
                     FlowLayout(spacing: DS.sp2, lineSpacing: DS.sp2) {
+                        ForEach(Array(asides.enumerated()), id: \.offset) { _, span in
+                            let shown = String(String.UnicodeScalarView(scalars[Int(span.start)..<Int(span.end)]))
+                            ImasButton(title: shown, systemImage: partsErasing ? "eraser" : "paintbrush.fill",
+                                       role: .secondary, size: .small) {
+                                paint(line.id, start: Int(span.start), end: Int(span.end))
+                            }
+                            .accessibilityLabel("括弧の中「\(shown)」を\(partsErasing ? "消す" : "塗る")")
+                        }
                         ForEach(anchored) { call in
                             ImasButton(title: call.anchorText.isEmpty ? call.text : call.anchorText,
                                        systemImage: partsErasing ? "eraser" : "megaphone.fill",

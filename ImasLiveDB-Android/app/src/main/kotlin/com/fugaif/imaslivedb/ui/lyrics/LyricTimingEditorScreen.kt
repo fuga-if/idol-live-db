@@ -99,6 +99,7 @@ import com.fugaif.imaslivedb.ui.theme.imasTheme
 import com.fugaif.imaslivedb.ui.theme.rememberImasHaptics
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import uniffi.imas_core.lyricAsideSpans
 import uniffi.imas_core.LyricPartSegment
 import uniffi.imas_core.lyricActiveCall
 import uniffi.imas_core.lyricActiveLine
@@ -622,8 +623,8 @@ private fun LaneLyricsList(
                         LyricTimingRecorder.Lane.LINES -> "行をタップすると、その行から記録します。押すたびに次の行へ進みます。"
                         LyricTimingRecorder.Lane.CALLS -> "コールをタップして選ぶと、前後に寄せられます。"
                         LyricTimingRecorder.Lane.PARTS -> if (isPartsList) {
-                            "行をタップして選び、語をタップ・なぞるか、コールの印か刷毛で塗ります。もう一度で外れます。"
-                        } else "いま歌っている行を塗ります。過ぎた行はタップするとそこへ戻って聴き直せます。語をタップ・なぞるか、コールの印か刷毛で塗ります。"
+                            "行をタップして選び、語をタップ・なぞるか、括弧・コールの印か刷毛で塗ります。もう一度で外れます。"
+                        } else "いま歌っている行を塗ります。過ぎた行はタップするとそこへ戻って聴き直せます。語をタップ・なぞるか、括弧・コールの印か刷毛で塗ります。"
                     },
                     ImasTextRole.META, color = DS.ink3
                 )
@@ -808,10 +809,24 @@ private fun PartsLaneRow(
                     onClick = { onPaint(0, length) }
                 )
             }
-            // コールの掛かる字 (歌詞と同じ文字を一緒に歌う所など) を、範囲ぴったりに塗る。
+            // コールの掛かる字 (歌詞と同じ文字を一緒に歌う所など) と、括弧の中 (被せ・コーラス) を、
+            // 範囲ぴったりに塗る。括弧は括弧ごと塗る (範囲はコアの lyricAsideSpans)。
             val anchored = line.calls.filter { it.hasAnchor && !it.isPenlight }
-            if (anchored.isNotEmpty()) {
+            val asides = lyricAsideSpans(line.text).filter { it.end > it.start && it.end.toInt() <= length }
+            if (anchored.isNotEmpty() || asides.isNotEmpty()) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(DS.sp2), verticalArrangement = Arrangement.spacedBy(DS.sp2)) {
+                    asides.forEach { span ->
+                        val from = line.text.offsetByCodePoints(0, span.start.toInt())
+                        val to = line.text.offsetByCodePoints(0, span.end.toInt())
+                        val shown = line.text.substring(from, to)
+                        ImasButton(
+                            title = shown,
+                            icon = if (isErasing) Icons.Filled.AutoFixNormal else Icons.Filled.FormatColorFill,
+                            role = ImasButtonRole.SECONDARY, size = ImasButtonSize.SMALL,
+                            onClick = { onPaint(span.start.toInt(), span.end.toInt()) },
+                            accessibilityLabel = "括弧の中「$shown」を${if (isErasing) "消す" else "塗る"}"
+                        )
+                    }
                     anchored.forEach { call ->
                         ImasButton(
                             title = call.anchorText.ifEmpty { call.text },
