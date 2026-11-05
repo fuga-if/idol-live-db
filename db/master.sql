@@ -3341,7 +3341,7 @@ INSERT INTO "idols" VALUES('cg_高森藍子','cg','高森藍子','たかもり�
 INSERT INTO "idols" VALUES('cg_鷹富士茄子','cg','鷹富士茄子','たかふじかこ',NULL,'#5C068F',4100,'--01-01','AB',160.0,43.0,'島根',20,88.0,57.0,88.0,'山羊座','隠し芸',NULL,'島根出身の20歳の元日生まれの幸運体質アイドル。隠し芸が趣味、誠実に実力で勝負する。CV: 森下来奈。','female','right','鷹富士','茄子',NULL,'2011-12-28','cool',0,NULL,NULL);
 CREATE TABLE meta (key TEXT PRIMARY KEY NOT NULL, value TEXT);
 INSERT INTO "meta" VALUES('schema_version','1');
-INSERT INTO "meta" VALUES('data_version','118');
+INSERT INTO "meta" VALUES('data_version','119');
 INSERT INTO "meta" VALUES('migration_v14_idol_is_external','applied');
 INSERT INTO "meta" VALUES('content_hash','2aa7a46f3715a4a1ef87214b4fffccbd4137a8edc8d49048d0e084df00c7a2ce');
 CREATE TABLE setlist_items (id TEXT PRIMARY KEY NOT NULL, show_id TEXT NOT NULL, song_id TEXT NOT NULL, position INTEGER NOT NULL, section TEXT, notes TEXT, unit_name TEXT, UNIQUE(show_id, position));
@@ -85041,10 +85041,6 @@ INSERT INTO "show_cast" VALUES('sh_315_production_presents_f@ntastic_battle_fes_
 INSERT INTO "show_cast" VALUES('sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_8','sidem_蒼井悠介','member');
 INSERT INTO "show_cast" VALUES('sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_8','sidem_都築圭','member');
 INSERT INTO "show_cast" VALUES('sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_8','sidem_鷹城恭二','member');
-INSERT INTO "show_cast" VALUES('sh_レトラ_birthday_online_live_2026_1','876_サラ_レトラ_オリヴェイラ_ウタガワ','member');
-INSERT INTO "show_cast" VALUES('sh_レトラ_birthday_online_live_2026_1','876_上水流宇宙','member');
-INSERT INTO "show_cast" VALUES('sh_レトラ_birthday_online_live_2026_1','876_灯里愛夏','member');
-INSERT INTO "show_cast" VALUES('sh_レトラ_birthday_online_live_2026_1','ml_ジュリア','member');
 INSERT INTO "show_cast" VALUES('sh_xr_live_revival_1','765as_菊地真','member');
 INSERT INTO "show_cast" VALUES('sh_xr_live_revival_1','765as_萩原雪歩','member');
 INSERT INTO "show_cast" VALUES('sh_xr_live_revival_2','765as_菊地真','member');
@@ -86324,6 +86320,10 @@ INSERT INTO "show_cast" VALUES('sh_灯里愛夏_birthday_online_live_2026_1','87
 INSERT INTO "show_cast" VALUES('sh_灯里愛夏_birthday_online_live_2026_1','876_上水流宇宙','member');
 INSERT INTO "show_cast" VALUES('sh_灯里愛夏_birthday_online_live_2026_1','876_灯里愛夏','member');
 INSERT INTO "show_cast" VALUES('sh_灯里愛夏_birthday_online_live_2026_1','cg_関裕美','member');
+INSERT INTO "show_cast" VALUES('sh_レトラ_birthday_online_live_2026_1','876_サラ_レトラ_オリヴェイラ_ウタガワ','member');
+INSERT INTO "show_cast" VALUES('sh_レトラ_birthday_online_live_2026_1','876_上水流宇宙','member');
+INSERT INTO "show_cast" VALUES('sh_レトラ_birthday_online_live_2026_1','876_灯里愛夏','member');
+INSERT INTO "show_cast" VALUES('sh_レトラ_birthday_online_live_2026_1','ml_ジュリア','member');
 CREATE TABLE show_cast_performers (
             show_id TEXT NOT NULL,
             idol_id TEXT NOT NULL,
@@ -121014,7 +121014,6 @@ INSERT INTO "ticket_sales" VALUES('ts_f9a6e4f5cfac','ev_shiny_the_first_refrac7i
 INSERT INTO "ticket_sales" VALUES('ts_9509f95ed8a6','ev_shiny_the_first_refrac7ions_still_blue',NULL,'lottery','ゲーム先行','2026-07-17 15:00','2026-08-04 23:59','2026-08-21 13:00',NULL,'入金期間2026年8月21日13:00〜8月25日23:59。enza対応ゲーム「アイドルマスター シャイニーカラーズ」または「Song for Prism」内の「お知らせ」から申込(バンダイナムコID登録要)。','https://idolmaster-official.jp/live_event/REFRAC7IONS_Still_blue/ticket/',1);
 INSERT INTO "ticket_sales" VALUES('ts_8aa92d01e9ae','ev_shiny_the_first_refrac7ions_still_blue',NULL,'lottery','7th LIVE TOUR Blu-ray「早期予約者限定」先行','2026-04-26 20:00','2026-06-17 09:59','2026-06-27 13:00','https://asobiticket2.asobistore.jp/receptions/db36f66f-142c-45ef-9c17-45d56b56d931','「THE IDOLM@STER SHINY COLORS 7th LIVE TOUR 螺旋 -Halo around-」Blu-ray【初回生産限定版】アソビストア特装版購入者限定。入金期間6/27 13:00〜7/1 23:59、1公演1枚まで(複数公演申込可)。2026年6月17日時点でプレミアム12ヶ月会員の当選者は前方優先。','https://idolmaster-official.jp/live_event/REFRAC7IONS_Still_blue/ticket/',2);
 INSERT INTO "ticket_sales" VALUES('ts_f027d7289c9b','ev_shiny_the_first_refrac7ions_still_blue',NULL,'lottery','アソビストアプレミアム会員先行','2026-04-26 20:00','2026-06-28 23:59','2026-07-11 13:00','https://asobiticket2.asobistore.jp/receptions/ac0ccbe2-4742-46da-b045-858506af28d6','アソビストアプレミアム12ヶ月会員限定。入金期間7/11 13:00〜7/15 23:59、1公演2枚まで(複数公演申込可)。','https://idolmaster-official.jp/live_event/REFRAC7IONS_Still_blue/ticket/',3);
-INSERT INTO "ticket_sales" VALUES('ts_6979d5461c29','ev_the_idolm@ster_sidem_producer_meeting_~ajewelholic_~',NULL,'lottery','アソビストアプレミアム会員先行','2026-09-12 21:00','2026-10-04 23:59','2026-10-17 13:00','https://asobiticket2.asobistore.jp/receptions/24aba7f8-77de-43d3-8af4-2f2fdf5d082a','「アソビストアプレミアム12か月会員」限定。お一人様1公演につき4枚まで（複数公演申込可）。入金期間は2026年10月17日13:00〜10月21日23:59。','https://idolmaster-official.jp/live_event/sidem_pm2027/ticket/',0);
 INSERT INTO "ticket_sales" VALUES('ts_700693b26bf0','ev_the_idolm@ster_sidem_×_shiny_colors_sparkle_showdown',NULL,'lottery','アソビストアプレミアム会員先行(SPプロデューサーシート)','2026-09-12 21:00','2026-10-12 23:59','2026-10-24 13:00','https://asobiticket2.asobistore.jp/receptions/8da7197d-17b3-41e7-9ecc-409a23aa7881','「アソビストアプレミアム12か月会員」限定。申込時同行者登録あり。お一人様1公演につき2枚まで（複数公演申込可）。入金期間は2026年10月24日13:00〜10月28日23:59。','https://idolmaster-official.jp/live_event/sidem_shinycolors_ss/ticket/',0);
 INSERT INTO "ticket_sales" VALUES('ts_f02da421d6a8','ev_the_idolm@ster_sidem_×_shiny_colors_sparkle_showdown',NULL,'lottery','アソビストアプレミアム会員先行(プロデューサーシート・全席指定)','2026-09-12 21:00','2026-10-12 23:59','2026-10-24 13:00','https://asobiticket2.asobistore.jp/receptions/fb895834-4d04-46e2-9bae-322c3e4281c8','「アソビストアプレミアム12か月会員」限定。お一人様1公演につき4枚まで（複数公演申込可）。入金期間は2026年10月24日13:00〜10月28日23:59。','https://idolmaster-official.jp/live_event/sidem_shinycolors_ss/ticket/',1);
 INSERT INTO "ticket_sales" VALUES('ts_bc64f0715394','ev_cinderella_girls_concept_xr_live_pop_n_toybox',NULL,'first_come','一般販売（先着2次）(現地チケット ステージサイド席)','2026-08-08 12:00',NULL,NULL,'https://asobiticket2.asobistore.jp/receptions/1e13b1e5-290d-443c-b23a-a7130dd167cd','受付期間は各公演前日23:00までで公演日ごとに終了日時が異なる。特典付きチケット・3公演通し券の取扱なし。','https://idolmaster-official.jp/live_event/cg_ptb/',0);
@@ -121139,6 +121138,8 @@ INSERT INTO "ticket_sales" VALUES('ts_d0b88f03beac','ev_レトラ_birthday_onlin
 INSERT INTO "ticket_sales" VALUES('ts_6633d1c7382d','ev_レトラ_birthday_online_live_2026',NULL,'first_come','限定グッズ付き現地ライブビューイングチケット 一般先着','2026-11-04 12:00','2026-11-11 18:00',NULL,'https://livepocket.jp/e/va-liv_letora_bd2026','9,000円(税込)。お一人様2枚まで。コンビニ決済は 11/9 23:59 まで','https://idolmaster-official.jp/news/01_20256',3);
 INSERT INTO "ticket_sales" VALUES('ts_6017dd33d44a','ev_athome_xr_live_apple_of_my_アイ',NULL,'lottery','アソビストアプレミアム会員先行','2026-09-28 21:30','2026-10-18 23:59','2026-10-31 13:00','https://asobiticket2.asobistore.jp/receptions/d6491799-d79c-4c61-a182-22b7ba6041b5','お一人様1公演につき2枚まで(複数公演申込可)。入金期間は2026年10月31日13:00〜11月4日23:59。','https://idolmaster-official.jp/live_event/cg_apai/',0);
 INSERT INTO "ticket_sales" VALUES('ts_828ca8ddc14b','ev_athome_xr_live_apple_of_my_アイ',NULL,'lottery','アソビストア一般会員先行','2026-11-02 12:00','2026-11-15 23:59','2026-11-28 13:00','https://asobiticket2.asobistore.jp/receptions/c229a53c-ea41-4007-b747-57dbaa7f6724','受付対象: 現地チケット 全席指定 9,800円・【特典付き】現地+xRライブストリーミングセット 15,000円・各 3公演通し券。スペシャル特典付きは対象外。入金 11/28 13:00〜12/2 23:59。1公演2枚まで','https://idolmaster-official.jp/news/01_20265',1);
+INSERT INTO "ticket_sales" VALUES('ts_6979d5461c29','ev_the_idolm@ster_sidem_producer_meeting_~ajewelholic_~',NULL,'lottery','アソビストアプレミアム会員先行','2026-09-12 21:00','2026-10-04 23:59','2026-10-17 13:00','https://asobiticket2.asobistore.jp/receptions/24aba7f8-77de-43d3-8af4-2f2fdf5d082a','「アソビストアプレミアム12か月会員」限定。お一人様1公演につき4枚まで（複数公演申込可）。入金期間は2026年10月17日13:00〜10月21日23:59。','https://idolmaster-official.jp/live_event/sidem_pm2027/ticket/',0);
+INSERT INTO "ticket_sales" VALUES('ts_f01bf147e864','ev_the_idolm@ster_sidem_producer_meeting_~ajewelholic_~',NULL,'lottery','アソビストアプレミアム会員2次先行','2026-11-05 12:00','2026-11-26 23:59','2026-12-10 13:00','https://asobiticket2.asobistore.jp/receptions/80a8a372-e672-4f71-87c1-c80e48135632','「アソビストアプレミアム12か月会員」限定。お一人様1公演につき4枚まで（複数公演申込可）。入金期間は2026年12月10日13:00〜12月14日23:59。','https://idolmaster-official.jp/live_event/sidem_pm2027/ticket/',2);
 CREATE TABLE unit_members (unit_id TEXT NOT NULL, idol_id TEXT NOT NULL, PRIMARY KEY (unit_id, idol_id));
 INSERT INTO "unit_members" VALUES('オリジナル_カラーズ_feat_和','cg_成宮由愛');
 INSERT INTO "unit_members" VALUES('オリジナル_カラーズ_feat_和','cg_的場梨沙');
