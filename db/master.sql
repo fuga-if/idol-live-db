@@ -85044,6 +85044,7 @@ INSERT INTO "show_cast" VALUES('sh_315_production_presents_f@ntastic_battle_fes_
 INSERT INTO "show_cast" VALUES('sh_レトラ_birthday_online_live_2026_1','876_サラ_レトラ_オリヴェイラ_ウタガワ','member');
 INSERT INTO "show_cast" VALUES('sh_レトラ_birthday_online_live_2026_1','876_上水流宇宙','member');
 INSERT INTO "show_cast" VALUES('sh_レトラ_birthday_online_live_2026_1','876_灯里愛夏','member');
+INSERT INTO "show_cast" VALUES('sh_レトラ_birthday_online_live_2026_1','ml_ジュリア','member');
 INSERT INTO "show_cast" VALUES('sh_xr_live_revival_1','765as_菊地真','member');
 INSERT INTO "show_cast" VALUES('sh_xr_live_revival_1','765as_萩原雪歩','member');
 INSERT INTO "show_cast" VALUES('sh_xr_live_revival_2','765as_菊地真','member');
