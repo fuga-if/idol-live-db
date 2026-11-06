@@ -212,7 +212,11 @@ data class ImasMeishiOshiGroup(
 )
 
 /** 表の組み (名刺のデザイン。自作の画像は画像そのもの)。 */
-enum class ImasMeishiLook { PASS, TICKET, FORMAL, VERTICAL, POP, SUMI, NIGHT, OSHI }
+enum class ImasMeishiLook { PASS, TICKET, FORMAL, VERTICAL, POP, SUMI, NIGHT, OSHI, CHEKI, TRADING, STRIPES }
+
+/** トレカのデザインの下に並べるステータス 1 つ (「公演」「87」)。 */
+@Immutable
+data class ImasMeishiStat(val label: String, val value: String)
 
 /** 紙の上の寸法を倍率で描くための換算 (文字は端末の文字の大きさに追わない)。 */
 private class MeishiScale(val scale: Float, private val fontScale: Float) {
@@ -249,6 +253,7 @@ private enum class MeishiFace(val family: FontFamily) {
  * @param portrait 名刺の写真 (右に正方形の枠で)。
  * @param portraitRound 名刺の写真を丸く切る (X のアイコン。切り方はコアの `cardPhotoShape`)。
  * @param stickers 表の上に重ねる素材 (重なりの順。紙の外にはみ出した分は切る)。
+ * @param stats トレカのデザインのステータス (P歴・参加公演・回収曲。名刺に載っているものだけ)。
  */
 @Composable
 fun ImasMeishiFront(
@@ -266,12 +271,13 @@ fun ImasMeishiFront(
     portrait: ImasMeishiPicture? = null,
     portraitRound: Boolean = false,
     stickers: List<ImasMeishiSticker> = emptyList(),
+    stats: List<ImasMeishiStat> = emptyList(),
     scale: Float = 1f
 ) {
     val p = rememberMeishiScale(scale)
     // 夜公演は渡された墨から黒い紙を組む。
     val drawn = if (look == ImasMeishiLook.NIGHT) ink.night() else ink
-    val parts = MeishiFrontParts(name, drawn, sinceImprint, oshiGroups, hero, oshiCaption, moreOshi, handle, nameFamily, portrait, portraitRound, p)
+    val parts = MeishiFrontParts(name, drawn, sinceImprint, oshiGroups, hero, oshiCaption, moreOshi, handle, nameFamily, portrait, portraitRound, stats, p)
     Box(modifier.requiredSize(p.dp(ImasMeishi.WIDTH), p.dp(ImasMeishi.HEIGHT)).background(drawn.paper).clipToBounds()) {
         when (look) {
             ImasMeishiLook.PASS -> PassFront(parts)
@@ -282,6 +288,9 @@ fun ImasMeishiFront(
             ImasMeishiLook.SUMI -> SumiFront(parts)
             ImasMeishiLook.NIGHT -> NightFront(parts)
             ImasMeishiLook.OSHI -> OshiFront(parts)
+            ImasMeishiLook.CHEKI -> ChekiFront(parts)
+            ImasMeishiLook.TRADING -> TradingFront(parts)
+            ImasMeishiLook.STRIPES -> StripesFront(parts)
         }
         ImasMeishiStickerLayer(stickers, Modifier.fillMaxSize())
     }
@@ -299,6 +308,7 @@ private class MeishiFrontParts(
     val nameFamily: FontFamily?,
     val portrait: ImasMeishiPicture?,
     val portraitRound: Boolean,
+    val stats: List<ImasMeishiStat>,
     val p: MeishiScale
 )
 
@@ -576,6 +586,160 @@ private fun NightFront(m: MeishiFrontParts) {
                 Footer(m, MeishiFace.MONO, FontWeight.Medium)
             }
             Portrait(m, m.ink.accent, 1.5f)
+        }
+    }
+}
+
+/** チェキ: 名刺の写真、無ければ先頭の担当の画像、どちらも無ければ先頭の担当の判子。 */
+@Composable
+private fun ChekiPhoto(m: MeishiFrontParts, side: Float) {
+    val p = m.p
+    Box(Modifier.size(p.dp(side)).clipToBounds(), contentAlignment = Alignment.Center) {
+        val lead = m.hero.firstOrNull()
+        when {
+            m.portrait != null -> ImasMeishiPictureView(m.portrait, Modifier.fillMaxSize())
+            lead?.picture != null -> ImasMeishiPictureView(lead.picture, Modifier.fillMaxSize())
+            lead != null -> ImasMeishiStamp(lead, p.dp(side * 0.7f), m.ink.paper)
+            else -> Box(Modifier.fillMaxSize().background(m.ink.line.copy(alpha = 0.35f)))
+        }
+    }
+}
+
+/** チェキ (左に少し傾けたチェキ、下の余白に名前)。 */
+@Composable
+private fun ChekiFront(m: MeishiFrontParts) {
+    val p = m.p
+    Row(
+        Modifier.fillMaxSize().padding(horizontal = p.dp(20f), vertical = p.dp(16f)),
+        horizontalArrangement = Arrangement.spacedBy(p.dp(16f)),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(
+            Modifier
+                .graphicsLayer { rotationZ = -3f }
+                .background(m.ink.paper)
+                .border(p.hair(0.75f), m.ink.line)
+                .padding(start = p.dp(8f), end = p.dp(8f), top = p.dp(8f)),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(p.dp(6f))
+        ) {
+            ChekiPhoto(m, 120f)
+            Box(Modifier.width(p.dp(120f)).padding(bottom = p.dp(10f))) {
+                ImasFitText(
+                    m.name,
+                    style = m.nameFamily?.let { TextStyle(fontFamily = it, fontSize = p.sp(15f)) }
+                        ?: TextStyle(fontSize = p.sp(15f), fontWeight = FontWeight.ExtraBold),
+                    color = m.ink.ink, maxLines = 1, minScale = 0.5f
+                )
+            }
+        }
+        Column(Modifier.weight(1f).fillMaxHeight()) {
+            Imprint(m, "CHEKI", MeishiFace.ROUNDED)
+            Spacer(Modifier.weight(1f).heightIn(min = p.dp(4f)))
+            OshiBlock(
+                m, stamp = 18f,
+                caption = meishiText(p, 8.5f, FontWeight.ExtraBold, MeishiFace.ROUNDED),
+                label = meishiText(p, 6f, FontWeight.ExtraBold, MeishiFace.ROUNDED)
+            )
+            Spacer(Modifier.weight(1f).heightIn(min = p.dp(4f)))
+            Footer(m, MeishiFace.ROUNDED, FontWeight.ExtraBold)
+        }
+    }
+}
+
+/** トレカ (担当色の太い枠・大きな画像・ステータス)。 */
+@Composable
+private fun TradingFront(m: MeishiFrontParts) {
+    val p = m.p
+    val shape = RoundedCornerShape(p.dp(6f))
+    Column(
+        Modifier.fillMaxSize().border(p.dp(7f), m.ink.accent).padding(p.dp(12f)),
+        verticalArrangement = Arrangement.spacedBy(p.dp(6f))
+    ) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+            Box(Modifier.weight(1f)) { NameText(m, 18f) }
+            m.handle?.let {
+                Text(
+                    it, style = meishiText(p, 7.5f, FontWeight.SemiBold, MeishiFace.MONO), color = m.ink.sub,
+                    maxLines = 1, modifier = Modifier.padding(start = p.dp(6f))
+                )
+            }
+        }
+        Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(p.dp(10f))) {
+            Box(Modifier.weight(1f).fillMaxHeight().clip(shape).border(p.dp(1.5f), m.ink.accent, shape)) {
+                when {
+                    m.portrait != null -> ImasMeishiPictureView(m.portrait, Modifier.fillMaxSize())
+                    m.hero.isNotEmpty() -> ImasMeishiHero(
+                        oshi = m.hero, paper = m.ink.paper, ink = m.ink.ink, gap = p.dp(1.5f), scale = p.scale,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    else -> Box(Modifier.fillMaxSize().background(m.ink.line.copy(alpha = 0.35f)))
+                }
+            }
+            Column(Modifier.width(p.dp(118f)).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(p.dp(4f))) {
+                OshiBlock(
+                    m, stamp = 16f,
+                    caption = meishiText(p, 7.5f, FontWeight.SemiBold, MeishiFace.ROUNDED),
+                    label = meishiText(p, 5.5f, FontWeight.SemiBold, MeishiFace.MONO)
+                )
+                Spacer(Modifier.weight(1f))
+                m.sinceImprint?.let {
+                    Text(it, style = meishiText(p, 6.5f, FontWeight.SemiBold, MeishiFace.MONO, tracking = 1f), color = m.ink.sub)
+                }
+            }
+        }
+        if (m.stats.isNotEmpty()) {
+            Row(
+                Modifier.fillMaxWidth().padding(vertical = p.dp(4f))
+            ) {
+                m.stats.forEachIndexed { i, stat ->
+                    if (i > 0) Box(Modifier.width(p.hair(0.75f)).height(p.dp(20f)).background(m.ink.line))
+                    Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            stat.value,
+                            style = meishiText(p, 14f, FontWeight.ExtraBold, MeishiFace.ROUNDED).copy(fontFeatureSettings = "tnum"),
+                            color = m.ink.ink, maxLines = 1
+                        )
+                        Text(stat.label, style = meishiText(p, 6f, FontWeight.SemiBold, MeishiFace.ROUNDED), color = m.ink.sub, maxLines = 1)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** 推しの色の縞 (左の帯を載せた担当の色の縞に)。 */
+@Composable
+private fun StripesFront(m: MeishiFrontParts) {
+    val p = m.p
+    val colors = m.oshiGroups.flatMap { it.oshi }.map { it.color }
+    Row(Modifier.fillMaxSize()) {
+        Row(Modifier.width(p.dp(30f)).fillMaxHeight()) {
+            if (colors.isEmpty()) {
+                Box(Modifier.fillMaxSize().background(m.ink.accent))
+            } else {
+                colors.forEach { Box(Modifier.weight(1f).fillMaxHeight().background(it)) }
+            }
+        }
+        Row(
+            Modifier.fillMaxSize().padding(horizontal = p.dp(18f), vertical = p.dp(16f)),
+            horizontalArrangement = Arrangement.spacedBy(p.dp(14f)),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f).fillMaxHeight()) {
+                Imprint(m, "PRODUCER", MeishiFace.MONO)
+                Spacer(Modifier.weight(1f).heightIn(min = p.dp(4f)))
+                NameText(m, 26f)
+                OshiBlock(
+                    m, stamp = 22f,
+                    caption = meishiText(p, 8.5f, FontWeight.Normal, MeishiFace.SERIF),
+                    label = meishiText(p, 6f, FontWeight.SemiBold, MeishiFace.MONO),
+                    modifier = Modifier.padding(top = p.dp(6f))
+                )
+                Spacer(Modifier.weight(1f).heightIn(min = p.dp(4f)))
+                Footer(m, MeishiFace.MONO, FontWeight.Medium)
+            }
+            Portrait(m, m.ink.line, 0.5f)
         }
     }
 }

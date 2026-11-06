@@ -77,6 +77,10 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.graphics.graphicsLayer
 import coil3.compose.SubcomposeAsyncImage
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
@@ -310,6 +314,9 @@ data class ImasCardDesignOption(
         data object Pop : Look
         data object Sumi : Look
         data object Night : Look
+        data object Cheki : Look
+        data object Trading : Look
+        data object Stripes : Look
         /** 担当を大きく (先頭の担当の画像。無ければ担当色の丸)。 */
         data class Oshi(val url: String?) : Look
         /** 自作の画像 (表の画像。まだ選んでいなければ null)。 */
@@ -504,6 +511,50 @@ private fun DesignLook(option: ImasCardDesignOption, name: String, accent: Color
                     name, style = ImasType.cardName(option.family, 18.sp), color = night.ink, maxLines = 1, minScale = 0.5f,
                     modifier = Modifier.padding(DS.Space.gap)
                 )
+            }
+        }
+        ImasCardDesignOption.Look.Cheki -> Row(
+            Modifier.fillMaxSize().background(DS.surface, shape).clip(shape).border(1.dp, DS.line, shape).padding(DS.Space.gap)
+        ) {
+            Column(
+                Modifier
+                    .width(70.dp)
+                    .graphicsLayer { rotationZ = -3f }
+                    .background(DS.bg)
+                    .border(1.dp, DS.line)
+                    .padding(4.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Box(Modifier.fillMaxWidth().weight(1f).background(accent.copy(alpha = 0.35f)))
+                ImasFitText(name, style = ImasType.cardName(option.family, 10.sp), color = DS.ink, maxLines = 1, minScale = 0.5f)
+            }
+            Spacer(Modifier.weight(1f))
+        }
+        ImasCardDesignOption.Look.Trading -> Column(
+            Modifier.fillMaxSize().background(DS.bg, shape).clip(shape).border(5.dp, accent, shape).padding(DS.Space.gap),
+            verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)
+        ) {
+            ImasFitText(name, style = nameStyle, color = DS.ink, maxLines = 1, minScale = 0.5f)
+            Box(Modifier.fillMaxWidth().height(1.dp).background(DS.line.copy(alpha = 0.6f)))
+            Row(Modifier.fillMaxWidth()) {
+                repeat(3) {
+                    Text(
+                        "00", style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.ExtraBold),
+                        color = DS.ink2, textAlign = TextAlign.Center, modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+        ImasCardDesignOption.Look.Stripes -> Row(
+            Modifier.fillMaxSize().background(DS.bg, shape).clip(shape).border(1.dp, DS.line, shape)
+        ) {
+            Row(Modifier.width(18.dp).fillMaxHeight()) {
+                Box(Modifier.weight(1f).fillMaxHeight().background(accent))
+                Box(Modifier.weight(1f).fillMaxHeight().background(DS.ink2))
+                Box(Modifier.weight(1f).fillMaxHeight().background(accent.copy(alpha = 0.6f)))
+            }
+            Column(Modifier.weight(1f).fillMaxHeight().padding(DS.Space.gap)) {
+                ImasFitText(name, style = nameStyle, color = DS.ink, maxLines = 1, minScale = 0.5f)
             }
         }
         is ImasCardDesignOption.Look.Oshi -> Row(

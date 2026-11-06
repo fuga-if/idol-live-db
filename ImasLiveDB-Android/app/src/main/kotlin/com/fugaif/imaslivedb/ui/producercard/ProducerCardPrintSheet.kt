@@ -125,7 +125,8 @@ fun ProducerCardPrintSheet(card: EncodedProducerCard, directory: ProducerCardDir
                             nameFamily = nameFamily,
                             portrait = materials.portrait,
                             portraitRound = materials.portraitRound,
-                            stickers = materials.stickers
+                            stickers = materials.stickers,
+                            stats = ProducerCardDisplay.stats(c, face.oshiGroups.sumOf { it.idolIds.size })
                         )
                     }
                 }

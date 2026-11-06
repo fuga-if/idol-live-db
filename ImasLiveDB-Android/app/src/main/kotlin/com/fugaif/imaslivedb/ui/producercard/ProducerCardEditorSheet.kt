@@ -1069,6 +1069,9 @@ private fun designLook(design: CardDesign, frontFace: String?, leadImage: String
     CardDesign.POP -> ImasCardDesignOption.Look.Pop
     CardDesign.SUMI -> ImasCardDesignOption.Look.Sumi
     CardDesign.NIGHT -> ImasCardDesignOption.Look.Night
+    CardDesign.CHEKI -> ImasCardDesignOption.Look.Cheki
+    CardDesign.TRADING -> ImasCardDesignOption.Look.Trading
+    CardDesign.STRIPES -> ImasCardDesignOption.Look.Stripes
     CardDesign.OSHI -> ImasCardDesignOption.Look.Oshi(leadImage)
     CardDesign.CUSTOM -> ImasCardDesignOption.Look.Face(frontFace)
 }

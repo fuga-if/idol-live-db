@@ -22,6 +22,7 @@ import com.fugaif.imaslivedb.data.producercard.ProducerCardFiles
 import com.fugaif.imaslivedb.data.producercard.StickerFile
 import com.fugaif.imaslivedb.ui.designsystem.ImasMeishiPicture
 import com.fugaif.imaslivedb.ui.designsystem.ImasMeishiSticker
+import com.fugaif.imaslivedb.ui.designsystem.ImasMeishiStat
 import uniffi.imas_core.CardSticker
 import com.fugaif.imaslivedb.ui.designsystem.ImasProducerCardDesign
 import uniffi.imas_core.CardDesign
@@ -159,6 +160,9 @@ object ProducerCardDisplay {
         CardDesign.POP -> ImasMeishiLook.POP
         CardDesign.SUMI -> ImasMeishiLook.SUMI
         CardDesign.NIGHT -> ImasMeishiLook.NIGHT
+        CardDesign.CHEKI -> ImasMeishiLook.CHEKI
+        CardDesign.TRADING -> ImasMeishiLook.TRADING
+        CardDesign.STRIPES -> ImasMeishiLook.STRIPES
         CardDesign.OSHI -> ImasMeishiLook.OSHI
     }
 
@@ -170,8 +174,19 @@ object ProducerCardDisplay {
         CardDesign.POP -> ImasProducerCardDesign.Pop
         CardDesign.SUMI -> ImasProducerCardDesign.Sumi
         CardDesign.NIGHT -> ImasProducerCardDesign.Night
+        CardDesign.CHEKI -> ImasProducerCardDesign.Cheki
+        CardDesign.TRADING -> ImasProducerCardDesign.Trading
+        CardDesign.STRIPES -> ImasProducerCardDesign.Stripes
         CardDesign.OSHI -> ImasProducerCardDesign.Oshi
         CardDesign.CUSTOM -> face?.let { ImasProducerCardDesign.Face(it.front, it.back) } ?: ImasProducerCardDesign.Pass
+    }
+
+    /** トレカのデザインのステータス (担当の数・参加公演・回収曲。名刺に載せているものだけ)。 */
+    fun stats(card: ProducerCard, oshiCount: Int): List<ImasMeishiStat> = buildList {
+        val number = java.text.NumberFormat.getIntegerInstance(java.util.Locale.JAPAN)
+        if (oshiCount > 0) add(ImasMeishiStat("担当", number.format(oshiCount)))
+        card.showCount?.let { add(ImasMeishiStat("参加公演", number.format(it.toLong()))) }
+        card.songCount?.let { add(ImasMeishiStat("回収曲", number.format(it.toLong()))) }
     }
 
     /** 素材の置き方と画像を名刺に重ねる形にする。 */
@@ -299,6 +314,7 @@ fun rememberProducerCardContent(
             accentOshiId = cardFace.accentIdolId,
             sumiInk = cardFace.accentIdolId == null,
             stickers = stickers,
+            stats = if (showsRecord) ProducerCardDisplay.stats(card, oshi.size) else emptyList(),
             back = back ?: ImasProducerCardBack(
                 qr = producerCardUrlFromPayload(payload ?: producerCardPayload(card)),
                 issuedLabel = cardFace.issuedLabel,

@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -60,6 +61,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasPinnedPreview
 import com.fugaif.imaslivedb.ui.designsystem.ImasRowPosition
 import com.fugaif.imaslivedb.ui.designsystem.ImasSegmented
 import com.fugaif.imaslivedb.ui.designsystem.ImasToggleRow
+import com.fugaif.imaslivedb.ui.polls.UnitPollCandidatePicker
 import com.fugaif.imaslivedb.ui.settings.BrandRoleSetupSheet
 import com.fugaif.imaslivedb.ui.share.ProfileSheetPreview
 import com.fugaif.imaslivedb.ui.share.ShareCardCapture
@@ -80,6 +82,9 @@ import uniffi.imas_core.profileAutoFieldGroups
 import uniffi.imas_core.profileSheetLayout
 import uniffi.imas_core.profileSheetSizes
 import uniffi.imas_core.profileToggleField
+import uniffi.imas_core.profileSheetShareText
+import uniffi.imas_core.profileUnitsMax
+import uniffi.imas_core.profileUnitsNormalize
 
 private const val FILE_PREFIX = "producer_card_image"
 
@@ -106,6 +111,7 @@ fun ProducerCardImageScreen(onBack: () -> Unit) {
     var materials by remember { mutableStateOf(ProfileSheetMaterials.EMPTY) }
     var loaded by remember { mutableStateOf(false) }
     var showingBrandSetup by remember { mutableStateOf(false) }
+    var showingUnitPicker by remember { mutableStateOf(false) }
     var saveError by remember { mutableStateOf<String?>(null) }
     var exportError by remember { mutableStateOf<String?>(null) }
     var exporting by remember { mutableStateOf(false) }
@@ -189,7 +195,10 @@ fun ProducerCardImageScreen(onBack: () -> Unit) {
         }
     }
 
-    fun export() = withImage { ShareCardFiles.share(context, it, FILE_PREFIX) }
+    fun export() = withImage {
+        // 投稿文の候補 (ハッシュタグ) を画像と一緒に渡す (X などで本文に入る)。
+        ShareCardFiles.share(context, it, FILE_PREFIX, profileSheetShareText())
+    }
 
     fun saveToPictures() = withImage { bitmap ->
         when (ShareCardFiles.saveToPictures(context, bitmap, FILE_PREFIX)) {
@@ -291,6 +300,14 @@ fun ProducerCardImageScreen(onBack: () -> Unit) {
                                             isOn = row.shown,
                                             onCheckedChange = { update(profileToggleField(sheet, row.field)) }
                                         )
+                                        if (row.field == ProfileAutoField.UNITS) {
+                                            ImasNavRow(
+                                                title = "載せるユニットを選ぶ (${profileUnitsMax()} つまで)",
+                                                icon = Icons.Filled.Groups,
+                                                iconTone = ImasIconTileTone.NEUTRAL,
+                                                showsChevron = false
+                                            ) { showingUnitPicker = true }
+                                        }
                                         if (row.pickable && row.shown) {
                                             ImasNavRow(
                                                 title = if (row.field == ProfileAutoField.SONGS) "載せる曲を選ぶ" else "載せる公演を選ぶ",
@@ -324,6 +341,25 @@ fun ProducerCardImageScreen(onBack: () -> Unit) {
         }
     }
 
+    val unitsCard = card
+    if (showingUnitPicker && unitsCard != null) {
+        UnitPollCandidatePicker(
+            alreadySelected = unitsCard.profile.units.toSet(),
+            remaining = profileUnitsMax().toInt(),
+            onDismiss = { showingUnitPicker = false },
+            onConfirm = { ids ->
+                showingUnitPicker = false
+                // 選んだ順を保つ: 残したものはそのまま、新しく選んだものを後ろに (上限はコアで切る)。
+                val kept = unitsCard.profile.units.filter { it in ids }
+                val added = materials.units.map { it.id }.filter { it in ids && it !in kept }
+                val next = profileUnitsNormalize(kept + added)
+                materials = materials.copy(
+                    record = materials.record.copy(units = ProfileSheetMaterials.unitInputs(next, materials.units))
+                )
+                update(unitsCard.profile.copy(units = next))
+            }
+        )
+    }
     if (showingBrandSetup) BrandRoleSetupSheet(onDismiss = { showingBrandSetup = false })
     ImasErrorAlert(message = saveError, onDismiss = { saveError = null }, title = "保存できませんでした")
     ImasErrorAlert(message = exportError, onDismiss = { exportError = null }, title = "画像を書き出せませんでした")

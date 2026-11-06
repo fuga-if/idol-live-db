@@ -117,6 +117,15 @@ sealed interface ImasProducerCardDesign {
     /** 夜公演。黒い紙に白い文字。 */
     data object Night : ImasProducerCardDesign
 
+    /** チェキ。左に傾けたチェキ。 */
+    data object Cheki : ImasProducerCardDesign
+
+    /** トレカ。担当色の太い枠と大きな画像、下にステータス。 */
+    data object Trading : ImasProducerCardDesign
+
+    /** 推しの色の縞。左の帯を担当の色の縞に。 */
+    data object Stripes : ImasProducerCardDesign
+
     /** 自作の画像。表は自分で作った名刺の画像、裏は裏の画像 (無ければ QR の裏)。 */
     data class Face(val front: String, val back: String? = null) : ImasProducerCardDesign
 }
@@ -193,6 +202,7 @@ data class ImasProducerCardBack(
  * @param accentOshiId 帯・罫・判子を刷る色の担当 (コアの `CardFace.accentIdolId`)。null は先頭の担当。
  * @param sumiInk 墨一色で刷る。
  * @param stickers 表の上に重ねる素材 (重なりの順。自作の画像の名刺には重ねない)。
+ * @param stats トレカのデザインのステータス。
  * @param back 裏。null なら返さない (自作の画像に裏の画像があればそれを裏にする)。
  */
 @Immutable
@@ -220,6 +230,7 @@ data class ImasProducerCardContent(
     /** 墨一色で刷る (刷る色に墨を選んだ。コアの `CardFace.accentIdolId` が無い)。 */
     val sumiInk: Boolean = false,
     val stickers: List<ImasMeishiSticker> = emptyList(),
+    val stats: List<ImasMeishiStat> = emptyList(),
     val back: ImasProducerCardBack? = null
 ) {
     /** 裏があるか (自作の画像の裏、または QR の裏)。 */
@@ -331,13 +342,16 @@ private fun MeishiFrontSide(content: ImasProducerCardContent, ink: ImasMeishiInk
                 ImasProducerCardDesign.Vertical -> ImasMeishiLook.VERTICAL
                 ImasProducerCardDesign.Sumi -> ImasMeishiLook.SUMI
                 ImasProducerCardDesign.Night -> ImasMeishiLook.NIGHT
+                ImasProducerCardDesign.Cheki -> ImasMeishiLook.CHEKI
+                ImasProducerCardDesign.Trading -> ImasMeishiLook.TRADING
+                ImasProducerCardDesign.Stripes -> ImasMeishiLook.STRIPES
                 ImasProducerCardDesign.Pass, is ImasProducerCardDesign.Face -> ImasMeishiLook.PASS
             },
             sinceImprint = content.sinceImprint,
             oshiGroups = content.faceGroups.map { group ->
                 ImasMeishiOshiGroup(group.label, group.oshi.map { meishiOshi(it, ink) })
             },
-            hero = if (design == ImasProducerCardDesign.Oshi) content.heroOshi.map { meishiOshi(it, ink) } else emptyList(),
+            hero = content.heroOshi.map { meishiOshi(it, ink) },
             oshiCaption = content.oshiCaption,
             moreOshi = content.moreOshi,
             handle = content.handle,
@@ -345,6 +359,7 @@ private fun MeishiFrontSide(content: ImasProducerCardContent, ink: ImasMeishiInk
             portrait = content.portraitUrl?.let { ImasMeishiPicture.Url(it) },
             portraitRound = content.portraitRound,
             stickers = content.stickers,
+            stats = content.stats,
             scale = scale
         )
     }

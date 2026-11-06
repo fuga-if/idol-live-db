@@ -3,6 +3,7 @@ package com.fugaif.imaslivedb.data.producercard
 import android.content.Context
 import android.graphics.Bitmap
 import com.fugaif.imaslivedb.data.local.BrandRoleStore
+import com.fugaif.imaslivedb.data.model.ImasUnit
 import com.fugaif.imaslivedb.data.model.JstDay
 import com.fugaif.imaslivedb.data.model.MyProducerCard
 import com.fugaif.imaslivedb.di.AppModule
@@ -13,7 +14,9 @@ import uniffi.imas_core.ProfileBrandInput
 import uniffi.imas_core.ProfileOshiInput
 import uniffi.imas_core.ProfileSheetRecord
 import uniffi.imas_core.ProfileShowInput
+import uniffi.imas_core.ProfileUnitInput
 import uniffi.imas_core.cardLinkView
+import uniffi.imas_core.profileUnitsNormalize
 
 /**
  * P名刺の画像 (SNS に貼る P履歴書) に載る担当 1 人 (担当の行)。iOS `ProfileSheetOshi` と対。
@@ -42,14 +45,22 @@ data class ProfileSheetMaterials(
     /** 証明写真の欄の中に丸く置く (X のアイコン。切り方はコアの `cardPhotoShape`)。 */
     val portraitRound: Boolean = false,
     /** 自分の QR の URL (P名刺に載せていれば)。 */
-    val qrUrl: String? = null
+    val qrUrl: String? = null,
+    /** 好きなユニットを選ぶ候補 (マスタのユニットすべて)。 */
+    val units: List<ImasUnit> = emptyList()
 ) {
     companion object {
+        /** 選んだユニットの id を、選んだ順にマスタで引いて欄に渡す形にする (引けない id は入れない)。 */
+        fun unitInputs(ids: List<String>, units: List<ImasUnit>): List<ProfileUnitInput> {
+            val byId = units.associateBy { it.id }
+            return profileUnitsNormalize(ids).mapNotNull { id -> byId[id]?.let { ProfileUnitInput(id, it.name) } }
+        }
+
         val EMPTY = ProfileSheetMaterials(
             record = ProfileSheetRecord(
                 today = "", name = "", sinceYear = null, oshi = emptyList(), oshiBrandIds = emptyList(),
                 attended = emptyList(), songCount = 0u, ownedReleaseCount = 0u, brands = emptyList(), brandRolesJson = "",
-                favoriteSongs = emptyList(), message = "", links = emptyList(), hasPhoto = false, hasQr = false
+                favoriteSongs = emptyList(), units = emptyList(), message = "", links = emptyList(), hasPhoto = false, hasQr = false
             )
         )
     }
@@ -79,6 +90,7 @@ object ProfileSheetAssembler {
         val today = JstDay.today()
         // お気に入りの曲すべて (載せる曲と並びは選択からコアが決める。引けない曲は入れない)。
         val favorites = FavoriteSongSource.load(module)
+        val units = runCatching { module.unitRepository.fetchUnitsForList() }.getOrDefault(emptyList())
 
         val oshi = withContext(Dispatchers.IO) {
             oshiIdols.map { idol ->
@@ -113,6 +125,7 @@ object ProfileSheetAssembler {
             brands = brands.map { ProfileBrandInput(it.id, it.shortName, it.color, it.sortOrder.toLong()) },
             brandRolesJson = BrandRoleStore.json(context),
             favoriteSongs = favorites.map { it.input },
+            units = ProfileSheetMaterials.unitInputs(card.profile.units, units),
             message = card.message,
             links = card.links.map { cardLinkView(it).display },
             hasPhoto = portrait != null,
@@ -123,7 +136,8 @@ object ProfileSheetAssembler {
             oshi = oshi,
             portrait = portrait,
             portraitRound = portraitRound,
-            qrUrl = qrUrl
+            qrUrl = qrUrl,
+            units = units
         )
     }
 }

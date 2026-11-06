@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import com.fugaif.imaslivedb.ui.designsystem.ImasMeishi
 import com.fugaif.imaslivedb.ui.designsystem.ImasMeishiBack
 import com.fugaif.imaslivedb.ui.designsystem.ImasMeishiFront
+import com.fugaif.imaslivedb.ui.designsystem.ImasMeishiStat
 import com.fugaif.imaslivedb.ui.designsystem.ImasMeishiInk
 import com.fugaif.imaslivedb.ui.designsystem.ImasMeishiLook
 import com.fugaif.imaslivedb.ui.designsystem.ImasMeishiOshi
@@ -102,7 +103,8 @@ fun ProducerCardPrintFront(
     /** 名刺の写真を丸く切る (X のアイコン)。 */
     portraitRound: Boolean = false,
     /** 表に重ねる素材 (画像は読み込み済みのもの)。 */
-    stickers: List<ImasMeishiSticker> = emptyList()
+    stickers: List<ImasMeishiSticker> = emptyList(),
+    stats: List<ImasMeishiStat> = emptyList()
 ) {
     val colors = ProducerCardPrint.colors(seed)
     ImasMeishiFront(
@@ -113,6 +115,7 @@ fun ProducerCardPrintFront(
         portrait = portrait?.let { ImasMeishiPicture.Image(it) },
         portraitRound = portraitRound,
         stickers = stickers,
+        stats = stats,
         scale = ProducerCardPrint.PAPER_SCALE
     )
 }

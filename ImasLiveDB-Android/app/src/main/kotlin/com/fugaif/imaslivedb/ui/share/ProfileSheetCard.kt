@@ -260,7 +260,7 @@ private fun ProfileResumeBody(layout: ProfileSheetLayout, materials: ProfileShee
             }
         }
         // 好きな曲・思い出の公演・ひとことは横いっぱい、次の現場と記録は左右に並べる。
-        (full(layout, ProfileSlot.SONGS) + full(layout, ProfileSlot.MEMORIES)).forEach { section ->
+        (full(layout, ProfileSlot.SONGS) + full(layout, ProfileSlot.UNITS) + full(layout, ProfileSlot.MEMORIES)).forEach { section ->
             ProfileBox { ProfileSectionView(section, mincho, s) }
         }
         val pair = layout.sections.filter { it.slot == ProfileSlot.NEXT_SHOW || it.slot == ProfileSlot.RECORDS }
@@ -430,6 +430,15 @@ private fun ProfileSectionView(section: ProfileSection, mincho: FontFamily?, s: 
             ) {
                 section.entries.forEach { entry ->
                     Text("「${entry.text}」", style = T.jp(10.5f * s, tracking = T.JP_TRACKING), color = Ink.ink, maxLines = 1)
+                }
+            }
+            // 好きなユニット: 名前を選んだ順に流し組み。
+            ProfileSlot.UNITS -> FlowRow(
+                horizontalArrangement = Arrangement.spacedBy((6 * s).dp),
+                verticalArrangement = Arrangement.spacedBy((4 * s).dp)
+            ) {
+                section.entries.forEach { entry ->
+                    Text(entry.text, style = T.jp(10.5f * s, tracking = T.JP_TRACKING), color = Ink.ink, maxLines = 1)
                 }
             }
             // 日付 | 公演 (会場)。日付は列を揃える。
