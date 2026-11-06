@@ -22,6 +22,9 @@ interface Elements {
   band: HTMLElement;
   tenure: HTMLElement;
   stubYear: HTMLElement;
+  art: HTMLElement;
+  frameName: HTMLElement;
+  stats: HTMLElement;
   hero: HTMLElement;
   imprint: HTMLElement;
   name: HTMLElement;
@@ -51,6 +54,9 @@ function elements(): Elements | null {
   const band = document.querySelector<HTMLElement>("[data-meishi-band]");
   const tenure = document.querySelector<HTMLElement>("[data-meishi-tenure]");
   const stubYear = document.querySelector<HTMLElement>("[data-meishi-stub-year]");
+  const art = document.querySelector<HTMLElement>("[data-meishi-art]");
+  const frameName = document.querySelector<HTMLElement>("[data-meishi-frame-name]");
+  const stats = document.querySelector<HTMLElement>("[data-meishi-stats]");
   const hero = document.querySelector<HTMLElement>("[data-meishi-hero]");
   const imprint = document.querySelector<HTMLElement>("[data-meishi-imprint]");
   const name = document.querySelector<HTMLElement>("[data-meishi-name]");
@@ -72,7 +78,7 @@ function elements(): Elements | null {
   const caseScheme = document.querySelector<HTMLAnchorElement>("[data-meishi-case-scheme]");
   const unreadable = document.querySelector<HTMLElement>("[data-meishi-unreadable]");
   if (
-    !root || !status || !card || !band || !tenure || !stubYear || !hero || !imprint || !name || !faceOshi || !handle || !details ||
+    !root || !status || !card || !band || !tenure || !stubYear || !art || !frameName || !stats || !hero || !imprint || !name || !faceOshi || !handle || !details ||
     !oshiSection || !linksSection || !message || !since || !oshi || !links ||
     !showCount || !songCount || !next || !asof || !caseBox || !caseNote || !caseScheme ||
     !unreadable
@@ -80,7 +86,7 @@ function elements(): Elements | null {
     return null;
   }
   return {
-    root, status, card, band, tenure, stubYear, hero, imprint, name, faceOshi, handle, details, oshiSection, linksSection, message, since, oshi, links, showCount, songCount, next,
+    root, status, card, band, tenure, stubYear, art, frameName, stats, hero, imprint, name, faceOshi, handle, details, oshiSection, linksSection, message, since, oshi, links, showCount, songCount, next,
     asof, caseBox, caseNote, caseScheme, unreadable,
   };
 }
@@ -215,6 +221,72 @@ function renderHero(el: HTMLElement, face: CardFace, idols: readonly Ref[]): voi
   el.dataset.count = String(el.childElementCount);
 }
 
+/**
+ * チェキ・トレカの大きな面 (担当の判子。担当が無ければ名前の頭文字)。
+ * Web は画像を持たないので、先頭の担当の色の判子に名前を刷る。
+ */
+function renderArt(e: Elements, card: CardView, face: CardFace, idols: readonly Ref[]): void {
+  e.art.replaceChildren();
+  const first = refById(idols, face.heroIdolIds[0] ?? face.oshiIdolIds[0] ?? "");
+  const stamp = document.createElement("span");
+  stamp.className = "meishi-card__art-stamp";
+  if (first) {
+    e.art.dataset.theme = first.themeKey;
+    stamp.textContent = first.name;
+  } else {
+    e.art.dataset.theme = "neutral";
+    stamp.textContent = Array.from(card.name)[0] ?? "";
+  }
+  e.art.append(stamp);
+  e.frameName.textContent = card.name;
+}
+
+/** トレカの下の 3 つの数字 (P歴・参加公演・回収曲)。無いものは出さない。 */
+function renderStats(el: HTMLElement, card: CardView): void {
+  el.replaceChildren();
+  const items: [string, string][] = [];
+  if (card.sinceYear !== null) {
+    const years = Math.max(0, new Date().getFullYear() - card.sinceYear);
+    items.push(["P歴", `${years}年`]);
+  }
+  if (card.showCount !== null) items.push(["参加公演", String(card.showCount)]);
+  if (card.songCount !== null) items.push(["回収曲", String(card.songCount)]);
+  for (const [label, value] of items) {
+    const li = document.createElement("li");
+    const v = document.createElement("span");
+    v.className = "meishi-card__stat-value";
+    v.textContent = value;
+    const l = document.createElement("span");
+    l.className = "meishi-card__stat-label";
+    l.textContent = label;
+    li.append(v, l);
+    el.append(li);
+  }
+  el.dataset.count = String(items.length);
+}
+
+/** 推しの色の縞: 表に出す担当の色ごとに太さの同じ縦の縞を 1 本ずつ。色は縞の `data-theme` (無ければ墨)。 */
+function renderStripes(band: HTMLElement, face: CardFace, idols: readonly Ref[], on: boolean): void {
+  band.replaceChildren();
+  if (!on) return;
+  const seen = new Set<string>();
+  for (const id of face.oshiIdolIds) {
+    const ref = refById(idols, id);
+    if (!ref || seen.has(ref.themeKey)) continue;
+    seen.add(ref.themeKey);
+    const stripe = document.createElement("span");
+    stripe.className = "meishi-card__stripe";
+    stripe.dataset.theme = ref.themeKey;
+    band.append(stripe);
+  }
+  if (band.childElementCount === 0) {
+    const stripe = document.createElement("span");
+    stripe.className = "meishi-card__stripe";
+    stripe.dataset.theme = "neutral";
+    band.append(stripe);
+  }
+}
+
 /** 縦書きの年は漢数字で (「2014」→「二〇一四」。アプリの縦書きの名刺と同じ字面)。 */
 function kanjiDigits(s: string): string {
   const map = ["〇", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
@@ -240,6 +312,9 @@ function renderCard(e: Elements, card: CardView, face: CardFace, catalog: CardCa
   e.handle.textContent = face.handle?.display ?? "";
   // デザインはキーを置くだけ (書体と並びは CSS の `[data-design]`)。
   e.card.dataset.design = card.design;
+  renderArt(e, card, face, catalog.idols);
+  renderStats(e.stats, card);
+  renderStripes(e.band, face, catalog.idols, card.design === "stripes");
 
   e.message.textContent = card.message;
   e.message.hidden = card.message.length === 0;

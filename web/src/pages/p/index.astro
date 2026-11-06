@@ -42,6 +42,10 @@ const catalog = page<CardCatalog>("p/catalog.json");
     <article class="meishi-card" data-meishi-card hidden data-theme="neutral" data-design="pass">
       <div class="meishi-card__hero" data-meishi-hero aria-hidden="true"></div>
       <div class="meishi-card__band" data-meishi-band aria-hidden="true"></div>
+      <div class="meishi-card__frame" aria-hidden="true">
+        <div class="meishi-card__art" data-meishi-art></div>
+        <span class="meishi-card__frame-name" data-meishi-frame-name></span>
+      </div>
       <div class="meishi-card__body">
         <span class="meishi-card__tenure" data-meishi-tenure hidden></span>
         <p class="meishi-card__imprint"><span class="meishi-card__imprint-head"></span><span data-meishi-imprint></span></p>
@@ -52,6 +56,7 @@ const catalog = page<CardCatalog>("p/catalog.json");
           <span class="meishi-card__brand">IDOL LIVE DB</span>
         </p>
       </div>
+      <ul class="meishi-card__stats" data-meishi-stats aria-hidden="true"></ul>
       <div class="meishi-card__stub" aria-hidden="true">
         <span class="meishi-card__stub-label">SINCE</span>
         <span class="meishi-card__stub-year" data-meishi-stub-year></span>

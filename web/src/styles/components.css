@@ -1160,7 +1160,7 @@ a.chip--selected:hover {
    表は名前・P歴の印字・担当 (ブランドごとにまとめる。並べる人はコアの producer_card_face)・ハンドル 1 つ。
    文字は紙の幅に合わせて伸び縮みする (container query の cqi。紙の上の大きさで決める)。
    収まらない詳細 (ひとこと・担当・リンク・記録) は名刺の下の紙面 (.meishi-details) に並べる。
-   名刺のデザインは 8 つ (`data-design`。キーの一覧の正は imas-core の card_designs)。
+   名刺のデザインは 11 つ (`data-design`。キーの一覧の正は imas-core の card_designs)。
    並び (DOM) は同じで、見た目だけを変える。自作の画像の名刺は Web に画像が無いので入場証。
    - pass   入場証: 左に担当色の縦の帯。
    - formal かしこまった名刺: 明朝、角の小さい紙に細い枠。担当色は名前の上の細い罫だけ。
@@ -1171,6 +1171,9 @@ a.chip--selected:hover {
    - vertical 縦書き: 明朝の名前を右に縦に。細い担当色の罫と漢数字の就任年。
    - sumi     墨一色: 帯なし、大きな明朝の名前、担当色は小さな点 1 つ。
    - night    夜公演: 黒い紙・白い文字、上に担当色の細い線。
+   - cheki    チェキ: 左に少し傾けた白いフレーム (大きな判子/頭文字 + 太い下辺に名前)。ポップの書体。
+   - trading  トレカ: 担当色の太い縁取り、名前の帯、大きな判子、下に 3 つの数字。
+   - stripes  推しの色の縞: 入場証の帯が担当色ごとの縦縞 (太さは同じ、1 人なら 1 本、無ければ墨)。
    刷る色 (帯・罫・半券・点・線) は名刺が選んだ担当 (accentIdolId)。null は墨。
    どれも帯・罫・下線以外はカードの地色のまま (淡い色の地のカードは却下済み)。 */
 .meishi {
@@ -1604,6 +1607,205 @@ a.chip--selected:hover {
 }
 .meishi-card[data-design="night"] .meishi-card__name {
   font-size: 7.1cqi;
+}
+
+/* チェキ・トレカだけが使う要素は、他のデザインでは出さない */
+.meishi-card__frame,
+.meishi-card__stats {
+  display: none;
+}
+.meishi-card__art-stamp {
+  display: grid;
+  place-items: center;
+  text-align: center;
+  overflow-wrap: anywhere;
+  color: var(--accent, var(--ds-ink));
+}
+
+/* チェキ (左に少し傾けたインスタント写真のフレーム。判子は薄い墨の四角の中) */
+.meishi-card[data-design="cheki"] .meishi-card__band,
+.meishi-card[data-design="cheki"] .meishi-card__brand,
+.meishi-card[data-design="cheki"] .meishi-card__name,
+.meishi-card[data-design="cheki"] .meishi-card__imprint {
+  display: none;
+}
+.meishi-card[data-design="cheki"] .meishi-card__frame {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-self: center;
+  inline-size: 38%;
+  margin-inline: 5cqi 1cqi;
+  padding: 2.2cqi 2.2cqi 0;
+  background: #fff;
+  border: 1px solid var(--ds-line);
+  box-shadow: var(--ds-shadow1);
+  transform: rotate(-3deg);
+}
+.meishi-card[data-design="cheki"] .meishi-card__art {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  background: color-mix(in srgb, var(--ds-ink) 7%, #fff);
+}
+.meishi-card[data-design="cheki"] .meishi-card__art-stamp {
+  inline-size: 72%;
+  aspect-ratio: 1;
+  padding: 1cqi;
+  border: 0.6cqi solid var(--accent, var(--ds-ink));
+  border-radius: 50%;
+  font-size: 2.6cqi;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.meishi-card[data-design="cheki"] .meishi-card__frame-name {
+  display: grid;
+  align-items: center;
+  min-block-size: 8cqi;
+  padding-block: 1cqi;
+  font-family: "IMAS Card pop", var(--font-display);
+  font-size: 3.6cqi;
+  line-height: 1.1;
+  text-align: center;
+  color: #17161a;
+  overflow-wrap: anywhere;
+}
+.meishi-card[data-design="cheki"] .meishi-card__body {
+  justify-content: center;
+  padding: 4cqi 5cqi;
+}
+.meishi-card[data-design="cheki"] .meishi-card__face-oshi,
+.meishi-card[data-design="cheki"] .meishi-card__footer {
+  margin-block-start: 0;
+  font-family: var(--font-display);
+  font-weight: 800;
+}
+.meishi-card[data-design="cheki"] .meishi-card__face-oshi {
+  font-size: 3cqi;
+}
+.meishi-card[data-design="cheki"] .meishi-card__handle {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 2.6cqi;
+}
+
+/* トレカ (担当色の太い縁取り・名前の帯・大きな判子・下に 3 つの数字) */
+.meishi-card[data-design="trading"] {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto 1fr auto;
+  padding: 1.6cqi;
+  border: 1.6cqi solid var(--accent, var(--ds-ink));
+  border-radius: 3cqi;
+  box-shadow: none;
+}
+.meishi-card[data-design="trading"] .meishi-card__band,
+.meishi-card[data-design="trading"] .meishi-card__imprint,
+.meishi-card[data-design="trading"] .meishi-card__brand,
+.meishi-card[data-design="trading"] .meishi-card__name {
+  display: none;
+}
+.meishi-card[data-design="trading"] .meishi-card__frame {
+  display: contents;
+}
+.meishi-card[data-design="trading"] .meishi-card__frame-name {
+  grid-column: 1;
+  grid-row: 1;
+  padding: 1.1cqi 2.4cqi;
+  background: var(--accent, var(--ds-ink));
+  color: var(--ds-surface);
+  border-radius: 1.4cqi 1.4cqi 0 0;
+  font-size: 4.4cqi;
+  font-weight: 900;
+  line-height: 1.2;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.meishi-card[data-design="trading"] .meishi-card__art {
+  grid-column: 1;
+  grid-row: 2;
+  display: grid;
+  place-items: center;
+  min-block-size: 0;
+  border-inline: 0.3cqi solid var(--ds-line);
+}
+.meishi-card[data-design="trading"] .meishi-card__art-stamp {
+  block-size: 78%;
+  aspect-ratio: 1;
+  padding: 1.4cqi;
+  border: 0.8cqi solid var(--accent, var(--ds-ink));
+  border-radius: 50%;
+  font-size: 3cqi;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.meishi-card[data-design="trading"] .meishi-card__body {
+  display: contents;
+}
+/* 担当とハンドルは大きな面の端に小さく (面の上に重ねる) */
+.meishi-card[data-design="trading"] .meishi-card__face-oshi {
+  grid-column: 1;
+  grid-row: 2;
+  align-self: start;
+  margin: 1.6cqi 2cqi 0;
+  font-size: 2.2cqi;
+}
+.meishi-card[data-design="trading"] .meishi-card__footer {
+  grid-column: 1;
+  grid-row: 2;
+  align-self: end;
+  justify-self: end;
+  margin: 0 2cqi 1.4cqi;
+}
+.meishi-card[data-design="trading"] .meishi-card__stats {
+  grid-column: 1;
+  grid-row: 3;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 0.3cqi solid var(--ds-line);
+  border-radius: 0 0 1.4cqi 1.4cqi;
+  font-family: ui-monospace, monospace;
+}
+.meishi-card[data-design="trading"] .meishi-card__stats li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1cqi 0.6cqi;
+}
+.meishi-card[data-design="trading"] .meishi-card__stats li + li {
+  border-inline-start: 0.3cqi solid var(--ds-line);
+}
+.meishi-card[data-design="trading"] .meishi-card__stat-value {
+  font-size: 5cqi;
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-ink);
+}
+.meishi-card[data-design="trading"] .meishi-card__stat-label {
+  font-size: 1.7cqi;
+  letter-spacing: 0.12em;
+  color: var(--ds-ink2);
+}
+
+/* 推しの色の縞 (入場証の帯を、担当色ごとの縦縞に。縞の色は縞の data-theme の --accent) */
+.meishi-card[data-design="stripes"] .meishi-card__band {
+  display: flex;
+  inline-size: 13cqi;
+  background: none;
+}
+.meishi-card__stripe {
+  flex: 1 1 0;
+  min-inline-size: 0;
+  background: var(--accent, var(--ds-ink));
+}
+.meishi-card[data-design="stripes"] .meishi-card__imprint-head::after {
+  content: "PRODUCER STRIPES";
 }
 
 /* 名刺の下の紙面 */

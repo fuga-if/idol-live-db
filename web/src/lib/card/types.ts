@@ -32,7 +32,7 @@ export interface CardView {
   /** `"2026.10.06 時点"` のように、既に整形済み。 */
   issuedOnDisplay: string;
   /**
-   * 名刺のデザインのキー (`pass` / `formal` / `pop` / `oshi` / `ticket` / `vertical` / `sumi` / `night`)。名刺の `data-design` にそのまま置く
+   * 名刺のデザインのキー (`pass` / `formal` / `pop` / `oshi` / `ticket` / `vertical` / `sumi` / `night` / `cheki` / `trading` / `stripes`)。名刺の `data-design` にそのまま置く
    * (書体と並びは CSS)。自作の画像の名刺は画像が Web に無いので `pass` で届く。
    */
   design: string;
