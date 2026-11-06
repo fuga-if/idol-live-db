@@ -627,7 +627,9 @@ private fun Hero(
         media = {
             ArtworkImage(
                 url = song.artworkUrl, size = 116.dp, previewUrl = song.previewUrl,
-                songTitle = song.title, songId = song.id, seed = seed, brand = song.brandId
+                songTitle = song.title, songId = song.id, seed = seed, brand = song.brandId,
+                // ジャケを押しても「再生」と同じ (フルで流せる人はフル、流せなければ試聴)。
+                play = play
             )
         },
         facts = {

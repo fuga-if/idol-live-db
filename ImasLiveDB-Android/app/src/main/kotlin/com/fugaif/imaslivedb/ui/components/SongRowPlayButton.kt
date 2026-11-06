@@ -11,7 +11,7 @@ import com.fugaif.imaslivedb.player.SongRowPlayback
 import kotlinx.coroutines.launch
 
 /** 曲の行の再生ボタンの配線 (鳴っているか・押したとき)。フル尺優先で試聴へ落とす ([SongRowPlayback])。 */
-internal class SongRowPlayWiring(val isPlaying: Boolean, val onTap: () -> Unit)
+class SongRowPlayWiring(val isPlaying: Boolean, val onTap: () -> Unit)
 
 @Composable
 internal fun rememberSongRowPlay(songId: String?, appleMusicId: String?, previewUrl: String?): SongRowPlayWiring {

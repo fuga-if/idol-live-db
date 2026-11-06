@@ -14,6 +14,8 @@ struct ArtworkImageView: View {
     var songId: String? = nil
     /// フォールバック (画像なし) 時に使うシード色。曲/ブランドのイメージカラー hex。
     var seed: String? = nil
+    /// 押したときに試聴の代わりにする操作 (曲詳細はフル尺優先)。nil なら試聴。
+    var onPlay: (() -> Void)? = nil
 
     private var isCurrentlyPlaying: Bool {
         guard let songId else { return false }
@@ -29,7 +31,9 @@ struct ArtworkImageView: View {
             previewURL: previewURL,
             isPreviewing: isCurrentlyPlaying,
             onPreview: {
-                if let previewURL, let songId {
+                if let onPlay {
+                    onPlay()
+                } else if let previewURL, let songId {
                     MusicKitService.shared.togglePreview(url: previewURL, songId: songId)
                 }
             }

@@ -484,7 +484,9 @@ struct SongSheetContent: View {
                 size: 116,
                 previewURL: vm.artworkInfo?.previewURL,
                 songTitle: song.title, songId: song.id,
-                seed: songSeed
+                seed: songSeed,
+                // ジャケを押しても「再生」と同じ (フルで流せる人はフル、流せなければ試聴)。
+                onPlay: { Task { await playFull() } }
             )
         } facts: {
             VStack(alignment: .leading, spacing: DS.Space.gapTight) {

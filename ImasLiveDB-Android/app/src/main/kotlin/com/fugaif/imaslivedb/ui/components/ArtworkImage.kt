@@ -23,6 +23,8 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasArtwork
  *                   同名で別録音の曲が実在するので、ここを曲名で持つと取り違える
  * @param seed       画像が無いときの面の色 (曲・ブランドのイメージカラー hex)
  * @param brand      画像が無いときの面の色 (ブランド ID)
+ * @param play       押したときに試聴の代わりにする操作と、鳴っているか (曲詳細はフル尺優先。
+ *                   [rememberSongRowPlay])。null なら試聴
  */
 @Composable
 fun ArtworkImage(
@@ -33,10 +35,11 @@ fun ArtworkImage(
     songId: String? = null,
     modifier: Modifier = Modifier,
     seed: String? = null,
-    brand: String? = null
+    brand: String? = null,
+    play: SongRowPlayWiring? = null
 ) {
     val playbackState by AudioPreviewManager.playbackState.collectAsState()
-    val isCurrentlyPlaying = songId != null && playbackState.isPlaying(songId)
+    val isCurrentlyPlaying = play?.isPlaying ?: (songId != null && playbackState.isPlaying(songId))
     // 試聴は曲 id が分かるときだけ (id が無いと再生中の強調も切り替えも曲を取り違える)。
     val preview = previewUrl?.takeIf { songId != null }
     ImasArtwork(
@@ -49,7 +52,10 @@ fun ArtworkImage(
         previewUrl = preview,
         isPreviewing = isCurrentlyPlaying,
         onPreview = {
-            if (preview != null && songId != null) AudioPreviewManager.togglePreview(preview, songId)
+            when {
+                play != null -> play.onTap()
+                preview != null && songId != null -> AudioPreviewManager.togglePreview(preview, songId)
+            }
         }
     )
 }
