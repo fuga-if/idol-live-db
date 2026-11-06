@@ -95,3 +95,18 @@ pub fn profile_sheet_layout(sheet: ProfileSheet, record: ProfileSheetRecord) -> 
 pub fn profile_brand_marks(record: ProfileSheetRecord) -> Vec<ProfileBrandCheck> {
     crate::domain::profile_sheet::profile_brand_marks(&record)
 }
+
+#[uniffi::export]
+pub fn profile_sheet_share_text() -> String {
+    crate::domain::profile_sheet::profile_sheet_share_text()
+}
+
+#[uniffi::export]
+pub fn profile_units_normalize(ids: Vec<String>) -> Vec<String> {
+    crate::domain::profile_sheet::profile_units_normalize(&ids)
+}
+
+#[uniffi::export]
+pub fn profile_units_max() -> u32 {
+    crate::domain::profile_sheet::MAX_UNITS as u32
+}

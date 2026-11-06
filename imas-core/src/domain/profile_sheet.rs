@@ -70,6 +70,8 @@ pub enum ProfileAutoField {
     Milestones,
     /// 好きな曲 (お気に入りの中から選んだ曲)。
     Songs,
+    /// 好きなユニット (本人が選ぶ。選ぶまでは載らない)。
+    Units,
     /// 思い出の公演 (参加した公演から選ぶ。まだ選んでいなければお気に入りのライブの公演)。
     Memories,
     /// 次の現場 (近い順に 3 つまで)。
@@ -102,6 +104,8 @@ pub enum ProfileFieldGroup {
 pub enum ProfileSlot {
     /// 好きな曲。
     Songs,
+    /// 好きなユニット。
+    Units,
     /// 思い出の公演。
     Memories,
     /// 次の現場。
@@ -134,6 +138,15 @@ pub struct ProfileSheet {
     /// 載せる思い出の公演 (公演 id、載せる順)。None はまだ選んでいない
     /// (参加した公演のうち、ライブをお気に入りにしたものを新しい順に)。
     pub memories: Option<Vec<String>>,
+    /// 載せる好きなユニット (ユニット id、載せる順。上限 `MAX_UNITS`)。空はまだ選んでいない (載せない)。
+    pub units: Vec<String>,
+}
+
+/// 好きなユニット 1 つ (端末が `ProfileSheet::units` の id をマスタで引いて、選んだ順に渡す)。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct ProfileUnitInput {
+    pub id: String,
+    pub name: String,
 }
 
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
@@ -240,6 +253,8 @@ pub struct ProfileSheetRecord {
     pub brand_roles_json: String,
     /// お気に入りの曲すべて (並びは問わない。載せる曲と順は [`ProfileSheet::songs`] の選択から)。
     pub favorite_songs: Vec<ProfileSongInput>,
+    /// 選んだ好きなユニット (選んだ順。マスタに無いユニットは入れない)。
+    pub units: Vec<ProfileUnitInput>,
     /// P名刺のひとこと。
     pub message: String,
     /// 連絡先に出すリンク (`card_link_view` の display)。
@@ -391,11 +406,15 @@ pub const MAX_MEMORIES: usize = 5;
 const DEFAULT_MEMORIES: usize = 3;
 /// 次の現場の上限。
 const MAX_NEXT_SHOWS: usize = 3;
+/// 好きなユニットの上限。
+pub const MAX_UNITS: usize = 5;
+/// P名刺の画像を書き出すときの投稿文の候補。公式 (シャニマス 6 周年の自己紹介カード) が使ったタグに乗る。
+const SHARE_TEXT: &str = "#プロデューサープロフィール #アイドルライブDB";
 /// 節目の公演 (この公演目に達した公演を P歴に刷る)。
 const MILESTONES: [usize; 9] = [10, 30, 50, 100, 150, 200, 300, 400, 500];
 
 /// 選ぶ画面の順 (見出しごと)。
-const ALL_AUTO_FIELDS: [ProfileAutoField; 14] = [
+const ALL_AUTO_FIELDS: [ProfileAutoField; 15] = [
     ProfileAutoField::Photo,
     ProfileAutoField::Oshi,
     ProfileAutoField::Brands,
@@ -404,6 +423,7 @@ const ALL_AUTO_FIELDS: [ProfileAutoField; 14] = [
     ProfileAutoField::BrandFirsts,
     ProfileAutoField::Milestones,
     ProfileAutoField::Songs,
+    ProfileAutoField::Units,
     ProfileAutoField::Memories,
     ProfileAutoField::NextShow,
     ProfileAutoField::Counts,
@@ -421,8 +441,9 @@ const ALL_GROUPS: [ProfileFieldGroup; 4] = [
 
 const ALL_SIZES: [ProfileSheetSize; 2] = [ProfileSheetSize::Portrait, ProfileSheetSize::Story];
 
-const SLOTS: [ProfileSlot; 5] = [
+const SLOTS: [ProfileSlot; 6] = [
     ProfileSlot::Songs,
+    ProfileSlot::Units,
     ProfileSlot::Memories,
     ProfileSlot::NextShow,
     ProfileSlot::Records,
@@ -441,6 +462,7 @@ pub fn profile_auto_field_info(field: ProfileAutoField) -> ProfileAutoFieldInfo 
         F::BrandFirsts => ("brand_firsts", "ブランドごとのはじめて", G::History),
         F::Milestones => ("milestones", "節目の公演", G::History),
         F::Songs => ("songs", "好きな曲", G::Sections),
+        F::Units => ("units", "好きなユニット", G::Sections),
         F::Memories => ("memories", "思い出の公演", G::Sections),
         F::NextShow => ("next_show", "次の現場", G::Sections),
         F::Counts => ("counts", "記録", G::Sections),
@@ -510,12 +532,29 @@ pub fn profile_sheet_default() -> ProfileSheet {
         hidden: vec![ProfileAutoField::Qr],
         songs: None,
         memories: None,
+        units: Vec::new(),
     }
+}
+
+/// 画像を書き出すときに添える投稿文の候補。
+pub fn profile_sheet_share_text() -> String {
+    SHARE_TEXT.into()
+}
+
+/// 好きなユニットの選択を揃える (同じ id を 1 つに・上限まで)。
+pub fn profile_units_normalize(ids: &[String]) -> Vec<String> {
+    let mut seen = HashSet::new();
+    ids.iter()
+        .filter(|id| !id.is_empty() && seen.insert(id.as_str()))
+        .take(MAX_UNITS)
+        .cloned()
+        .collect()
 }
 
 fn slot_title(slot: ProfileSlot) -> &'static str {
     match slot {
         ProfileSlot::Songs => "好きな曲",
+        ProfileSlot::Units => "好きなユニット",
         ProfileSlot::Memories => "思い出の公演",
         ProfileSlot::NextShow => "次の現場",
         ProfileSlot::Records => "記録",
@@ -546,6 +585,8 @@ struct SheetDto {
     song_ids: Option<Vec<String>>,
     #[serde(rename = "memoryIds", skip_serializing_if = "Option::is_none")]
     memory_ids: Option<Vec<String>>,
+    #[serde(rename = "unitIds", skip_serializing_if = "Vec::is_empty")]
+    unit_ids: Vec<String>,
 }
 
 /// 保存の形 (キーは英字)。
@@ -559,6 +600,7 @@ pub fn profile_sheet_to_json(sheet: &ProfileSheet) -> String {
             .collect(),
         song_ids: sheet.songs.clone(),
         memory_ids: sheet.memories.clone(),
+        unit_ids: profile_units_normalize(&sheet.units),
     };
     serde_json::to_string(&dto).unwrap_or_default()
 }
@@ -586,6 +628,7 @@ pub fn profile_sheet_from_json(json: &str) -> ProfileSheet {
         hidden,
         songs: dto.song_ids,
         memories: dto.memory_ids,
+        units: profile_units_normalize(&dto.unit_ids),
     }
 }
 
@@ -751,6 +794,8 @@ impl<'a> Facts<'a> {
             F::BrandFirsts => !self.brand_firsts().is_empty(),
             F::Milestones => !self.milestones().is_empty(),
             F::Songs => !r.favorite_songs.is_empty(),
+            // 選ぶ画面にはいつも並べる (選ぶまでは画像に載らない)。
+            F::Units => true,
             // 選ぶ画面には参加した公演があれば並べる (お気に入りのライブが無くても自分で選べるように)。
             F::Memories => !self.past.is_empty(),
             F::NextShow => !self.upcoming.is_empty(),
@@ -828,6 +873,17 @@ impl<'a> Facts<'a> {
                 Some(titles) => format!("おまかせ (お気に入りの新しい順)　{titles}"),
                 None => "載せる曲を選んでいません".into(),
             },
+            F::Units => {
+                if r.units.is_empty() {
+                    "載せるユニットを選んでいません".into()
+                } else {
+                    r.units
+                        .iter()
+                        .map(|u| u.name.as_str())
+                        .collect::<Vec<_>>()
+                        .join("・")
+                }
+            }
             F::Memories => {
                 let titles: Vec<&str> = self
                     .memories
@@ -905,7 +961,10 @@ pub fn profile_auto_field_rows(
                 value: facts.preview(f),
                 shown: !sheet.hidden.contains(&f),
                 from_card: from_card(f),
-                pickable: matches!(f, ProfileAutoField::Songs | ProfileAutoField::Memories),
+                pickable: matches!(
+                    f,
+                    ProfileAutoField::Songs | ProfileAutoField::Units | ProfileAutoField::Memories
+                ),
             }
         })
         .collect()
@@ -1071,6 +1130,12 @@ pub fn profile_sheet_layout(
                 .iter()
                 .map(|s| entry(F::Songs, String::new(), s.title.clone(), String::new()))
                 .collect(),
+            ProfileSlot::Units if on(F::Units) => record
+                .units
+                .iter()
+                .take(MAX_UNITS)
+                .map(|u| entry(F::Units, String::new(), u.name.clone(), String::new()))
+                .collect(),
             ProfileSlot::Memories if on(F::Memories) => facts
                 .memories
                 .iter()
@@ -1232,8 +1297,8 @@ fn density_of(
             CHARS_PER_LINE
         };
         let entries: u32 = match s.slot {
-            // 好きな曲は「」で続けて流し組み。
-            ProfileSlot::Songs => {
+            // 好きな曲・好きなユニットは続けて流し組み。
+            ProfileSlot::Songs | ProfileSlot::Units => {
                 let chars: usize = s.entries.iter().map(|e| char_len(&e.text) + 2).sum();
                 chars.div_ceil(per_line).max(1) as u32
             }
@@ -1481,6 +1546,7 @@ mod tests {
                 song("s1", "2026-01-01T00:00:00Z"),
                 song("s2", "2026-02-01T00:00:00Z"),
             ],
+            units: Vec::new(),
             message: " よろしくお願いします ".into(),
             links: vec!["@fuga_p".into()],
             has_photo: true,
@@ -1540,6 +1606,7 @@ mod tests {
             hidden: vec![ProfileAutoField::Photo, ProfileAutoField::Milestones],
             songs: Some(vec!["s2".into(), "s1".into()]),
             memories: Some(vec!["c".into()]),
+            units: vec!["u1".into(), "u2".into()],
         };
         assert_eq!(profile_sheet_from_json(&profile_sheet_to_json(&s)), s);
         assert_eq!(
@@ -1831,6 +1898,53 @@ mod tests {
         assert!(profile_auto_field_rows(&sheet, &rec)
             .iter()
             .any(|r| r.field == ProfileAutoField::Memories && r.pickable));
+    }
+
+    #[test]
+    fn units_are_chosen_by_hand_and_shown_in_order() {
+        let mut rec = record();
+        let sheet = profile_sheet_default();
+        // 選ぶまでは画像に載らないが、選ぶ画面の行はある。
+        assert!(!profile_sheet_layout(&sheet, &rec)
+            .sections
+            .iter()
+            .any(|s| s.slot == ProfileSlot::Units));
+        let row = profile_auto_field_rows(&sheet, &rec)
+            .into_iter()
+            .find(|r| r.field == ProfileAutoField::Units)
+            .unwrap();
+        assert!(row.pickable && row.value == "載せるユニットを選んでいません");
+        rec.units = vec![
+            ProfileUnitInput {
+                id: "u2".into(),
+                name: "ユニットB".into(),
+            },
+            ProfileUnitInput {
+                id: "u1".into(),
+                name: "ユニットA".into(),
+            },
+        ];
+        let layout = profile_sheet_layout(&sheet, &rec);
+        let units = layout
+            .sections
+            .iter()
+            .find(|s| s.slot == ProfileSlot::Units)
+            .unwrap();
+        assert_eq!(units.title, "好きなユニット");
+        let names: Vec<&str> = units.entries.iter().map(|e| e.text.as_str()).collect();
+        assert_eq!(names, vec!["ユニットB", "ユニットA"]);
+        // 曲の次に並ぶ。
+        let slots: Vec<ProfileSlot> = layout.sections.iter().map(|s| s.slot).collect();
+        assert_eq!(slots[..2], [ProfileSlot::Songs, ProfileSlot::Units]);
+        let ids: Vec<String> = (0..8)
+            .map(|i| format!("u{i}"))
+            .chain(["u1".to_string()])
+            .collect();
+        assert_eq!(profile_units_normalize(&ids).len(), MAX_UNITS);
+        assert_eq!(
+            profile_sheet_share_text(),
+            "#プロデューサープロフィール #アイドルライブDB"
+        );
     }
 
     #[test]

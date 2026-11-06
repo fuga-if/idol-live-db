@@ -771,6 +771,12 @@ pub enum CardDesign {
     Sumi,
     /// 夜公演。黒い紙に白い文字、担当色は細い線と判子だけ (開演前の客席の暗さ)。
     Night,
+    /// チェキ。左に少し傾けたチェキ (正方形の写真と太い下の余白に手書きの名前)、右に担当とハンドル。
+    Cheki,
+    /// トレカ。担当色の太い枠のカードに大きな画像、下にステータス (P歴・参加公演・回収曲)。
+    Trading,
+    /// 推しの色の縞。左の帯を載せた担当の色の縞にする (担当が何人でも全員の色)。
+    Stripes,
     /// 担当を大きく。表の左半分に担当の画像を大きく (複数なら分けて) 並べ、右に名前・P歴・ハンドル。
     /// 画像の無い担当は大きな判子。
     Oshi,
@@ -833,7 +839,7 @@ const ALL_NAME_FONTS: [CardNameFont; 3] = [
     CardNameFont::Pop,
 ];
 
-const ALL_DESIGNS: [CardDesign; 9] = [
+const ALL_DESIGNS: [CardDesign; 12] = [
     CardDesign::Pass,
     CardDesign::Ticket,
     CardDesign::Formal,
@@ -841,6 +847,9 @@ const ALL_DESIGNS: [CardDesign; 9] = [
     CardDesign::Pop,
     CardDesign::Sumi,
     CardDesign::Night,
+    CardDesign::Cheki,
+    CardDesign::Trading,
+    CardDesign::Stripes,
     CardDesign::Oshi,
     CardDesign::Custom,
 ];
@@ -893,6 +902,9 @@ pub fn card_design_info(design: CardDesign) -> CardDesignInfo {
         CardDesign::Pop => ("pop", "ポップ", CardNameFont::Pop),
         CardDesign::Sumi => ("sumi", "墨一色", CardNameFont::Mincho),
         CardDesign::Night => ("night", "夜公演", CardNameFont::Gothic),
+        CardDesign::Cheki => ("cheki", "チェキ", CardNameFont::Pop),
+        CardDesign::Trading => ("trading", "トレカ", CardNameFont::Gothic),
+        CardDesign::Stripes => ("stripes", "推しの色の縞", CardNameFont::Gothic),
         CardDesign::Oshi => ("oshi", "担当を大きく", CardNameFont::Gothic),
         CardDesign::Custom => ("custom", "自作の画像", CardNameFont::Gothic),
     };
@@ -943,7 +955,8 @@ pub fn card_design_from_key(key: &str) -> Option<CardDesign> {
 /// 中身に書くデザインの番号。書体を選んでいた頃の番号 (0 ゴシック・1 明朝・2 丸ゴシック・
 /// 3 ポップ・4 手書き) と同じ場所に入れるので、明朝とポップは同じ番号のまま
 /// (書体の版のアプリでも、かしこまった名刺は明朝・ポップはポップ体で出る)。
-/// 担当を大きく (6) や、あとから足したチケット (7)・縦書き (8)・墨一色 (9)・夜公演 (10) を知らない版の
+/// 担当を大きく (6) や、あとから足したチケット (7)・縦書き (8)・墨一色 (9)・夜公演 (10)・チェキ (11)・
+/// トレカ (12)・推しの色の縞 (13) を知らない版の
 /// アプリは既定のデザイン (入場証) で描く (名刺そのものは読める)。
 fn design_code(design: CardDesign) -> u8 {
     match design {
@@ -956,6 +969,9 @@ fn design_code(design: CardDesign) -> u8 {
         CardDesign::Vertical => 8,
         CardDesign::Sumi => 9,
         CardDesign::Night => 10,
+        CardDesign::Cheki => 11,
+        CardDesign::Trading => 12,
+        CardDesign::Stripes => 13,
     }
 }
 
@@ -983,6 +999,9 @@ fn design_from_code(code: u8) -> Option<CardDesign> {
         8 => CardDesign::Vertical,
         9 => CardDesign::Sumi,
         10 => CardDesign::Night,
+        11 => CardDesign::Cheki,
+        12 => CardDesign::Trading,
+        13 => CardDesign::Stripes,
         _ => CardDesign::Pass,
     };
     (design != CardDesign::default()).then_some(design)
@@ -3689,7 +3708,7 @@ mod tests {
     #[test]
     fn design_keys_and_codes_round_trip() {
         let designs = card_designs();
-        assert_eq!(designs.len(), 9);
+        assert_eq!(designs.len(), 12);
         assert_eq!(designs[0].design, CardDesign::default());
         for info in &designs {
             assert_eq!(card_design_from_key(&info.key), Some(info.design));
