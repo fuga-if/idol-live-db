@@ -311,9 +311,9 @@ fun LyricTimingEditorScreen(
         // 歌詞を上下に動かして、記録する行・コールを入れる行・塗る行を選ぶ。
         Column(Modifier.fillMaxWidth().padding(horizontal = DS.sp5), verticalArrangement = Arrangement.spacedBy(DS.sp2)) {
             AppleMusicSignInNotice(appleMusic, onSignIn = playback::signIn)
-            // 繋がっているのに始められなかった (曲が Apple Music に無い等) ときだけ出す。
+            // 繋がっているのに始められなかった (曲が Apple Music・Spotify に無い等) ときだけ出す。
             if (startFailed && appleMusic == com.fugaif.imaslivedb.player.AppleMusicState.READY) {
-                ImasNote("この曲は Apple Music で鳴らせませんでした。")
+                ImasNote(fullPlaybackFailedText(playback, uniffi.imas_core.FullPlaybackNeed.RECORD_TIMINGS))
             }
             if (recorder.lane == LyricTimingRecorder.Lane.LINES) CursorBar(recorder)
             if (recorder.lane == LyricTimingRecorder.Lane.PARTS) {
@@ -616,7 +616,7 @@ private fun LaneLyricsList(
         item {
             Column(verticalArrangement = Arrangement.spacedBy(DS.sp2)) {
                 if (startFailed) {
-                    ImasNote(if (isParts) "聴きながら塗るには Apple Music でのフル再生が必要です。一覧なら聴かずに塗れます。" else "記録には Apple Music でのフル再生が必要です。")
+                    ImasNote(uniffi.imas_core.fullPlaybackFailedNote(null, if (isParts) uniffi.imas_core.FullPlaybackNeed.PAINT_PARTS else uniffi.imas_core.FullPlaybackNeed.RECORD_TIMINGS))
                 }
                 ImasText(
                     when (recorder.lane) {

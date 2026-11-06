@@ -251,9 +251,9 @@ fun LyricsPlayerScreen(
                         }
                     }
                     AppleMusicSignInNotice(appleMusic, onSignIn = playback::signIn, modifier = Modifier.padding(vertical = DS.sp2))
-                    // 繋がっているのに始められなかった (曲が Apple Music に無い等) ときだけ出す。
+                    // 繋がっているのに始められなかった (曲が Apple Music・Spotify に無い等) ときだけ出す。
                     if (startFailed && appleMusic == com.fugaif.imaslivedb.player.AppleMusicState.READY) {
-                        ImasNote("この曲は Apple Music で鳴らせませんでした。", modifier = Modifier.padding(vertical = DS.sp2))
+                        ImasNote(fullPlaybackFailedText(playback, uniffi.imas_core.FullPlaybackNeed.LISTEN), modifier = Modifier.padding(vertical = DS.sp2))
                     }
                 }
                 itemsIndexed(lyrics.lines) { _, line ->

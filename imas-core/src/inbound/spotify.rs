@@ -1,8 +1,9 @@
 //! Spotify 連携の FFI 面。判断は domain::spotify。
 
 use crate::domain::spotify::{
-    self, FullPlaybackOption, FullPlaybackService, SongClues, SpotifyClientIdCheck, SpotifyDevice,
-    SpotifyFailure, SpotifyGuidePlatform, SpotifySetupGuide, SpotifyTrackCandidate,
+    self, FullPlaybackNeed, FullPlaybackOption, FullPlaybackService, SongClues,
+    SpotifyClientIdCheck, SpotifyDevice, SpotifyFailure, SpotifyGuidePlatform, SpotifySetupGuide,
+    SpotifyTrackCandidate,
 };
 use crate::inbound::snapshot_store::{SnapshotError, SnapshotStore};
 
@@ -62,6 +63,21 @@ pub fn choose_full_playback(
     spotify_ready: bool,
 ) -> Option<FullPlaybackService> {
     spotify::choose_full_playback(preference, apple_music_ready, spotify_ready)
+}
+
+/// フル再生を始められなかったときの一文 (鳴らそうとしたサービスの名前で言う)。
+#[uniffi::export]
+pub fn full_playback_failed_note(
+    service: Option<FullPlaybackService>,
+    need: FullPlaybackNeed,
+) -> String {
+    spotify::full_playback_failed_note(service, need)
+}
+
+/// Apple Music で鳴らせない端末で、Spotify でも鳴らせないときの案内。
+#[uniffi::export]
+pub fn apple_music_unavailable_notice(spotify_connected: bool) -> String {
+    spotify::apple_music_unavailable_notice(spotify_connected)
 }
 
 /// うまくいかなかったときの文。

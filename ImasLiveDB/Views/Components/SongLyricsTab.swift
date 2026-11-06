@@ -143,7 +143,7 @@ struct SongLyricsTab: View {
         .alert("タイミングを記録できません", isPresented: $recordUnavailable) {
             Button("OK", role: .cancel) {}
         } message: {
-            Text("記録には Apple Music でのフル再生が必要です。")
+            Text(fullPlaybackFailedNote(service: nil, need: .recordTimings))
         }
         // 再生位置を読みに行くのは、追従か記録で使うときだけ。
         .task(id: followKey) { await followPlayback() }

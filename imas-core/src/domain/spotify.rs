@@ -536,6 +536,51 @@ pub fn choose_full_playback(
     })
 }
 
+/// フル再生が要る場面 (歌詞の追従・行の時刻の記録・聴きながらパートを塗る)。
+#[derive(uniffi::Enum, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FullPlaybackNeed {
+    Listen,
+    RecordTimings,
+    PaintParts,
+}
+
+/// フル再生を始められなかったときの一文。
+///
+/// `service` は鳴らそうとしたサービス (`choose_full_playback` の結果)。`None` はどちらにも
+/// 繋がっていない。Spotify で鳴らそうとしたのに「Apple Music で」と言うと、Spotify を
+/// 繋いだ人が「Apple Music に落ちた」と受け取る (2026-11-06 に Android で報告)。
+pub fn full_playback_failed_note(
+    service: Option<FullPlaybackService>,
+    need: FullPlaybackNeed,
+) -> String {
+    match service {
+        Some(FullPlaybackService::AppleMusic) => "この曲は Apple Music で鳴らせませんでした。".to_string(),
+        Some(FullPlaybackService::Spotify) => {
+            "この曲は Spotify で見つからないか、鳴らせませんでした。".to_string()
+        }
+        None => match need {
+            FullPlaybackNeed::Listen => {
+                "追いかけるには Apple Music か Spotify でのフル再生が必要です。".to_string()
+            }
+            FullPlaybackNeed::RecordTimings => {
+                "記録には Apple Music か Spotify でのフル再生が必要です。".to_string()
+            }
+            FullPlaybackNeed::PaintParts => "聴きながら塗るには Apple Music か Spotify でのフル再生が必要です。一覧なら聴かずに塗れます。".to_string(),
+        },
+    }
+}
+
+/// Apple Music で鳴らせない端末で、Spotify でも鳴らせないときの案内 (Android)。
+///
+/// `spotify_connected` は連携済みか (鳴らす許可が無いログインも含む。そのときはログインし直しを促す)。
+pub fn apple_music_unavailable_notice(spotify_connected: bool) -> String {
+    if spotify_connected {
+        "この端末では Apple Music で鳴らせません。Spotify にもう一度ログインすると、Spotify でフル尺で鳴らして歌詞を追いかけられます (曲を鳴らす許可を足すため)。".to_string()
+    } else {
+        "この端末では Apple Music で鳴らせません。設定から Spotify と連携すると、フル尺で鳴らして歌詞を追いかけられます。歌詞はこのまま読めます。".to_string()
+    }
+}
+
 /// 書き出しの結果の文。見つからなかった曲の数を必ず言う (黙って抜けると欠けたまま気付かない)。
 pub fn export_summary(added: u32, missing: u32) -> String {
     match (added, missing) {
@@ -726,6 +771,33 @@ mod tests {
             "5 曲を Spotify のプレイリストに入れました。"
         );
         assert!(export_summary(5, 2).contains("見つからなかった 2 曲"));
+    }
+
+    #[test]
+    fn failed_note_names_the_service_tried() {
+        assert!(full_playback_failed_note(
+            Some(FullPlaybackService::Spotify),
+            FullPlaybackNeed::Listen
+        )
+        .contains("Spotify"));
+        assert!(!full_playback_failed_note(
+            Some(FullPlaybackService::Spotify),
+            FullPlaybackNeed::RecordTimings
+        )
+        .contains("Apple Music"));
+        assert!(full_playback_failed_note(
+            Some(FullPlaybackService::AppleMusic),
+            FullPlaybackNeed::Listen
+        )
+        .contains("Apple Music"));
+        let none = full_playback_failed_note(None, FullPlaybackNeed::PaintParts);
+        assert!(none.contains("Apple Music") && none.contains("Spotify") && none.contains("一覧"));
+    }
+
+    #[test]
+    fn unavailable_notice_points_to_spotify() {
+        assert!(apple_music_unavailable_notice(true).contains("もう一度ログイン"));
+        assert!(apple_music_unavailable_notice(false).contains("連携"));
     }
 
     #[test]

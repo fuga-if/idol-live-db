@@ -374,7 +374,7 @@ fun SongLyricsTab(
     }
     ImasErrorAlert(message = structureError, onDismiss = { structureError = null }, title = "保存できませんでした")
     ImasErrorAlert(
-        message = if (recordUnavailable) "記録には Apple Music でのフル再生が必要です。" else null,
+        message = if (recordUnavailable) uniffi.imas_core.fullPlaybackFailedNote(null, uniffi.imas_core.FullPlaybackNeed.RECORD_TIMINGS) else null,
         onDismiss = { recordUnavailable = false }, title = "タイミングを記録できません"
     )
 }

@@ -233,8 +233,8 @@ struct LyricTimingEditorView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: DS.sp4) {
                     if startFailed, !isPartsList {
-                        ImasNote(recorder.lane == .parts ? "聴きながら塗るには Apple Music でのフル再生が必要です。一覧なら聴かずに塗れます。"
-                                                         : "記録には Apple Music でのフル再生が必要です。",
+                        ImasNote(fullPlaybackFailedNote(service: MusicKitService.shared.fullPlaybackService,
+                                                        need: recorder.lane == .parts ? .paintParts : .recordTimings),
                                  systemImage: "music.note")
                     }
                     Text(laneHint)

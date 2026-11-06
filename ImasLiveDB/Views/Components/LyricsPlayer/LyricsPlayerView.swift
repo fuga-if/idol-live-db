@@ -150,7 +150,9 @@ struct LyricsPlayerView: View {
                 VStack(alignment: .leading, spacing: DS.sp5) {
                     if !hasTiming { noTimingNote }
                     if startFailed {
-                        ImasNote("再生には Apple Music でのフル再生が必要です。", systemImage: "music.note")
+                        // 鳴らそうとしたサービスの名前で言う (Spotify なのに「Apple Music で」と出さない)。文はコア。
+                        ImasNote(fullPlaybackFailedNote(service: MusicKitService.shared.fullPlaybackService, need: .listen),
+                                 systemImage: "music.note")
                     }
                     let likes = UserMarkService.shared.lyricLikes(songId: song.id)
                     ForEach(lyrics.lines) { line in
