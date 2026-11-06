@@ -22,9 +22,14 @@ struct MyProducerCardView: View {
     @State private var showingPrint = false
     @State private var showingCase = false
     @State private var showingImage = false
+    /// P 活動報告の入口 (12 月・1 月はその年、それ以外は参加のある新しい年)。
+    @State private var reportEntry: (year: Int, isOffer: Bool)?
+    @State private var reportYear: ReportYear?
     @State private var qrMode: QRMode = .exchange
     @State private var portraitURL: URL?
     @State private var face: ProducerCardDisplay.Face?
+
+    struct ReportYear: Identifiable { let id: Int }
 
     /// 名刺の画面で見せる QR。自分の QR を載せていなければ交換用だけ。
     enum QRMode: Hashable { case exchange, own }
@@ -39,6 +44,9 @@ struct MyProducerCardView: View {
                 card.details
                 if let own = encoded.card.qrUrl {
                     qrSection(encoded, own: own)
+                }
+                if let reportEntry {
+                    reportSection(reportEntry)
                 }
                 actionsSection
             } else {
@@ -102,6 +110,10 @@ struct MyProducerCardView: View {
         .navigationDestination(isPresented: $showingCase) { CardCaseView(openedFromMyCard: true) }
         .navigationDestination(isPresented: $showingImage) { ProducerCardImageView() }
         .task { await load() }
+        .task { await loadReportEntry() }
+        .fullScreenCover(item: $reportYear) { y in
+            YearReportView(initialYear: y.id)
+        }
         .onReceive(NotificationCenter.default.publisher(for: .producerCardsChanged)) { _ in
             Task { caseCount = (try? await AppContainer.shared.producerCards.receivedCount()) ?? caseCount }
         }
@@ -152,6 +164,29 @@ struct MyProducerCardView: View {
             case .own:
                 ImasQRCode(text: own, caption: cardQrLinkView(url: own).display, label: "自分の QR コード")
             }
+        }
+    }
+
+    private func reportSection(_ entry: (year: Int, isOffer: Bool)) -> some View {
+        ImasCard {
+            Button {
+                AppAnalytics.tap("producer_card.year_report")
+                reportYear = ReportYear(id: entry.year)
+            } label: {
+                ImasNavRow(title: entry.isOffer ? "\(String(entry.year)) 年の P 活動報告" : "P 活動報告",
+                           subtitle: entry.isOffer ? "1 年の現場を、1 枚ずつめくって振り返る"
+                                                   : "参加した年の現場を、1 枚ずつめくって振り返る",
+                           systemImage: "book.pages")
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private func loadReportEntry() async {
+        if let offer = await YearReportSource.offerYear() {
+            reportEntry = (offer, true)
+        } else if let latest = await YearReportSource.years().first {
+            reportEntry = (latest, false)
         }
     }
 

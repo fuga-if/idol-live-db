@@ -33,6 +33,9 @@ struct CalendarView: View {
     @State private var showDailySong = false
     /// チケットの画面 (受付中・これから受付・結果待ち・見られるアーカイブをまとめた一覧)。
     @State private var showTicketBoard = false
+    @State private var showYearReport = false
+    /// P 活動報告の入口を出す年 (12 月・1 月だけ。参加の無い年は出さない)。
+    @State private var reportOfferYear: Int?
     @State private var daySheet: DaySheet?
     /// 「今日は何の日？」シート。選択日の見出しから開く。
     @State private var onThisDayDate: OnThisDayDate?
@@ -142,6 +145,17 @@ struct CalendarView: View {
                     .accessibilityLabel(DailyPickSheet.title(for: DailyPickSheet.defaultKind()))
                     .accessibilityHint("各ブランドの日替わりピックにタグを付けて投票します")
                 }
+                if let reportOfferYear {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            AppAnalytics.tap("calendar.year_report")
+                            showYearReport = true
+                        } label: {
+                            Image(systemName: "book.pages")
+                        }
+                        .accessibilityLabel("\(String(reportOfferYear)) 年の P 活動報告")
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         AppAnalytics.tap("calendar.ticket_board")
@@ -155,6 +169,10 @@ struct CalendarView: View {
             .sheet(isPresented: $showDailySong) {
                 DailyPickSheet().environment(database)
             }
+            .fullScreenCover(isPresented: $showYearReport) {
+                if let reportOfferYear { YearReportView(initialYear: reportOfferYear) }
+            }
+            .task { reportOfferYear = await YearReportSource.offerYear() }
             .sheet(isPresented: $showTicketBoard) {
                 TicketBoardView()
                     .environment(database)

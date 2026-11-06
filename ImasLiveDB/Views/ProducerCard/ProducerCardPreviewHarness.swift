@@ -24,6 +24,8 @@ struct ProducerCardPreviewHarness: View {
         case oshiPicker
         /// 受け取りの確認で、名刺入れの名刺と同じ人か確かめるところ (名前と担当が同じで中身の違う名刺を受け取る)。
         case samePerson
+        /// 今年の P 活動報告 (2025 年の公演に参加の印を足してから開く。`YEAR_REPORT_PAGE` で始めのページ)。
+        case yearReport
     }
 
     /// P名刺の画像の見本の選択 (`PROFILE_SIZE=story`)。
@@ -120,6 +122,7 @@ struct ProducerCardPreviewHarness: View {
     private var screen: some View {
         switch mode {
         case .card: NavigationStack { MyProducerCardView() }
+        case .yearReport: YearReportHarness()
         case .editor:
             ProducerCardEditorView(card: (try? database.myProducerCard()) ?? .empty(), record: record) { _ in }
         case .exchange: ProducerCardExchangeView(myCard: myCard)
@@ -591,3 +594,33 @@ struct ProducerCardPreviewHarness: View {
     }
 }
 #endif
+
+/// P 活動報告の見本: 2025 年の公演 (セトリのあるもの) に参加の印を足して開く。4 つに 1 つは配信。
+private struct YearReportHarness: View {
+    @Environment(AppDatabase.self) private var database
+    @State private var ready = false
+
+    var body: some View {
+        Group {
+            if ready { YearReportView(initialYear: 2025) } else { ImasLoadingState() }
+        }
+        .task {
+            let now = "2026-10-06T00:00:00Z"
+            try? await database.dbQueue.write { d in
+                let ids = try String.fetchAll(d, sql: """
+                    SELECT sh.id FROM shows sh JOIN events e ON e.id = sh.event_id
+                    WHERE sh.date LIKE '2025-%' AND e.kind IN ('live', 'festival')
+                      AND EXISTS (SELECT 1 FROM setlist_items si WHERE si.show_id = sh.id)
+                    ORDER BY sh.date LIMIT 60
+                    """)
+                for (i, id) in ids.enumerated() where i % 3 == 0 {
+                    try d.execute(sql: """
+                        INSERT OR REPLACE INTO user_marks (entity_type, entity_id, kind, bool_value, text_value, updated_at)
+                        VALUES ('show', ?, 'attended', 1, ?, ?)
+                        """, arguments: [id, i % 4 == 3 ? "stream" : "live", now])
+                }
+            }
+            ready = true
+        }
+    }
+}
