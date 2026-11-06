@@ -94,7 +94,8 @@ import com.fugaif.imaslivedb.data.model.SongVideo
 import com.fugaif.imaslivedb.data.model.SongPerformanceEvidence
 import com.fugaif.imaslivedb.data.model.SongSingerTally
 import com.fugaif.imaslivedb.data.model.Vocab
-import com.fugaif.imaslivedb.player.AudioPreviewManager
+import com.fugaif.imaslivedb.player.AppleMusicState
+import com.fugaif.imaslivedb.ui.components.rememberSongRowPlay
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.designsystem.ImasErrorAlert
 import com.fugaif.imaslivedb.ui.components.ArtworkImage
@@ -608,9 +609,15 @@ private fun Hero(
         formatDuration(song.durationSec)
     ).joinToString(" ・ ").ifEmpty { null }
     val note = song.note?.takeIf { it.isNotBlank() }
-    val playbackState by AudioPreviewManager.playbackState.collectAsState()
-    val isPreviewing = playbackState.isPlaying(song.id)
-    val canPlay = !song.previewUrl.isNullOrEmpty()
+    // フル尺 (Apple Music か Spotify かは RoutedLyricsPlayback が選ぶ) を優先し、鳴らせなければ試聴。
+    // iOS `SongSheetContent.playFull` と対。
+    val playback = AppModule.from(LocalContext.current).lyricsPlayback
+    val fullState by playback.appleMusicState.collectAsState()
+    val play = rememberSongRowPlay(song.id, song.appleMusicId, song.previewUrl)
+    val isPreviewing = play.isPlaying
+    // Spotify は曲名で探して鳴らすので、Apple Music の id も試聴も無い曲でも押せる。
+    val canPlay = !song.previewUrl.isNullOrEmpty() || (fullState == AppleMusicState.READY &&
+        (!song.appleMusicId.isNullOrEmpty() || playback.fullPlaysWithoutAppleMusicId))
     val isCardOwned = state.isCardOwned
 
     ImasHero(
@@ -670,7 +677,7 @@ private fun Hero(
     ) {
         ImasButton(
             title = if (isPreviewing) "停止" else "再生",
-            onClick = { if (canPlay) AudioPreviewManager.togglePreview(song.previewUrl!!, song.id) },
+            onClick = { if (canPlay) play.onTap() },
             icon = if (isPreviewing) Icons.Filled.Stop else Icons.Filled.PlayArrow,
             role = ImasButtonRole.PRIMARY,
             size = ImasButtonSize.LARGE,
