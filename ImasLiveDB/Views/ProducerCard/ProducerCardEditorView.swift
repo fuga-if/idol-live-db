@@ -407,6 +407,9 @@ struct ProducerCardEditorView: View {
         case .pop: return .pop
         case .sumi: return .sumi
         case .night: return .night
+        case .cheki: return .cheki
+        case .trading: return .trading
+        case .stripes: return .stripes
         case .oshi: return .oshi(oshi.first.flatMap { oshiImageURL($0.id) })
         case .custom: return .face(facePreview[.front])
         }

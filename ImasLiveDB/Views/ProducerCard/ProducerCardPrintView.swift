@@ -155,7 +155,8 @@ struct ProducerCardPrintSheet {
             nameFont: ProducerCardDisplay.nameFont(card.card),
             portrait: materials.portrait,
             portraitRound: materials.portraitRound,
-            stickers: materials.stickers
+            stickers: materials.stickers,
+            stats: ProducerCardDisplay.stats(card.card, oshiCount: face.oshiGroups.reduce(0) { $0 + $1.idolIds.count })
         )
     }
 

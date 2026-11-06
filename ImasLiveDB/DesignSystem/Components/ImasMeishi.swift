@@ -115,7 +115,13 @@ struct ImasMeishiOshi: Identifiable {
 // MARK: - 表
 
 struct ImasMeishiFront: View {
-    enum Look { case pass, ticket, formal, vertical, pop, sumi, night, oshi }
+    enum Look { case pass, ticket, formal, vertical, pop, sumi, night, oshi, cheki, trading, stripes }
+
+    /// トレカのデザインの下に並べるステータス 1 つ (「公演」「87」)。
+    struct Stat: Hashable {
+        let label: String
+        let value: String
+    }
 
     var look: Look = .pass
     let name: String
@@ -139,6 +145,8 @@ struct ImasMeishiFront: View {
     var portraitRound = false
     /// 表の上に重ねる素材 (重なりの順)。
     var stickers: [ImasMeishiSticker] = []
+    /// トレカのデザインのステータス (P歴・参加公演・回収曲。名刺に載っているものだけ)。
+    var stats: [Stat] = []
     /// 渡された紙と墨 (夜公演はここから黒い紙を組む。描くときは `ink`)。
     private let baseInk: ImasMeishiInk
     /// 紙の上の寸法を何倍で描くか (画面は幅に合わせる)。
@@ -147,7 +155,7 @@ struct ImasMeishiFront: View {
     init(look: Look = .pass, name: String, sinceImprint: String? = nil, oshiGroups: [ImasMeishiOshiGroup] = [],
          hero: [ImasMeishiOshi] = [], oshiCaption: String? = nil, moreOshi: Int = 0, handle: String? = nil,
          nameFont: String? = nil, portrait: ImasMeishiPicture? = nil, portraitRound: Bool = false,
-         stickers: [ImasMeishiSticker] = [], ink: ImasMeishiInk, scale: CGFloat = 1) {
+         stickers: [ImasMeishiSticker] = [], stats: [Stat] = [], ink: ImasMeishiInk, scale: CGFloat = 1) {
         self.look = look
         self.name = name
         self.sinceImprint = sinceImprint
@@ -160,6 +168,7 @@ struct ImasMeishiFront: View {
         self.portrait = portrait
         self.portraitRound = portraitRound
         self.stickers = stickers
+        self.stats = stats
         self.baseInk = ink
         self.scale = scale
     }
@@ -178,6 +187,9 @@ struct ImasMeishiFront: View {
             case .pop: popBody
             case .sumi: sumiBody
             case .night: nightBody
+            case .cheki: chekiBody
+            case .trading: tradingBody
+            case .stripes: stripesBody
             case .oshi: oshiBody
             }
         }
@@ -434,6 +446,157 @@ struct ImasMeishiFront: View {
                 portraitView(border: ink.accent, width: p(1.5))
             }
             .padding(.horizontal, p(20))
+            .padding(.vertical, p(16))
+        }
+    }
+
+    // MARK: チェキ (左に少し傾けたチェキ、下の余白に名前)
+
+    /// チェキの写真: 名刺の写真、無ければ先頭の担当の画像、どちらも無ければ先頭の担当の判子。
+    @ViewBuilder
+    private func chekiPhoto(side: CGFloat) -> some View {
+        Color.clear
+            .frame(width: p(side), height: p(side))
+            .overlay {
+                if let portrait {
+                    ImasMeishiPictureView(picture: portrait)
+                } else if let lead = hero.first, let picture = lead.picture {
+                    ImasMeishiPictureView(picture: picture)
+                } else if let lead = hero.first {
+                    ImasMeishiStamp(oshi: lead, size: p(side * 0.7), paper: ink.paper)
+                } else {
+                    ink.line.opacity(0.35)
+                }
+            }
+            .clipped()
+    }
+
+    private var chekiBody: some View {
+        HStack(alignment: .center, spacing: p(16)) {
+            VStack(spacing: p(6)) {
+                chekiPhoto(side: 120)
+                Text(name)
+                    .font(.imasCardNameFixed(nameFont, size: p(15)))
+                    .foregroundStyle(ink.ink)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                    .frame(width: p(120))
+                    .padding(.bottom, p(10))
+            }
+            .padding(.horizontal, p(8))
+            .padding(.top, p(8))
+            .background(ink.paper)
+            .overlay(Rectangle().strokeBorder(ink.line, lineWidth: max(p(0.75), 0.5)))
+            .rotationEffect(.degrees(-3))
+            VStack(alignment: .leading, spacing: 0) {
+                imprint("CHEKI", design: .rounded)
+                Spacer(minLength: p(4))
+                oshiBlock(stamp: 18, font: .system(size: p(8.5), weight: .heavy, design: .rounded),
+                          labelFont: .system(size: p(6), weight: .heavy, design: .rounded))
+                Spacer(minLength: p(4))
+                footer(design: .rounded, weight: .heavy)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, p(20))
+        .padding(.vertical, p(16))
+    }
+
+    // MARK: トレカ (担当色の太い枠・大きな画像・ステータス)
+
+    private var tradingBody: some View {
+        VStack(spacing: p(6)) {
+            HStack(alignment: .firstTextBaseline) {
+                nameText(size: 18)
+                Spacer(minLength: p(6))
+                if let handle {
+                    Text(handle)
+                        .font(.system(size: p(7.5), weight: .semibold, design: .monospaced))
+                        .foregroundStyle(ink.sub)
+                        .lineLimit(1)
+                }
+            }
+            HStack(spacing: p(10)) {
+                Color.clear
+                    .overlay {
+                        if let portrait {
+                            ImasMeishiPictureView(picture: portrait)
+                        } else if !hero.isEmpty {
+                            ImasMeishiHero(oshi: hero, paper: ink.paper, ink: ink.ink, gap: p(1.5), scale: scale)
+                        } else {
+                            ink.line.opacity(0.35)
+                        }
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: p(6), style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: p(6), style: .continuous)
+                        .strokeBorder(ink.accent, lineWidth: p(1.5)))
+                VStack(alignment: .leading, spacing: p(4)) {
+                    oshiBlock(stamp: 16, font: .system(size: p(7.5), weight: .semibold),
+                              labelFont: .system(size: p(5.5), weight: .semibold, design: .monospaced))
+                    Spacer(minLength: 0)
+                    if let sinceImprint {
+                        Text(sinceImprint)
+                            .font(.system(size: p(6.5), weight: .semibold, design: .monospaced))
+                            .tracking(p(1))
+                            .foregroundStyle(ink.sub)
+                    }
+                }
+                .frame(width: p(118), alignment: .leading)
+            }
+            .frame(maxHeight: .infinity)
+            if !stats.isEmpty {
+                HStack(spacing: 0) {
+                    ForEach(Array(stats.enumerated()), id: \.offset) { i, stat in
+                        if i > 0 { Rectangle().fill(ink.line).frame(width: max(p(0.75), 0.5)) }
+                        VStack(spacing: 0) {
+                            Text(stat.value)
+                                .font(.system(size: p(14), weight: .heavy, design: .rounded).monospacedDigit())
+                                .foregroundStyle(ink.ink)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.6)
+                            Text(stat.label)
+                                .font(.system(size: p(6), weight: .semibold))
+                                .foregroundStyle(ink.sub)
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                }
+                .padding(.vertical, p(4))
+                .overlay(alignment: .top) { Rectangle().fill(ink.accent).frame(height: p(1.5)) }
+            }
+        }
+        .padding(p(12))
+        .overlay(Rectangle().strokeBorder(ink.accent, lineWidth: p(7)))
+    }
+
+    // MARK: 推しの色の縞 (左の帯を載せた担当の色の縞に)
+
+    private var stripesBody: some View {
+        let colors = oshiGroups.flatMap(\.oshi).map(\.color)
+        return HStack(spacing: 0) {
+            HStack(spacing: 0) {
+                if colors.isEmpty {
+                    ink.accent
+                } else {
+                    ForEach(Array(colors.enumerated()), id: \.offset) { _, color in color }
+                }
+            }
+            .frame(width: p(30))
+            HStack(alignment: .center, spacing: p(14)) {
+                VStack(alignment: .leading, spacing: 0) {
+                    imprint("PRODUCER", design: .monospaced)
+                    Spacer(minLength: p(4))
+                    nameText(size: 26)
+                    oshiBlock(stamp: 22, font: .system(size: p(8.5), weight: .regular),
+                              labelFont: .system(size: p(6), weight: .semibold, design: .monospaced))
+                        .padding(.top, p(6))
+                    Spacer(minLength: p(4))
+                    footer(design: .monospaced, weight: .medium)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                portraitView(border: ink.line, width: p(0.5))
+            }
+            .padding(.horizontal, p(18))
             .padding(.vertical, p(16))
         }
     }

@@ -25,11 +25,21 @@ struct ProfileSheetMaterials {
     var portraitRound = false
     /// 自分の QR (P名刺に載せていれば)。
     var qr: UIImage?
+    /// 好きなユニットを選ぶ候補 (マスタのユニットすべて)。
+    var units: [Unit] = []
+
+    /// 選んだユニットの id を、選んだ順にマスタで引いて欄に渡す形にする (引けない id は入れない)。
+    static func unitInputs(ids: [String], units: [Unit]) -> [ProfileUnitInput] {
+        let byId = Dictionary(units.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        return profileUnitsNormalize(ids: ids).compactMap { id in
+            byId[id].map { ProfileUnitInput(id: id, name: $0.name) }
+        }
+    }
 
     static let empty = ProfileSheetMaterials(
         record: ProfileSheetRecord(today: "", name: "", sinceYear: nil, oshi: [], oshiBrandIds: [], attended: [],
                                    songCount: 0, ownedReleaseCount: 0, brands: [], brandRolesJson: "",
-                                   favoriteSongs: [], message: "", links: [], hasPhoto: false, hasQr: false)
+                                   favoriteSongs: [], units: [], message: "", links: [], hasPhoto: false, hasQr: false)
     )
 }
 
@@ -55,6 +65,7 @@ enum ProfileSheetAssembler {
         let brandRoleRecord = await BrandRoleStore.loadRecord()
         // お気に入りの曲すべて (載せる曲と並びは選択からコアが決める。引けない曲は入れない)。
         let favorites = await FavoriteSongSource.load()
+        let units = (try? await c.unitReading.allUnits()) ?? []
 
         let oshi = oshiIdols.map { idol in
             ProfileSheetOshi(
@@ -86,6 +97,7 @@ enum ProfileSheetAssembler {
             },
             brandRolesJson: BrandRoleStore.json,
             favoriteSongs: favorites.map(\.input),
+            units: ProfileSheetMaterials.unitInputs(ids: card.profile.units, units: units),
             message: card.message,
             links: card.links.map { cardLinkView(link: $0).display },
             hasPhoto: portrait != nil,
@@ -96,7 +108,8 @@ enum ProfileSheetAssembler {
             oshi: oshi,
             portrait: portrait,
             portraitRound: ProducerCardFiles.myPhotoRound,
-            qr: qr
+            qr: qr,
+            units: units
         )
     }
 

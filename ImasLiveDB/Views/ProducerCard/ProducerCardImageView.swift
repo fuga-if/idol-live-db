@@ -20,6 +20,7 @@ struct ProducerCardImageView: View {
     @State private var saveGeneration = 0
     /// この画面で好きな曲を選び直したか (選び直していなければ、保存のときに P名刺の編集で選んだ最新を使う)。
     @State private var songsTouched = false
+    @State private var showingUnitPicker = false
 
     private let sizes = profileSheetSizes()
 
@@ -54,6 +55,17 @@ struct ProducerCardImageView: View {
         }
         .sheet(isPresented: $showingBrandSetup) {
             BrandRoleSetupSheet()
+        }
+        .sheet(isPresented: $showingUnitPicker) {
+            UnitMultiPickerView(selected: Set(card?.profile.units ?? []), units: materials.units) { ids in
+                guard var next = card?.profile else { return }
+                // 選んだ順を保つ: 残したものはそのまま、新しく選んだものを後ろに (上限はコアで切る)。
+                let kept = next.units.filter { ids.contains($0) }
+                let added = materials.units.map(\.id).filter { ids.contains($0) && !kept.contains($0) }
+                next.units = profileUnitsNormalize(ids: kept + added)
+                materials.record.units = ProfileSheetMaterials.unitInputs(ids: next.units, units: materials.units)
+                update(next)
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .brandRolesChanged)) { _ in
             materials.record.brandRolesJson = BrandRoleStore.json
@@ -143,6 +155,14 @@ struct ProducerCardImageView: View {
                 ImasNavRow(title: "載せる公演を選ぶ", systemImage: "ticket", iconTone: .neutral,
                            showsChevron: false)
             }
+        case .units:
+            Button {
+                showingUnitPicker = true
+            } label: {
+                ImasNavRow(title: "載せるユニットを選ぶ (\(profileUnitsMax()) つまで)", systemImage: "person.3",
+                           iconTone: .neutral, showsChevron: false)
+            }
+            .buttonStyle(.plain)
         default:
             EmptyView()
         }
@@ -176,7 +196,8 @@ struct ProducerCardImageView: View {
             return
         }
         AppAnalytics.tap("producer_card_image.export")
-        SystemShare.present(items: [ShareCardImageSource(image)])
+        // 投稿文の候補 (ハッシュタグ) を画像と一緒に渡す (X などで本文に入る)。
+        SystemShare.present(items: [ShareCardImageSource(image), profileSheetShareText()])
     }
 
     // MARK: - 保存

@@ -82,6 +82,7 @@ struct ProducerCardPrintFront: View {
     var portraitRound = false
     /// 表に重ねる素材 (画像は読み込み済みのもの)。
     var stickers: [ImasMeishiSticker] = []
+    var stats: [ImasMeishiFront.Stat] = []
 
     var body: some View {
         ImasMeishiFront(
@@ -95,6 +96,7 @@ struct ProducerCardPrintFront: View {
             portrait: portrait.map { .image($0) },
             portraitRound: portraitRound,
             stickers: stickers,
+            stats: stats,
             ink: ProducerCardPrint.colors(seed: seed)
         )
     }

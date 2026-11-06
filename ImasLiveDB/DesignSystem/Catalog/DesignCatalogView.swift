@@ -289,6 +289,17 @@ private struct VenueRowsPage: View {
                     ImasProducerCard(design: .night, sinceImprint: "SINCE 2014", name: "ふがP",
                                      oshi: Sample.cardOshi, faceGroups: Sample.cardFaceGroups, handle: "@fuga_p",
                                      accentOshiId: Sample.cardOshi.last?.id)
+                    ImasProducerCard(design: .cheki, sinceImprint: "SINCE 2020", name: "みどりP",
+                                     oshi: Sample.cardOshi, faceGroups: Sample.cardFaceGroups,
+                                     heroOshi: Sample.cardOshi, handle: "@midori_p", nameFont: "MochiyPopOne-Regular")
+                    ImasProducerCard(design: .trading, sinceImprint: "SINCE 2014", name: "ふがP",
+                                     oshi: Sample.cardOshi, faceGroups: Sample.cardFaceGroups,
+                                     heroOshi: Sample.cardOshi, handle: "@fuga_p",
+                                     accentOshiId: Sample.cardOshi.first?.id,
+                                     stats: [.init(label: "担当", value: "3"), .init(label: "参加公演", value: "87"),
+                                             .init(label: "回収曲", value: "412")])
+                    ImasProducerCard(design: .stripes, sinceImprint: "SINCE 2011", name: "かるたP",
+                                     oshi: Sample.cardOshi, faceGroups: Sample.cardFaceGroups, handle: "@karuta_p")
                     ImasProducerCard(design: .oshi, sinceImprint: "SINCE 2014", name: "ふがP",
                                      oshi: Sample.cardOshi, faceGroups: Sample.cardFaceGroups, heroOshi: Sample.cardOshi,
                                      handle: "@fuga_p")
@@ -1588,6 +1599,9 @@ private struct CatalogDesignPicker: View {
                 case .pop: look = .pop
                 case .sumi: look = .sumi
                 case .night: look = .night
+                case .cheki: look = .cheki
+                case .trading: look = .trading
+                case .stripes: look = .stripes
                 case .oshi: look = .oshi(nil)
                 case .custom: look = .face(nil)
                 }

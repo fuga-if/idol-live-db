@@ -53,6 +53,12 @@ struct ImasProducerCard: View {
         case sumi
         /// 夜公演。黒い紙に白い文字。
         case night
+        /// チェキ。左に傾けたチェキ。
+        case cheki
+        /// トレカ。担当色の太い枠と大きな画像、下にステータス。
+        case trading
+        /// 推しの色の縞。左の帯を担当の色の縞に。
+        case stripes
         /// 自作の画像。表は自分で作った名刺の画像、裏は裏の画像 (無ければ QR の裏)。
         case face(front: URL, back: URL?)
     }
@@ -139,6 +145,8 @@ struct ImasProducerCard: View {
     var sumiInk = false
     /// 表の上に重ねる素材 (重なりの順。自作の画像の名刺には重ねない)。
     var stickers: [ImasMeishiSticker] = []
+    /// トレカのデザインのステータス。
+    var stats: [ImasMeishiFront.Stat] = []
     /// 裏。nil なら返さない (自作の画像に裏の画像があればそれを裏にする)。
     var back: Back? = nil
     /// 押して裏返せる (編集画面の固定の見本は返さない)。
@@ -236,7 +244,7 @@ struct ImasProducerCard: View {
         switch design {
         case let .face(url, _):
             imageSide(url, scale: scale)
-        case .pass, .ticket, .formal, .vertical, .pop, .sumi, .night, .oshi:
+        case .pass, .ticket, .formal, .vertical, .pop, .sumi, .night, .oshi, .cheki, .trading, .stripes:
             ImasMeishiFront(
                 look: look,
                 name: name,
@@ -252,6 +260,7 @@ struct ImasProducerCard: View {
                 portrait: portraitURL.map { .url($0) },
                 portraitRound: portraitRound,
                 stickers: stickers,
+                stats: stats,
                 ink: ink,
                 scale: scale
             )
@@ -267,6 +276,9 @@ struct ImasProducerCard: View {
         case .vertical: return .vertical
         case .sumi: return .sumi
         case .night: return .night
+        case .cheki: return .cheki
+        case .trading: return .trading
+        case .stripes: return .stripes
         case .pass, .face: return .pass
         }
     }
@@ -707,7 +719,7 @@ struct ImasPortraitCropper: View {
 struct ImasCardDesignPicker: View {
     struct Option: Identifiable, Hashable {
         enum Look: Hashable {
-            case pass, ticket, formal, vertical, pop, sumi, night
+            case pass, ticket, formal, vertical, pop, sumi, night, cheki, trading, stripes
             /// 担当を大きく (先頭の担当の画像。無ければ判子)。
             case oshi(URL?)
             /// 自作の画像 (表の画像。まだ選んでいなければ nil)。
@@ -904,6 +916,50 @@ struct ImasCardDesignPicker: View {
             }
             .background(paper.paper)
             .clipShape(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous))
+        case .cheki:
+            HStack(spacing: DS.Space.gap) {
+                VStack(spacing: 2) {
+                    accent.opacity(0.35).aspectRatio(1, contentMode: .fit)
+                    Text(name).font(.imasCardName(option.postScriptName, size: 10)).foregroundStyle(DS.ink)
+                        .lineLimit(1).minimumScaleFactor(0.5)
+                }
+                .padding(4)
+                .background(DS.bg)
+                .overlay(Rectangle().strokeBorder(DS.line, lineWidth: 1))
+                .rotationEffect(.degrees(-3))
+                .frame(width: 70)
+                Spacer(minLength: 0)
+            }
+            .padding(DS.Space.gap)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(DS.surface)
+            .clipShape(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous).strokeBorder(DS.line, lineWidth: 1))
+        case .trading:
+            VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                nameText
+                DS.line.opacity(0.6)
+                HStack {
+                    ForEach(0..<3, id: \.self) { _ in
+                        Text("00").font(.system(size: 11, weight: .heavy, design: .rounded)).foregroundStyle(DS.ink2)
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+            }
+            .padding(DS.Space.gap)
+            .background(DS.bg)
+            .clipShape(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous).strokeBorder(accent, lineWidth: 5))
+        case .stripes:
+            HStack(spacing: 0) {
+                HStack(spacing: 0) { accent; DS.ink2; accent.opacity(0.6) }.frame(width: 18)
+                VStack(alignment: .leading) { nameText; Spacer(minLength: 0) }
+                    .padding(DS.Space.gap)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .background(DS.bg)
+            .clipShape(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous).strokeBorder(DS.line, lineWidth: 1))
         case let .oshi(url):
             HStack(spacing: 0) {
                 Color.clear

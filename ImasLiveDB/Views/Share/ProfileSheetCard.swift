@@ -372,6 +372,7 @@ private struct ProfileSectionView: View {
                 .foregroundStyle(Ink.ink)
             switch section.slot {
             case .songs: songs
+            case .units: units
             case .memories, .nextShow: shows
             case .records: records
             case .message: message
@@ -385,6 +386,19 @@ private struct ProfileSectionView: View {
         FlowLayout(spacing: 2 * s, lineSpacing: 4 * s) {
             ForEach(Array(section.entries.enumerated()), id: \.offset) { _, entry in
                 Text("「\(entry.text)」")
+                    .font(T.jp(10.5 * s))
+                    .tracking(T.jpTracking)
+                    .foregroundStyle(Ink.ink)
+                    .lineLimit(1)
+            }
+        }
+    }
+
+    /// 好きなユニット: 名前を選んだ順に流し組み。
+    private var units: some View {
+        FlowLayout(spacing: 6 * s, lineSpacing: 4 * s) {
+            ForEach(Array(section.entries.enumerated()), id: \.offset) { _, entry in
+                Text(entry.text)
                     .font(T.jp(10.5 * s))
                     .tracking(T.jpTracking)
                     .foregroundStyle(Ink.ink)

@@ -87,6 +87,9 @@ enum ProducerCardDisplay {
         case .pop: return .pop
         case .sumi: return .sumi
         case .night: return .night
+        case .cheki: return .cheki
+        case .trading: return .trading
+        case .stripes: return .stripes
         case .oshi: return .oshi
         case .custom: return face.map { .face(front: $0.front, back: $0.back) } ?? .pass
         }
@@ -102,8 +105,20 @@ enum ProducerCardDisplay {
         case .pop: return .pop
         case .sumi: return .sumi
         case .night: return .night
+        case .cheki: return .cheki
+        case .trading: return .trading
+        case .stripes: return .stripes
         case .oshi: return .oshi
         }
+    }
+
+    /// トレカのデザインのステータス (担当の数・参加公演・回収曲。名刺に載せているものだけ)。
+    static func stats(_ card: ProducerCard, oshiCount: Int) -> [ImasMeishiFront.Stat] {
+        var stats: [ImasMeishiFront.Stat] = []
+        if oshiCount > 0 { stats.append(.init(label: "担当", value: oshiCount.formatted())) }
+        if let shows = card.showCount { stats.append(.init(label: "参加公演", value: shows.formatted())) }
+        if let songs = card.songCount { stats.append(.init(label: "回収曲", value: songs.formatted())) }
+        return stats
     }
 
     /// 素材の置き方と画像を名刺に重ねる形にする。
@@ -232,6 +247,7 @@ enum ProducerCardDisplay {
             accentOshiId: cardFace.accentIdolId,
             sumiInk: cardFace.accentIdolId == nil,
             stickers: stickers,
+            stats: showsRecord ? stats(card, oshiCount: oshi.count) : [],
             back: Self.back(card, face: cardFace, payload: payload, qr: back),
             onOpenLink: onOpenLink,
             onOpenOshi: onOpenOshi
