@@ -177,7 +177,7 @@ private struct ProfileResumeBody: View {
                 }
             }
             // 好きな曲・思い出の公演・ひとことは横いっぱい、次の現場と記録は左右に並べる。
-            ForEach(full(.songs) + full(.memories), id: \.title) { section in
+            ForEach(full(.songs) + full(.units) + full(.memories), id: \.title) { section in
                 ProfileBox { ProfileSectionView(section: section, s: s) }
             }
             let pair = layout.sections.filter { $0.slot == .nextShow || $0.slot == .records }
