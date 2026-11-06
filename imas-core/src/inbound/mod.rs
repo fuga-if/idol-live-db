@@ -100,4 +100,5 @@ pub mod tier_list;
 pub mod vocabulary;
 pub mod voice_answer;
 pub mod week_layout;
+pub mod year_report;
 pub mod youtube;
