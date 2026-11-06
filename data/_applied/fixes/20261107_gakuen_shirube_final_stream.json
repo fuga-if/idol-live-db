@@ -1,0 +1,34 @@
+{
+ "title": "学園アイドルマスター LIVE TOUR -標- ファイナル公演 の配信チケット販売期間の時刻とアーカイブ視聴期間",
+ "author": "daily-data-crawl",
+ "source": "https://idolmaster-official.jp/news/01_20274.html",
+ "fixes": [
+  {
+   "table": "ticket_sales",
+   "id": "ts_e9beaea2cba6",
+   "fields": {
+    "starts_at": "2026-10-20 20:00",
+    "ends_at": "2026-11-23 18:00"
+   },
+   "note": "公式ニュース 01_20274: 販売期間 2026年10月20日(火) 20:00～2026年11月23日(月)18:00。日付だけだった行に時刻を足す"
+  },
+  {
+   "table": "show_tickets",
+   "id": "tkt_sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_stream_day1_34d63e",
+   "fields": {
+    "archive_starts_at": "2026-11-09 18:00",
+    "archive_ends_at": "2026-11-23 23:59"
+   },
+   "note": "公式ニュース 01_20274: 視聴コメント付きアーカイブ視聴期間（DAY1・DAY2共通）2026年11月9日(月) 18:00～11月23日(月・祝)23:59。最速版アーカイブは各公演の本編終了 1 時間後から 11/9 18:00 まで"
+  },
+  {
+   "table": "show_tickets",
+   "id": "tkt_sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_2_stream_day2_290b3a",
+   "fields": {
+    "archive_starts_at": "2026-11-09 18:00",
+    "archive_ends_at": "2026-11-23 23:59"
+   },
+   "note": "同上"
+  }
+ ]
+}
