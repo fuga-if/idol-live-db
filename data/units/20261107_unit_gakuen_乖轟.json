@@ -1,0 +1,19 @@
+{
+ "title": "ユニット「乖轟」(gakuen) の追加",
+ "author": "Claude",
+ "source": "https://idolmaster-official.jp/news/01_20235.html",
+ "note": "出典: 公式ニュース (ファイナル公演 DAY1 告知まとめ)「学園アイドルマスター 新ユニットシリーズ始動 第1弾 雨夜 燕 × 有村 麻央「乖轟」 新曲「アンバランス」」。DAY1 セットリスト 28 曲目で披露。",
+ "units": [
+  {
+   "id": "unit_乖轟",
+   "brand_id": "gakuen",
+   "name": "乖轟",
+   "name_alt": "",
+   "is_permanent": 1,
+   "members": [
+    "gakuen_雨夜燕",
+    "gakuen_有村麻央"
+   ]
+  }
+ ]
+}

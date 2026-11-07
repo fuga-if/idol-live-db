@@ -1,0 +1,249 @@
+{
+ "title": "公演 sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1 のセットリスト追加",
+ "author": "Claude",
+ "source": "https://idolmaster-official.jp/news/01_20235.html",
+ "note": "出典: 公式ニュース (ファイナル公演 DAY1 告知まとめ) の「本日のセットリストはコチラ！」画像 (全 30 曲)。歌唱者は声優名表記なのでアイドル名に置き換えた (長月あおい=花海咲季 / 小鹿なお=月村手毬 / 飯田ヒカル=藤田ことね / 七瀬つむぎ=有村麻央 / 花岩香奈=葛城リーリヤ / 伊藤舞音=倉本千奈 / 湊みや=紫雲清夏 / 川村玲奈=篠澤広 / 薄井友里=姫崎莉波 / 松田彩音=花海佑芽 / 春咲暖=秦谷美鈴 / 陽高真白=十王星南 / 天音ゆかり=雨夜燕)。「初星学園」表記の曲は出演 13 人全員。26 修楽旅行は 13 人歌唱で、該当する ver. の曲が無いため最初に出た ver. の曲に紐づけ notes に記載。",
+ "show_id": "sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1",
+ "all_performers": [
+  "gakuen_花海咲季",
+  "gakuen_月村手毬",
+  "gakuen_藤田ことね",
+  "gakuen_有村麻央",
+  "gakuen_葛城リーリヤ",
+  "gakuen_倉本千奈",
+  "gakuen_紫雲清夏",
+  "gakuen_篠澤広",
+  "gakuen_姫崎莉波",
+  "gakuen_花海佑芽",
+  "gakuen_秦谷美鈴",
+  "gakuen_十王星南",
+  "gakuen_雨夜燕"
+ ],
+ "songs": [
+  {
+   "position": 1,
+   "song_id": "gakuen_標",
+   "performers": "all",
+   "notes": "Piano ver."
+  },
+  {
+   "position": 2,
+   "song_id": "gakuen_みちなるひろがる",
+   "performers": [
+    "gakuen_倉本千奈",
+    "gakuen_篠澤広"
+   ]
+  },
+  {
+   "position": 3,
+   "song_id": "gakuen_神かわいい",
+   "performers": [
+    "gakuen_藤田ことね"
+   ]
+  },
+  {
+   "position": 4,
+   "song_id": "gakuen_クライアイ",
+   "performers": [
+    "gakuen_雨夜燕"
+   ]
+  },
+  {
+   "position": 5,
+   "song_id": "gakuen_endless_dance",
+   "performers": "all"
+  },
+  {
+   "position": 6,
+   "song_id": "gakuen_nazonazo",
+   "performers": [
+    "gakuen_花海咲季"
+   ]
+  },
+  {
+   "position": 7,
+   "song_id": "gakuen_春と光",
+   "performers": [
+    "gakuen_花海佑芽"
+   ]
+  },
+  {
+   "position": 8,
+   "song_id": "gakuen_サンフェーデッド",
+   "performers": [
+    "gakuen_篠澤広"
+   ]
+  },
+  {
+   "position": 9,
+   "song_id": "gakuen_ツキノカメ",
+   "performers": [
+    "gakuen_秦谷美鈴"
+   ]
+  },
+  {
+   "position": 10,
+   "song_id": "gakuen_luna_say_maybe",
+   "performers": [
+    "gakuen_月村手毬"
+   ]
+  },
+  {
+   "position": 11,
+   "song_id": "gakuen_キミとセミブルー",
+   "performers": [
+    "gakuen_藤田ことね",
+    "gakuen_倉本千奈",
+    "gakuen_紫雲清夏"
+   ]
+  },
+  {
+   "position": 12,
+   "song_id": "gakuen_feel_jewel_dream",
+   "performers": [
+    "gakuen_有村麻央"
+   ]
+  },
+  {
+   "position": 13,
+   "song_id": "gakuen_ねえ言っちゃうよ",
+   "performers": [
+    "gakuen_葛城リーリヤ",
+    "gakuen_紫雲清夏",
+    "gakuen_篠澤広"
+   ]
+  },
+  {
+   "position": 14,
+   "song_id": "gakuen_重なる夜空の痕跡に",
+   "performers": [
+    "gakuen_姫崎莉波"
+   ]
+  },
+  {
+   "position": 15,
+   "song_id": "gakuen_空と約束",
+   "performers": [
+    "gakuen_倉本千奈"
+   ]
+  },
+  {
+   "position": 16,
+   "song_id": "gakuen_star-mine",
+   "performers": [
+    "gakuen_花海佑芽",
+    "gakuen_秦谷美鈴",
+    "gakuen_十王星南"
+   ]
+  },
+  {
+   "position": 17,
+   "song_id": "gakuen_private_glitter",
+   "performers": [
+    "gakuen_紫雲清夏"
+   ]
+  },
+  {
+   "position": 18,
+   "song_id": "gakuen_いつかのわたし",
+   "performers": [
+    "gakuen_葛城リーリヤ"
+   ]
+  },
+  {
+   "position": 19,
+   "song_id": "gakuen_sugar_flavor",
+   "performers": [
+    "gakuen_有村麻央",
+    "gakuen_姫崎莉波"
+   ]
+  },
+  {
+   "position": 20,
+   "song_id": "gakuen_cosmetic",
+   "performers": [
+    "gakuen_十王星南"
+   ]
+  },
+  {
+   "position": 21,
+   "song_id": "gakuen_agitato",
+   "performers": [
+    "gakuen_花海咲季",
+    "gakuen_葛城リーリヤ",
+    "gakuen_花海佑芽"
+   ]
+  },
+  {
+   "position": 22,
+   "song_id": "gakuen_慟哭のコンチェルト",
+   "performers": [
+    "gakuen_月村手毬",
+    "gakuen_秦谷美鈴"
+   ],
+   "notes": "新曲サプライズ披露 (11/8 配信開始)"
+  },
+  {
+   "position": 23,
+   "song_id": "gakuen_ミラクルナナウ",
+   "performers": [
+    "gakuen_有村麻央",
+    "gakuen_葛城リーリヤ",
+    "gakuen_姫崎莉波",
+    "gakuen_花海佑芽"
+   ]
+  },
+  {
+   "position": 24,
+   "song_id": "gakuen_ハッピーミルフィーユ",
+   "performers": [
+    "gakuen_花海咲季",
+    "gakuen_月村手毬",
+    "gakuen_藤田ことね",
+    "gakuen_篠澤広",
+    "gakuen_雨夜燕"
+   ]
+  },
+  {
+   "position": 25,
+   "song_id": "gakuen_仮装狂騒曲",
+   "performers": [
+    "gakuen_倉本千奈",
+    "gakuen_紫雲清夏",
+    "gakuen_秦谷美鈴",
+    "gakuen_十王星南"
+   ]
+  },
+  {
+   "position": 26,
+   "song_id": "gakuen_修楽旅行_有村麻央葛城リーリヤ花海佑芽姫崎莉波ver",
+   "performers": "all",
+   "notes": "初星学園 (13 人) で歌唱"
+  },
+  {
+   "position": 27,
+   "song_id": "gakuen_ガラクタロード",
+   "performers": "all"
+  },
+  {
+   "position": 28,
+   "song_id": "gakuen_アンバランス",
+   "performers": [
+    "gakuen_雨夜燕",
+    "gakuen_有村麻央"
+   ],
+   "notes": "新ユニット「乖轟」の新曲を初披露"
+  },
+  {
+   "position": 29,
+   "song_id": "gakuen_campus_mode",
+   "performers": "all"
+  },
+  {
+   "position": 30,
+   "song_id": "gakuen_初",
+   "performers": "all",
+   "notes": "Orchestra ver."
+  }
+ ]
+}

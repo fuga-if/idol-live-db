@@ -1,0 +1,38 @@
+{
+ "title": "曲「慟哭のコンチェルト」「アンバランス」(gakuen) の追加",
+ "author": "Claude",
+ "source": "https://idolmaster-official.jp/news/01_20235.html",
+ "note": "出典: 公式ニュース (ファイナル公演 DAY1 告知まとめ)。引用: \"本日LIVE TOUR -標- ファイナル公演 DAY1にて、新曲をサプライズ披露しました！ 楽曲はこのあと、11月8日(日)より配信スタート！ 💿慟哭のコンチェルト 作詞・作曲・編曲：Neuron (Empty old City)\"。セットリスト画像で 22 曲目に 小鹿なお/春咲暖 (月村手毬/秦谷美鈴)。アンバランスは新ユニット「乖轟」(雨夜燕×有村麻央) の新曲で 28 曲目に披露、作家・配信日は未発表 (イベント&ガシャ 11 月末開催予定)。",
+ "songs": [
+  {
+   "id": "gakuen_慟哭のコンチェルト",
+   "title": "慟哭のコンチェルト",
+   "title_kana": "どうこくのこんちぇると",
+   "brand_id": "gakuen",
+   "song_type": "unit",
+   "release_date": "2026-11-08",
+   "streaming_date": "2026-11-08",
+   "composer": "Neuron (Empty old City)",
+   "lyricist": "Neuron (Empty old City)",
+   "arranger": "Neuron (Empty old City)",
+   "original_singers": [
+    "gakuen_月村手毬",
+    "gakuen_秦谷美鈴"
+   ]
+  },
+  {
+   "id": "gakuen_アンバランス",
+   "title": "アンバランス",
+   "title_kana": "あんばらんす",
+   "brand_id": "gakuen",
+   "song_type": "unit",
+   "release_date": "",
+   "unit_id": "unit_乖轟",
+   "unit_name": "乖轟",
+   "original_singers": [
+    "gakuen_雨夜燕",
+    "gakuen_有村麻央"
+   ]
+  }
+ ]
+}
