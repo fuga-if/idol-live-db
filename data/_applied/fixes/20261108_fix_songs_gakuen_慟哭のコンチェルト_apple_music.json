@@ -1,0 +1,19 @@
+{
+ "title": "慟哭のコンチェルト (月村手毬・秦谷美鈴) の配信開始に伴う apple_music_id / artwork_url の補完",
+ "author": "daily-data-crawl",
+ "_help": "2026-11-08 0:00 にサブスク配信開始 (公式 X https://x.com/gkmas_official/status/2119021281526030717)。fill_apple_music_ids は検索で当たらなかったので、iTunes Search/Lookup で trackName・artistName・isStreamable=true を確認して手で補完",
+ "source": "https://itunes.apple.com/lookup?id=6828762272&country=jp (慟哭のコンチェルト / 初星学園, 月村手毬 & 秦谷美鈴 / 慟哭のコンチェルト - Single 6828762268 / isStreamable=true)",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "gakuen_慟哭のコンチェルト",
+   "fields": {
+    "apple_music_id": "6828762272",
+    "apple_music_album_id": "6828762268",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/b5/b2/13/b5b21374-c1d0-03d7-c3c6-4853937ffaae/PA00242658_0_258199_jacket.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/b5/1e/dd/b51edd5b-d3d9-4eeb-570f-7064e3193fce/mzaf_14571824818884294003.plus.aac.p.m4a"
+   },
+   "note": "配信日 2026-11-08 は登録済み。Instrumental (6828762516) は入れない"
+  }
+ ]
+}

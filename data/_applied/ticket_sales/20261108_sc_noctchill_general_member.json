@@ -1,0 +1,31 @@
+{
+ "title": "283 Production LIVE Performance noctchill 現地チケット アソビストア一般会員先行 (通常・ティーン割)",
+ "author": "daily-data-crawl",
+ "source": "https://idolmaster-official.jp/news/01_20299",
+ "ticket_sales": [
+  {
+   "event_id": "ev_283_production_live_performance_noctchill",
+   "kind": "lottery",
+   "name": "アソビストア一般会員先行",
+   "starts_at": "2026-11-07 12:00",
+   "ends_at": "2026-12-01 23:59",
+   "result_at": "2026-12-12 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/157d3088-23a9-4c05-b112-ff548cd3d834",
+   "note": "受付対象: 【メモリアル特典付き】現地+xRライブストリーミングセットチケット・現地チケット（全席指定）。入金期間 2026年12月12日13:00〜12月16日23:59。お一人様1公演につき2枚まで(複数公演申込可)。セット券は演出参加キャンペーンの対象",
+   "source_url": "https://idolmaster-official.jp/news/01_20299",
+   "sort_order": 2
+  },
+  {
+   "event_id": "ev_283_production_live_performance_noctchill",
+   "kind": "lottery",
+   "name": "アソビストア一般会員先行【ティーン割】",
+   "starts_at": "2026-11-07 12:00",
+   "ends_at": "2026-12-01 23:59",
+   "result_at": "2026-12-12 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/5aaf52eb-ffd7-490d-b3d5-fd403d3028d8",
+   "note": "ティーン割チケット(小学生〜20歳未満)の受付。入金期間 2026年12月12日13:00〜12月16日23:59。お一人様1公演につき2枚まで(複数公演申込可)",
+   "source_url": "https://idolmaster-official.jp/news/01_20299",
+   "sort_order": 3
+  }
+ ]
+}
