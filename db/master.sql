@@ -3341,7 +3341,7 @@ INSERT INTO "idols" VALUES('cg_高森藍子','cg','高森藍子','たかもり�
 INSERT INTO "idols" VALUES('cg_鷹富士茄子','cg','鷹富士茄子','たかふじかこ',NULL,'#5C068F',4100,'--01-01','AB',160.0,43.0,'島根',20,88.0,57.0,88.0,'山羊座','隠し芸',NULL,'島根出身の20歳の元日生まれの幸運体質アイドル。隠し芸が趣味、誠実に実力で勝負する。CV: 森下来奈。','female','right','鷹富士','茄子',NULL,'2011-12-28','cool',0,NULL,NULL);
 CREATE TABLE meta (key TEXT PRIMARY KEY NOT NULL, value TEXT);
 INSERT INTO "meta" VALUES('schema_version','1');
-INSERT INTO "meta" VALUES('data_version','119');
+INSERT INTO "meta" VALUES('data_version','120');
 INSERT INTO "meta" VALUES('migration_v14_idol_is_external','applied');
 INSERT INTO "meta" VALUES('content_hash','2aa7a46f3715a4a1ef87214b4fffccbd4137a8edc8d49048d0e084df00c7a2ce');
 CREATE TABLE setlist_items (id TEXT PRIMARY KEY NOT NULL, show_id TEXT NOT NULL, song_id TEXT NOT NULL, position INTEGER NOT NULL, section TEXT, notes TEXT, unit_name TEXT, UNIQUE(show_id, position));
@@ -16945,6 +16945,36 @@ INSERT INTO "setlist_items" VALUES('sh_miki_hoshii_solo_showcase_the_future_spot
 INSERT INTO "setlist_items" VALUES('sh_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier_1_0006','sh_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier_1','765as_ダンスダンスダンス',6,NULL,NULL,NULL);
 INSERT INTO "setlist_items" VALUES('sh_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier_1_0007','sh_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier_1','765as_ショッキングな彼',7,NULL,NULL,NULL);
 INSERT INTO "setlist_items" VALUES('sh_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier_1_0008','sh_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier_1','765as_day_of_the_future',8,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0001','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','gakuen_標',1,NULL,'Piano ver.',NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0002','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','gakuen_みちなるひろがる',2,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0003','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','gakuen_神かわいい',3,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0004','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','gakuen_クライアイ',4,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0005','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','gakuen_endless_dance',5,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0006','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','gakuen_nazonazo',6,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0007','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','gakuen_春と光',7,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0008','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','gakuen_サンフェーデッド',8,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0009','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','gakuen_ツキノカメ',9,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0010','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','gakuen_luna_say_maybe',10,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0011','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','gakuen_キミとセミブルー',11,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0012','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','gakuen_feel_jewel_dream',12,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0013','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','gakuen_ねえ言っちゃうよ',13,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0014','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','gakuen_重なる夜空の痕跡に',14,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0015','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','gakuen_空と約束',15,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0016','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','gakuen_star-mine',16,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0017','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','gakuen_private_glitter',17,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0018','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','gakuen_いつかのわたし',18,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0019','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','gakuen_sugar_flavor',19,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0020','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','gakuen_cosmetic',20,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0021','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','gakuen_agitato',21,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0022','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','gakuen_慟哭のコンチェルト',22,NULL,'新曲サプライズ披露 (11/8 配信開始)',NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0023','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','gakuen_ミラクルナナウ',23,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0024','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','gakuen_ハッピーミルフィーユ',24,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0025','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','gakuen_仮装狂騒曲',25,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0026','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','gakuen_修楽旅行_有村麻央葛城リーリヤ花海佑芽姫崎莉波ver',26,NULL,'初星学園 (13 人) で歌唱',NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0027','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','gakuen_ガラクタロード',27,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0028','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','gakuen_アンバランス',28,NULL,'新ユニット「乖轟」の新曲を初披露',NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0029','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','gakuen_campus_mode',29,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0030','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','gakuen_初',30,NULL,'Orchestra ver.',NULL);
 CREATE TABLE "setlist_performers" (
             setlist_item_id TEXT NOT NULL,
             idol_id TEXT NOT NULL,
@@ -74894,6 +74924,130 @@ INSERT INTO "setlist_performers" VALUES('sh_miki_hoshii_solo_showcase_the_future
 INSERT INTO "setlist_performers" VALUES('sh_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier_1_0006','765as_星井美希');
 INSERT INTO "setlist_performers" VALUES('sh_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier_1_0007','765as_星井美希');
 INSERT INTO "setlist_performers" VALUES('sh_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier_1_0008','765as_星井美希');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0001','gakuen_倉本千奈');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0001','gakuen_十王星南');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0001','gakuen_姫崎莉波');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0001','gakuen_月村手毬');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0001','gakuen_有村麻央');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0001','gakuen_秦谷美鈴');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0001','gakuen_篠澤広');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0001','gakuen_紫雲清夏');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0001','gakuen_花海佑芽');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0001','gakuen_花海咲季');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0001','gakuen_葛城リーリヤ');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0001','gakuen_藤田ことね');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0001','gakuen_雨夜燕');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0002','gakuen_倉本千奈');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0002','gakuen_篠澤広');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0003','gakuen_藤田ことね');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0004','gakuen_雨夜燕');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0005','gakuen_倉本千奈');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0005','gakuen_十王星南');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0005','gakuen_姫崎莉波');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0005','gakuen_月村手毬');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0005','gakuen_有村麻央');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0005','gakuen_秦谷美鈴');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0005','gakuen_篠澤広');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0005','gakuen_紫雲清夏');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0005','gakuen_花海佑芽');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0005','gakuen_花海咲季');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0005','gakuen_葛城リーリヤ');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0005','gakuen_藤田ことね');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0005','gakuen_雨夜燕');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0006','gakuen_花海咲季');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0007','gakuen_花海佑芽');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0008','gakuen_篠澤広');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0009','gakuen_秦谷美鈴');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0010','gakuen_月村手毬');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0011','gakuen_倉本千奈');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0011','gakuen_紫雲清夏');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0011','gakuen_藤田ことね');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0012','gakuen_有村麻央');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0013','gakuen_篠澤広');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0013','gakuen_紫雲清夏');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0013','gakuen_葛城リーリヤ');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0014','gakuen_姫崎莉波');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0015','gakuen_倉本千奈');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0016','gakuen_十王星南');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0016','gakuen_秦谷美鈴');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0016','gakuen_花海佑芽');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0017','gakuen_紫雲清夏');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0018','gakuen_葛城リーリヤ');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0019','gakuen_姫崎莉波');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0019','gakuen_有村麻央');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0020','gakuen_十王星南');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0021','gakuen_花海佑芽');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0021','gakuen_花海咲季');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0021','gakuen_葛城リーリヤ');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0022','gakuen_月村手毬');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0022','gakuen_秦谷美鈴');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0023','gakuen_姫崎莉波');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0023','gakuen_有村麻央');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0023','gakuen_花海佑芽');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0023','gakuen_葛城リーリヤ');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0024','gakuen_月村手毬');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0024','gakuen_篠澤広');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0024','gakuen_花海咲季');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0024','gakuen_藤田ことね');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0024','gakuen_雨夜燕');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0025','gakuen_倉本千奈');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0025','gakuen_十王星南');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0025','gakuen_秦谷美鈴');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0025','gakuen_紫雲清夏');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0026','gakuen_倉本千奈');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0026','gakuen_十王星南');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0026','gakuen_姫崎莉波');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0026','gakuen_月村手毬');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0026','gakuen_有村麻央');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0026','gakuen_秦谷美鈴');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0026','gakuen_篠澤広');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0026','gakuen_紫雲清夏');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0026','gakuen_花海佑芽');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0026','gakuen_花海咲季');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0026','gakuen_葛城リーリヤ');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0026','gakuen_藤田ことね');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0026','gakuen_雨夜燕');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0027','gakuen_倉本千奈');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0027','gakuen_十王星南');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0027','gakuen_姫崎莉波');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0027','gakuen_月村手毬');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0027','gakuen_有村麻央');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0027','gakuen_秦谷美鈴');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0027','gakuen_篠澤広');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0027','gakuen_紫雲清夏');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0027','gakuen_花海佑芽');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0027','gakuen_花海咲季');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0027','gakuen_葛城リーリヤ');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0027','gakuen_藤田ことね');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0027','gakuen_雨夜燕');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0028','gakuen_有村麻央');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0028','gakuen_雨夜燕');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0029','gakuen_倉本千奈');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0029','gakuen_十王星南');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0029','gakuen_姫崎莉波');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0029','gakuen_月村手毬');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0029','gakuen_有村麻央');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0029','gakuen_秦谷美鈴');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0029','gakuen_篠澤広');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0029','gakuen_紫雲清夏');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0029','gakuen_花海佑芽');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0029','gakuen_花海咲季');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0029','gakuen_葛城リーリヤ');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0029','gakuen_藤田ことね');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0029','gakuen_雨夜燕');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0030','gakuen_倉本千奈');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0030','gakuen_十王星南');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0030','gakuen_姫崎莉波');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0030','gakuen_月村手毬');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0030','gakuen_有村麻央');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0030','gakuen_秦谷美鈴');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0030','gakuen_篠澤広');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0030','gakuen_紫雲清夏');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0030','gakuen_花海佑芽');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0030','gakuen_花海咲季');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0030','gakuen_葛城リーリヤ');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0030','gakuen_藤田ことね');
+INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_0030','gakuen_雨夜燕');
 CREATE TABLE "show_cast" (
             show_id TEXT NOT NULL,
             idol_id TEXT NOT NULL, cast_role TEXT NOT NULL DEFAULT 'member',
@@ -87804,8 +87958,6 @@ INSERT INTO "show_tickets" VALUES('tkt_sh_the_idolm@ster_20th_anniversary_more_r
 INSERT INTO "show_tickets" VALUES('tkt_sh_the_idolm@ster_20th_anniversary_more_re@lity_live_idol_world_super_festival_2026_3_stream_xr_3dcdce','sh_the_idolm@ster_20th_anniversary_more_re@lity_live_idol_world_super_festival_2026_3','stream','【通常＋全景定点セット】xRライブストリーミングチケット',8000,0,'税込・機能料込 / 出典: https://idolmaster-official.jp/live_event/mr_idolworld2026/',2,NULL,NULL);
 INSERT INTO "show_tickets" VALUES('tkt_sh_the_idolm@ster_20th_anniversary_more_re@lity_live_idol_world_super_festival_2026_3_stream_stream_1b4b53','sh_the_idolm@ster_20th_anniversary_more_re@lity_live_idol_world_super_festival_2026_3','stream','【全景定点】配信視聴チケット',2500,0,'税込・機能料込。現地の定点カメラ映像のみ / 出典: https://idolmaster-official.jp/live_event/mr_idolworld2026/',3,NULL,NULL);
 INSERT INTO "show_tickets" VALUES('tkt_sh_the_idolm@ster_20th_anniversary_more_re@lity_live_idol_world_super_festival_2026_3_live_viewing_seat_5cd289','sh_the_idolm@ster_20th_anniversary_more_re@lity_live_idol_world_super_festival_2026_3','live_viewing','全席指定',5000,0,'全国の映画館 / 出典: https://idolmaster-official.jp/live_event/mr_idolworld2026/',1,NULL,NULL);
-INSERT INTO "show_tickets" VALUES('tkt_sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_stream_day1_34d63e','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','stream','DAY1視聴チケット',6500,0,'税込・機能利用料込。両日視聴チケット 13,000円あり。販売期間 2026/10/20〜11/23 / 出典: https://asobistage.asobistore.jp/event/gakuen_shirube_final/ticket',1,NULL,NULL);
-INSERT INTO "show_tickets" VALUES('tkt_sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_2_stream_day2_290b3a','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_2','stream','DAY2視聴チケット',6500,0,'税込・機能利用料込。両日視聴チケット 13,000円あり。販売期間 2026/10/20〜11/23 / 出典: https://asobistage.asobistore.jp/event/gakuen_shirube_final/ticket',1,NULL,NULL);
 INSERT INTO "show_tickets" VALUES('tkt_sh_project_imas_valiv_3rdlive_meeting_qonnect_as_one_1_live_producer_meeting_26ddaf','sh_project_imas_valiv_3rdlive_meeting_qonnect_as_one_1','live','PRODUCER MEETING 通常現地チケット',8600,0,'NAGOYA 3公演通し券（早期限定グッズ付き）43,800円あり。システム利用料220円・決済サービス料550円/枚別 / 出典: https://asobiticket2.asobistore.jp/receptions/a911b189-ae4a-4bc6-9f15-729201d4ff7c',1,NULL,NULL);
 INSERT INTO "show_tickets" VALUES('tkt_sh_project_imas_valiv_3rdlive_meeting_qonnect_as_one_1_live_producer_meeting_9cb2f9','sh_project_imas_valiv_3rdlive_meeting_qonnect_as_one_1','live','【早期限定】PRODUCER MEETING 限定グッズ付き現地チケット',13800,0,'NAGOYA 3公演通し券（早期限定グッズ付き）43,800円あり。システム利用料220円・決済サービス料550円/枚別 / 出典: https://asobiticket2.asobistore.jp/receptions/a911b189-ae4a-4bc6-9f15-729201d4ff7c',2,NULL,NULL);
 INSERT INTO "show_tickets" VALUES('tkt_sh_project_imas_valiv_3rdlive_meeting_qonnect_as_one_2_live_3rdlive_b725b1','sh_project_imas_valiv_3rdlive_meeting_qonnect_as_one_2','live','3rdLIVE現地通常チケット',9800,0,'NAGOYA 3公演通し券（早期限定グッズ付き）43,800円あり。システム利用料220円・決済サービス料550円/枚別 / 出典: https://asobiticket2.asobistore.jp/receptions/a911b189-ae4a-4bc6-9f15-729201d4ff7c',1,NULL,NULL);
@@ -87819,6 +87971,8 @@ INSERT INTO "show_tickets" VALUES('tkt_sh_project_imas_valiv_3rdlive_meeting_qon
 INSERT INTO "show_tickets" VALUES('tkt_sh_project_imas_valiv_3rdlive_meeting_qonnect_as_one_6_live_3rdlive_b725b1','sh_project_imas_valiv_3rdlive_meeting_qonnect_as_one_6','live','3rdLIVE現地通常チケット',9800,0,'TOKYO 3公演通し券（早期限定グッズ付き）43,800円あり。システム利用料220円・決済サービス料550円/枚別 / 出典: https://asobiticket2.asobistore.jp/receptions/a911b189-ae4a-4bc6-9f15-729201d4ff7c',1,NULL,NULL);
 INSERT INTO "show_tickets" VALUES('tkt_sh_project_imas_valiv_3rdlive_meeting_qonnect_as_one_6_live_3rdlive_39e95d','sh_project_imas_valiv_3rdlive_meeting_qonnect_as_one_6','live','【早期限定】3rdLIVE 限定グッズ付き現地チケット',15000,0,'TOKYO 3公演通し券（早期限定グッズ付き）43,800円あり。システム利用料220円・決済サービス料550円/枚別 / 出典: https://asobiticket2.asobistore.jp/receptions/a911b189-ae4a-4bc6-9f15-729201d4ff7c',2,NULL,NULL);
 INSERT INTO "show_tickets" VALUES('tkt_sh_lisani_tokyo_2027_sunday_stage_1_live_seat_5cd289','sh_lisani_tokyo_2027_sunday_stage_1','live','全席指定',13200,0,'出典: https://www.lisani.jp/live/',1,NULL,NULL);
+INSERT INTO "show_tickets" VALUES('tkt_sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_stream_day1_34d63e','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','stream','DAY1視聴チケット',6500,0,'税込・機能利用料込。両日視聴チケット 13,000円あり。販売期間 2026/10/20〜11/23 / 出典: https://asobistage.asobistore.jp/event/gakuen_shirube_final/ticket',1,'2026-11-09 18:00','2026-11-23 23:59');
+INSERT INTO "show_tickets" VALUES('tkt_sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_2_stream_day2_290b3a','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_2','stream','DAY2視聴チケット',6500,0,'税込・機能利用料込。両日視聴チケット 13,000円あり。販売期間 2026/10/20〜11/23 / 出典: https://asobistage.asobistore.jp/event/gakuen_shirube_final/ticket',1,'2026-11-09 18:00','2026-11-23 23:59');
 CREATE TABLE shows (id TEXT PRIMARY KEY NOT NULL, event_id TEXT NOT NULL, name TEXT NOT NULL, date TEXT NOT NULL, venue TEXT, venue_city TEXT, start_time TEXT, sort_order INTEGER NOT NULL, performer_type TEXT DEFAULT 'cast', venue_id TEXT, hall TEXT, stream_platform TEXT, venue_mode TEXT);
 INSERT INTO "shows" VALUES('sh_L0003','ev_アイドルマスター6911時の回13時の回15時30分の回','アイドルマスター6/9（11時の回、13時の回、15時30分の回）','2005-02-19','千葉・幕張メッセ国際展示場',NULL,NULL,1,'cast','venue_幕張メッセ','国際展示場',NULL,NULL);
 INSERT INTO "shows" VALUES('sh_L0005','ev_the_idolmster_masterpieceシリーズ発売記念シークレットイベント','「THE IDOLM@STER MASTERPIECE」シリーズ発売記念シークレットイベント','2006-01-21','東京・赤羽会館',NULL,NULL,1,'cast','venue_赤羽会館',NULL,NULL,NULL);
@@ -117092,6 +117246,10 @@ INSERT INTO "song_artists" VALUES('ml_一旦愛して','ml_春日未来','origin
 INSERT INTO "song_artists" VALUES('ml_一旦愛して','ml_望月杏奈','original');
 INSERT INTO "song_artists" VALUES('ml_一旦愛して','ml_白石紬','original');
 INSERT INTO "song_artists" VALUES('ml_一旦愛して','ml_矢吹可奈','original');
+INSERT INTO "song_artists" VALUES('gakuen_アンバランス','gakuen_有村麻央','original');
+INSERT INTO "song_artists" VALUES('gakuen_アンバランス','gakuen_雨夜燕','original');
+INSERT INTO "song_artists" VALUES('gakuen_慟哭のコンチェルト','gakuen_月村手毬','original');
+INSERT INTO "song_artists" VALUES('gakuen_慟哭のコンチェルト','gakuen_秦谷美鈴','original');
 CREATE TABLE song_units (
   song_id TEXT NOT NULL,
   unit_id TEXT NOT NULL,
@@ -120969,6 +121127,8 @@ INSERT INTO "songs" VALUES('sc_グッバイ','グッバイ','ぐっばい','sc',
 INSERT INTO "songs" VALUES('sc_時限式狂騒ワンダーランド','時限式狂騒ワンダーランド','じげんしききょうそうわんだーらんど','sc','unit','2024-04-30',NULL,'河田貴央','真崎エリカ','河田貴央','THE IDOLM@STER SHINY COLORS Song for Prism 時限式狂騒ワンダーランド / LINKs【アンティーカ盤】 - EP',NULL,'https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/6f/5c/a4/6f5ca429-161d-f859-ea82-9bc2cb9fb576/4540774245529.png/600x600bb.jpg','https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/4d/55/8f/4d558fa6-568c-0b3b-c3a3-891e85f71dfe/mzaf_13808493424104098714.plus.aac.p.m4a','1753379826','1753379825','','https://www.uta-net.com/song/357634/',NULL,'アンティーカ（月岡恋鐘、田中摩美々、白瀬咲耶、三峰結華、幽谷霧子）','アンティーカ','unit_アンティーカ','Song for Prism',NULL,NULL,NULL,0,1,NULL,'2024-05-09',NULL,NULL);
 INSERT INTO "songs" VALUES('sc_枕木の歌','枕木の歌','まくらぎのうた','sc','unit','2024-03-31',NULL,'石黑剛、小久保祐希','渡邊亜希子','石黑剛','THE IDOLM@STER SHINY COLORS Song for Prism Happier / 枕木の歌【イルミネーションスターズ盤】 - EP',NULL,'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/9c/e6/d6/9ce6d6fb-e59b-29e4-63d5-e243e12063fb/4540774245291.jpg/600x600bb.jpg','https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/bc/3c/85/bc3c850e-577f-2c79-e5b7-98432e41b45e/mzaf_8875238767489995038.plus.aac.p.m4a','1745447731','1745447730','','https://www.uta-net.com/song/354746/',NULL,'イルミネーションスターズ（櫻木真乃、風野灯織、八宮めぐる）','イルミネーションスターズ','unit_イルミネーションスターズ','Song for Prism',NULL,NULL,NULL,0,0,NULL,'2024-04-09',NULL,NULL);
 INSERT INTO "songs" VALUES('sc_青空','青空','あおぞら','sc','unit','2024-01-31',NULL,'渡辺徹(Blue Bird''s Nest)','秋浦智裕(onetrap)','渡辺徹(Blue Bird''s Nest)','THE IDOLM@STER SHINY COLORS Song for Prism ハナムケのハナタバ / 青空【ノクチル盤】 - EP',NULL,'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/6d/bd/e7/6dbde767-fc8b-7df6-cc89-8375563587f5/4540774245260.jpg/600x600bb.jpg','https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/4f/23/7c/4f237ce0-f8d1-e66c-03e9-412d14952033/mzaf_5785781939641208642.plus.aac.p.m4a','1737148869','1737148868','','https://www.uta-net.com/song/352570/',NULL,'ノクチル（浅倉透、樋口円香、福丸小糸、市川雛菜）','ノクチル','unit_ノクチル','Song for Prism',NULL,NULL,NULL,0,0,NULL,'2024-02-08',NULL,NULL);
+INSERT INTO "songs" VALUES('gakuen_アンバランス','アンバランス','あんばらんす','gakuen','unit','',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'乖轟','unit_乖轟',NULL,NULL,NULL,NULL,0,0,NULL,NULL,NULL,NULL);
+INSERT INTO "songs" VALUES('gakuen_慟哭のコンチェルト','慟哭のコンチェルト','どうこくのこんちぇると','gakuen','unit','2026-11-08',NULL,'Neuron (Empty old City)','Neuron (Empty old City)','Neuron (Empty old City)',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,0,0,NULL,'2026-11-08',NULL,NULL);
 CREATE TABLE staff (
     id TEXT PRIMARY KEY NOT NULL,
     brand_id TEXT NOT NULL REFERENCES brands(id),
@@ -121109,12 +121269,6 @@ INSERT INTO "ticket_sales" VALUES('ts_24733c23cbcf','ev_the_idolm@ster_cinderell
 INSERT INTO "ticket_sales" VALUES('ts_c0ad5270019d','ev_the_idolm@ster_cinderella_girls_15th_anniversary_orchestra_concert_~_シンデレラの演奏会_~',NULL,'lottery','アソビストアプレミアム会員先行','2026-09-16 12:00','2026-09-27 23:59','2026-10-08 13:00','https://asobiticket2.asobistore.jp/receptions/c8ebec95-7950-4db1-8177-05e72fe230d2','アソビストアプレミアム12ヶ月会員限定。1公演2枚まで(複数公演申込可)。入金期間10/8 13:00〜10/12 23:59。対象席種はS席スペシャルシート/A席全席指定。','https://idolmaster-official.jp/live_event/cg_15th_orchestra/ticket/',0);
 INSERT INTO "ticket_sales" VALUES('ts_9019da745cdd','ev_the_idolm@ster_cinderella_girls_15th_anniversary_orchestra_concert_~_シンデレラの演奏会_~',NULL,'lottery','アソビストアプレミアム会員2次先行','2026-10-14 12:00','2026-10-25 23:59','2026-11-07 13:00','https://asobiticket2.asobistore.jp/receptions/3fe939f3-266b-41cb-98b5-54f64d0c4e7b','1公演2枚まで(複数公演申込可)。入金期間11/7 13:00〜11/11 23:59。対象席種はS席スペシャルシート/A席全席指定。','https://idolmaster-official.jp/news/01_20141.html',1);
 INSERT INTO "ticket_sales" VALUES('ts_d72fcf728ae6','ev_project_imas_valiv_3rdlive_meeting_qonnect_as_one',NULL,'lottery','現地チケット アソビストア一般会員先行抽選','2026-10-17 21:30','2026-11-15 23:59','2026-11-28 13:00','https://asobiticket2.asobistore.jp/receptions/a911b189-ae4a-4bc6-9f15-729201d4ff7c','入金 11/28 13:00〜12/2 23:59。各公演 2 枚まで・複数公演申込可。早期限定のグッズ付きチケットあり','https://idolmaster-official.jp/news/01_20181',0);
-INSERT INTO "ticket_sales" VALUES('ts_48b5806a7332','ev_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final',NULL,'lottery','アソビストア一般会員2次先行','2026-09-05 12:00','2026-09-23 23:59','2026-10-10 13:00','https://asobiticket2.asobistore.jp/receptions/57f8ab06-d65f-4e81-a0d3-c0180baef8fb','対象席種は全席指定席のみ(14,000円)。入金期間10/10 13:00〜10/14 23:59。顔写真登録による本人確認のため手数料220円/枚が必要。','https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ticket/final.php',0);
-INSERT INTO "ticket_sales" VALUES('ts_216510a72da3','ev_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final',NULL,'lottery','アソビストア一般会員先行','2026-07-15 12:00','2026-07-26 23:59','2026-08-11 13:00','https://asobiticket2.asobistore.jp/receptions/ed8e612d-5681-44bb-ae9e-3623a176908f','1公演2枚まで(複数公演申込可)。入金期間8/11 13:00〜8/16 23:59。顔写真登録による本人確認のため手数料220円/枚が必要。','https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ticket/final.php',1);
-INSERT INTO "ticket_sales" VALUES('ts_99f7ed1b0763','ev_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final',NULL,'lottery','アソビストアプレミアム会員先行','2026-06-07 20:00','2026-06-21 23:59','2026-07-09 13:00','https://asobiticket2.asobistore.jp/receptions/2ca65ad7-142f-4363-b0a1-62a165a40808','アソビストアプレミアム12ヶ月会員限定。1公演2枚まで(複数公演申込可)。入金期間7/9 13:00〜7/13 23:59。手数料220円/枚。','https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ticket/final.php',2);
-INSERT INTO "ticket_sales" VALUES('ts_4b657ac553e8','ev_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','resale','公式リセール(11月7日(土)公演)','2026-10-20 20:00','2026-10-28 09:59',NULL,'https://asobiticket2.asobistore.jp/receptions/020245bc-d81a-4f98-98f7-8d24f6eda837','ASOBI TICKET公式リセール（定価仲介）。10月26日0:00以降の支払いはクレジットカードのみ。一般販売の実施なし。顔認証手数料220円/枚。','https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ticket/final.php',3);
-INSERT INTO "ticket_sales" VALUES('ts_7d26cc21a159','ev_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_2','resale','公式リセール(11月8日(日)公演)','2026-10-20 20:00','2026-10-28 09:59',NULL,'https://asobiticket2.asobistore.jp/receptions/03f82da5-8b3f-4886-a7b2-11734211d30f','ASOBI TICKET公式リセール（定価仲介）。10月26日0:00以降の支払いはクレジットカードのみ。一般販売の実施なし。顔認証手数料220円/枚。','https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ticket/final.php',4);
-INSERT INTO "ticket_sales" VALUES('ts_e9beaea2cba6','ev_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final',NULL,'first_come','配信チケット','2026-10-20','2026-11-23',NULL,'https://asobistage.asobistore.jp/event/gakuen_shirube_final/ticket','ASOBI STAGE 両日視聴チケット13,000円／DAY1視聴チケット6,500円／DAY2視聴チケット6,500円（各税込・機能利用料込）。プレゼント用視聴チケットあり。','https://asobistage.asobistore.jp/event/gakuen_shirube_final/ticket',5);
 INSERT INTO "ticket_sales" VALUES('ts_60f9c61ffc58','ev_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~',NULL,'lottery','アソビストアプレミアム会員先行(SP席)','2026-09-01 20:00','2026-09-13 23:59','2026-09-26 13:00','https://asobiticket2.asobistore.jp/receptions/1f33ff81-6571-4ff0-b49e-14fa7ecfb302','「アソビストアプレミアム12か月会員」限定。お一人様1公演につき2枚まで（複数公演申込可）。入金期間は2026年9月26日13:00〜9月30日23:59。','https://idolmaster-official.jp/live_event/sidem_fbfes_wsi/ticket/',0);
 INSERT INTO "ticket_sales" VALUES('ts_7f81030d19af','ev_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~',NULL,'lottery','アソビストアプレミアム会員先行(S席・A席)','2026-09-01 20:00','2026-09-13 23:59','2026-09-26 13:00','https://asobiticket2.asobistore.jp/receptions/a599e298-bd18-4d98-93b8-bcefa9a75fd7','「アソビストアプレミアム12か月会員」限定。お一人様1公演につき4枚まで（複数公演申込可）。入金期間は2026年9月26日13:00〜9月30日23:59。','https://idolmaster-official.jp/live_event/sidem_fbfes_wsi/ticket/',1);
 INSERT INTO "ticket_sales" VALUES('ts_6864ca2b9d86','ev_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~',NULL,'lottery','アソビストアプレミアム会員2次先行(SP席)','2026-10-02 12:00','2026-10-12 23:59','2026-10-23 13:00','https://asobiticket2.asobistore.jp/receptions/126b89b5-a21d-4482-9f12-21b526012d76','お一人様1公演につき2枚まで（複数公演申込可）。入金期間は2026年10月23日13:00〜10月27日23:59。','https://idolmaster-official.jp/news/01_20039',2);
@@ -121140,6 +121294,12 @@ INSERT INTO "ticket_sales" VALUES('ts_6017dd33d44a','ev_athome_xr_live_apple_of_
 INSERT INTO "ticket_sales" VALUES('ts_828ca8ddc14b','ev_athome_xr_live_apple_of_my_アイ',NULL,'lottery','アソビストア一般会員先行','2026-11-02 12:00','2026-11-15 23:59','2026-11-28 13:00','https://asobiticket2.asobistore.jp/receptions/c229a53c-ea41-4007-b747-57dbaa7f6724','受付対象: 現地チケット 全席指定 9,800円・【特典付き】現地+xRライブストリーミングセット 15,000円・各 3公演通し券。スペシャル特典付きは対象外。入金 11/28 13:00〜12/2 23:59。1公演2枚まで','https://idolmaster-official.jp/news/01_20265',1);
 INSERT INTO "ticket_sales" VALUES('ts_6979d5461c29','ev_the_idolm@ster_sidem_producer_meeting_~ajewelholic_~',NULL,'lottery','アソビストアプレミアム会員先行','2026-09-12 21:00','2026-10-04 23:59','2026-10-17 13:00','https://asobiticket2.asobistore.jp/receptions/24aba7f8-77de-43d3-8af4-2f2fdf5d082a','「アソビストアプレミアム12か月会員」限定。お一人様1公演につき4枚まで（複数公演申込可）。入金期間は2026年10月17日13:00〜10月21日23:59。','https://idolmaster-official.jp/live_event/sidem_pm2027/ticket/',0);
 INSERT INTO "ticket_sales" VALUES('ts_f01bf147e864','ev_the_idolm@ster_sidem_producer_meeting_~ajewelholic_~',NULL,'lottery','アソビストアプレミアム会員2次先行','2026-11-05 12:00','2026-11-26 23:59','2026-12-10 13:00','https://asobiticket2.asobistore.jp/receptions/80a8a372-e672-4f71-87c1-c80e48135632','「アソビストアプレミアム12か月会員」限定。お一人様1公演につき4枚まで（複数公演申込可）。入金期間は2026年12月10日13:00〜12月14日23:59。','https://idolmaster-official.jp/live_event/sidem_pm2027/ticket/',2);
+INSERT INTO "ticket_sales" VALUES('ts_48b5806a7332','ev_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final',NULL,'lottery','アソビストア一般会員2次先行','2026-09-05 12:00','2026-09-23 23:59','2026-10-10 13:00','https://asobiticket2.asobistore.jp/receptions/57f8ab06-d65f-4e81-a0d3-c0180baef8fb','対象席種は全席指定席のみ(14,000円)。入金期間10/10 13:00〜10/14 23:59。顔写真登録による本人確認のため手数料220円/枚が必要。','https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ticket/final.php',0);
+INSERT INTO "ticket_sales" VALUES('ts_216510a72da3','ev_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final',NULL,'lottery','アソビストア一般会員先行','2026-07-15 12:00','2026-07-26 23:59','2026-08-11 13:00','https://asobiticket2.asobistore.jp/receptions/ed8e612d-5681-44bb-ae9e-3623a176908f','1公演2枚まで(複数公演申込可)。入金期間8/11 13:00〜8/16 23:59。顔写真登録による本人確認のため手数料220円/枚が必要。','https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ticket/final.php',1);
+INSERT INTO "ticket_sales" VALUES('ts_99f7ed1b0763','ev_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final',NULL,'lottery','アソビストアプレミアム会員先行','2026-06-07 20:00','2026-06-21 23:59','2026-07-09 13:00','https://asobiticket2.asobistore.jp/receptions/2ca65ad7-142f-4363-b0a1-62a165a40808','アソビストアプレミアム12ヶ月会員限定。1公演2枚まで(複数公演申込可)。入金期間7/9 13:00〜7/13 23:59。手数料220円/枚。','https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ticket/final.php',2);
+INSERT INTO "ticket_sales" VALUES('ts_4b657ac553e8','ev_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','resale','公式リセール(11月7日(土)公演)','2026-10-20 20:00','2026-10-28 09:59',NULL,'https://asobiticket2.asobistore.jp/receptions/020245bc-d81a-4f98-98f7-8d24f6eda837','ASOBI TICKET公式リセール（定価仲介）。10月26日0:00以降の支払いはクレジットカードのみ。一般販売の実施なし。顔認証手数料220円/枚。','https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ticket/final.php',3);
+INSERT INTO "ticket_sales" VALUES('ts_7d26cc21a159','ev_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_2','resale','公式リセール(11月8日(日)公演)','2026-10-20 20:00','2026-10-28 09:59',NULL,'https://asobiticket2.asobistore.jp/receptions/03f82da5-8b3f-4886-a7b2-11734211d30f','ASOBI TICKET公式リセール（定価仲介）。10月26日0:00以降の支払いはクレジットカードのみ。一般販売の実施なし。顔認証手数料220円/枚。','https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ticket/final.php',4);
+INSERT INTO "ticket_sales" VALUES('ts_e9beaea2cba6','ev_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final',NULL,'first_come','配信チケット','2026-10-20 20:00','2026-11-23 18:00',NULL,'https://asobistage.asobistore.jp/event/gakuen_shirube_final/ticket','ASOBI STAGE 両日視聴チケット13,000円／DAY1視聴チケット6,500円／DAY2視聴チケット6,500円（各税込・機能利用料込）。プレゼント用視聴チケットあり。','https://asobistage.asobistore.jp/event/gakuen_shirube_final/ticket',5);
 CREATE TABLE unit_members (unit_id TEXT NOT NULL, idol_id TEXT NOT NULL, PRIMARY KEY (unit_id, idol_id));
 INSERT INTO "unit_members" VALUES('オリジナル_カラーズ_feat_和','cg_成宮由愛');
 INSERT INTO "unit_members" VALUES('オリジナル_カラーズ_feat_和','cg_的場梨沙');
@@ -126413,6 +126573,8 @@ INSERT INTO "unit_members" VALUES('unit_765_million_allstars','765as_秋月律�
 INSERT INTO "unit_members" VALUES('unit_765_million_allstars','765as_菊地真');
 INSERT INTO "unit_members" VALUES('unit_765_million_allstars','765as_萩原雪歩');
 INSERT INTO "unit_members" VALUES('unit_765_million_allstars','765as_高槻やよい');
+INSERT INTO "unit_members" VALUES('unit_乖轟','gakuen_雨夜燕');
+INSERT INTO "unit_members" VALUES('unit_乖轟','gakuen_有村麻央');
 CREATE TABLE unit_versions (
             id TEXT PRIMARY KEY NOT NULL, unit_id TEXT NOT NULL, code TEXT,
             name TEXT NOT NULL, catchphrase TEXT, logo_url TEXT,
@@ -127960,6 +128122,7 @@ INSERT INTO "units" VALUES('unit_315_stars','sidem','315 STARS',0,NULL,NULL);
 INSERT INTO "units" VALUES('unit_315_starsインテリ_ver','sidem','315 STARS (インテリ Ver.)',0,NULL,NULL);
 INSERT INTO "units" VALUES('unit_315_starsフィジカルver','sidem','315 STARS (フィジカル Ver.)',0,NULL,NULL);
 INSERT INTO "units" VALUES('unit_315_starsメンタル_ver','sidem','315 STARS (メンタル Ver.)',0,NULL,NULL);
+INSERT INTO "units" VALUES('unit_乖轟','gakuen','乖轟',1,'',NULL);
 CREATE TABLE venue_halls (
             id TEXT PRIMARY KEY NOT NULL, venue_id TEXT NOT NULL, name TEXT NOT NULL,
             capacity INTEGER
