@@ -386,6 +386,8 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_performer_label,
     uniffi_imas_core_checksum_func_choose_full_playback,
     uniffi_imas_core_checksum_func_full_playback_options,
+    uniffi_imas_core_checksum_func_full_playback_failed_note,
+    uniffi_imas_core_checksum_func_apple_music_unavailable_notice,
     uniffi_imas_core_checksum_func_spotify_check_client_id,
     uniffi_imas_core_checksum_func_spotify_pick_device,
     uniffi_imas_core_checksum_func_spotify_position_now,
