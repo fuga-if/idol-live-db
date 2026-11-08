@@ -611,13 +611,17 @@ pub fn songs_by_release_year(snap: &Snapshot, year: &str) -> Vec<u32> {
 /// `"2024"` / `"2024-05"` のような粗い境界もそのまま「その年/その月ぜんぶ」を含む
 /// (日付側を境界の長さに切ってから比べる)。
 ///
-/// release_date を持たない曲は範囲に入れようがないので必ず落とす
-/// (「未定」を「古い」とも「新しい」とも読ませない)。
+/// release_date を持たない曲 (NULL も空文字も) は範囲に入れようがないので必ず落とす
+/// (「未定」を「古い」とも「新しい」とも読ませない)。空文字は配信日未発表の新曲が
+/// 持ちうる値で、前方比較だと 0 文字で「等しい」になりどの範囲にも入ってしまう。
 /// 並びは criterion 系と同じ (release_date ASC, title_kana ASC)。
 pub fn songs_in_release_range(snap: &Snapshot, from: Option<&str>, to: Option<&str>) -> Vec<u32> {
     let indexes = (0..snap.songs.len() as u32)
         .filter(|&i| {
-            let Some(date) = snap.songs[i as usize].release_date.as_deref() else { return false };
+            let Some(date) = snap.songs[i as usize].release_date.as_deref().filter(|d| !d.is_empty())
+            else {
+                return false;
+            };
             from.is_none_or(|b| bound_cmp(date, b) != Ordering::Less)
                 && to.is_none_or(|b| bound_cmp(date, b) != Ordering::Greater)
         })
@@ -730,6 +734,28 @@ mod tests {
             ..SongListFilter::default()
         };
         assert_eq!(filter_song_indexes(snap, &blank), all);
+    }
+
+    /// リリース日の範囲は、日付を持たない曲 (NULL・空文字) を境界の粗さに関わらず落とす。
+    /// 空文字は前方比較で 0 文字が「等しい」になり、どの範囲にも入る穴があった。
+    #[test]
+    fn release_range_drops_songs_without_a_date() {
+        let snap = bundle_snapshot();
+        let undated: Vec<u32> = (0..snap.songs.len() as u32)
+            .filter(|&i| snap.songs[i as usize].release_date.as_deref().is_none_or(str::is_empty))
+            .collect();
+        assert!(!undated.is_empty(), "日付の無い曲が同梱 DB に 1 曲も無い");
+        for (from, to) in [(Some("2024"), Some("2024")), (None, Some("2030")), (Some("1900"), None)] {
+            let hit = songs_in_release_range(snap, from, to);
+            for i in &undated {
+                assert!(!hit.contains(i), "{from:?}..{to:?} に日付の無い曲が入った: {}", snap.songs[*i as usize].id);
+            }
+            for i in &hit {
+                let date = snap.songs[*i as usize].release_date.as_deref().unwrap_or("");
+                if let Some(b) = from { assert!(date >= b, "{date} < {b}"); }
+                if let Some(b) = to { assert!(date.starts_with(b) || date <= b, "{date} > {b}"); }
+            }
+        }
     }
 
     /// Swift `String.likeEscaped` の写経 (テスト側で元 SQL を組むのに使う)。
