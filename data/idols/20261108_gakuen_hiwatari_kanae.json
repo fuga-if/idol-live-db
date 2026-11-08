@@ -1,0 +1,26 @@
+{
+ "title": "学マス: 氷渡香名江を追加 (11/16 プロデュース開始)",
+ "author": "Claude (fuga の依頼)",
+ "source": [
+  "https://idolmaster-official.jp/news/01_20238",
+  "https://idolmaster-official.jp/news/01_20321",
+  "https://news.denfaminicogamer.jp/news/261108a"
+ ],
+ "_note": "標ツアー ファイナル DAY2 (2026-11-08) で実装決定。公式の文言は「お嬢様を支えるメイド、氷渡香名江」「11月16日よりプロデュース開始」、ローマ字は Hiwatari Kanae。CV は電ファミの記事。誕生日・身長・学年・イメージカラーは公式に未公開なので空 (11/15 の生配信で出たら fixes で埋める)。debut_date は他の学マスの子と同じくプロデュース開始日。",
+ "idols": [
+  {
+   "id": "gakuen_氷渡香名江",
+   "brand_id": "gakuen",
+   "name": "氷渡香名江",
+   "name_kana": "ひわたりかなえ",
+   "family_name": "氷渡",
+   "given_name": "香名江",
+   "sort_order": 8018,
+   "gender": "female",
+   "debut_date": "2026-11-16",
+   "description": "倉本家に仕えるメイドで、倉本千奈の近侍。真面目で献身的な努力家で、主を中心に物事を考えており、自分自身の気持ちにはひどく鈍い。",
+   "voice_actors": ["安倍彩野夏"],
+   "brands": [{"brand_id": "gakuen", "is_primary": 1}]
+  }
+ ]
+}
