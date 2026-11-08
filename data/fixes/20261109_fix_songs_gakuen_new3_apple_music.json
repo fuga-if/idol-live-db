@@ -1,0 +1,45 @@
+{
+ "title": "学マス新曲 3 曲 (濡羽色の薄明・クロスファイア・FANTASTIC GATHERING!) の配信開始に伴う apple_music_id / artwork_url / preview_url の補完",
+ "author": "claude (thread 新曲の配信情報を0時に取り込む)",
+ "_help": "2026-11-09 0:00 JST にサブスク配信開始。0:05 JST 時点で iTunes Lookup で trackName・artistName・isStreamable=true を確認して補完。曲自体は f9541dd で登録済み",
+ "source": [
+  "https://itunes.apple.com/lookup?id=6829641408&country=jp (濡羽色の薄明 / 初星学園 & 雨夜 燕 / 濡羽色の薄明 - Single 6829641406 / isStreamable=true)",
+  "https://itunes.apple.com/lookup?id=6829641432&country=jp (クロスファイア / 初星学園, 花海咲季 & 花海佑芽 / クロスファイア - Single 6829640973 / isStreamable=true)",
+  "https://itunes.apple.com/lookup?id=6828257363&country=jp (FANTASTIC GATHERING! / 初星学園, 藤田ことね & 十王星南 / FANTASTIC GATHERING! - Single 6828257360 / isStreamable=true)"
+ ],
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "gakuen_濡羽色の薄明",
+   "fields": {
+    "apple_music_id": "6829641408",
+    "apple_music_album_id": "6829641406",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/cb/5f/08/cb5f080b-5258-aa8c-4bef-398e960761c6/PA00241406_0_257889_jacket.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/e2/eb/79/e2eb794b-e111-3acb-2c42-67dccfeb2807/mzaf_9602906898653853019.plus.aac.p.m4a"
+   },
+   "note": "Instrumental は入れない"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_クロスファイア",
+   "fields": {
+    "apple_music_id": "6829641432",
+    "apple_music_album_id": "6829640973",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/08/4c/41/084c41e8-00e5-05bf-de89-b6abf328ddcd/PA00241405_0_257894_jacket.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/e4/70/a8/e470a865-7bf4-b5fc-caf2-a28201138b98/mzaf_13311665775087970713.plus.aac.p.m4a"
+   },
+   "note": "Instrumental は入れない"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_fantastic_gathering",
+   "fields": {
+    "apple_music_id": "6828257363",
+    "apple_music_album_id": "6828257360",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/17/d2/ec/17d2ec6d-4375-4aff-5c63-564840a7df0a/PA00241404_0_257891_jacket.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/3c/40/be/3c40be35-f2bc-3942-f966-e33dcb4f297a/mzaf_13193355537319805453.plus.aac.p.m4a"
+   },
+   "note": "Instrumental は入れない"
+  }
+ ]
+}
