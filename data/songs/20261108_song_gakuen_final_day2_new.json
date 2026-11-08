@@ -1,0 +1,55 @@
+{
+ "title": "曲「濡羽色の薄明」「クロスファイア」「FANTASTIC GATHERING!」(gakuen) の追加",
+ "author": "Claude",
+ "source": "https://idolmaster-official.jp/news/01_20238.html",
+ "note": "出典: 公式ニュース (ファイナル公演 DAY2 告知まとめ)。引用: \"本日のLIVE TOUR -標- ファイナル day2にて、新曲をサプライズ披露しました！ 楽曲はこのあと、11月9日(月)0時より配信スタート！ 💿濡羽色の薄明 作詞：モリタコータ 作曲・編曲：加藤冴人 / 💿クロスファイア 作詞・作曲・編曲：STEAKA / 💿FANTASTIC GATHERING! 作詞：Funk Uchino 作曲：Funk Uchino, SILLY TEMBA, BLOCKYYY 編曲：SILLY TEMBA, Funk Uchino\"。セットリスト画像で 13 濡羽色の薄明 = 天音ゆかり (雨夜燕)、23 クロスファイア = 長月あおい/松田彩音 (花海咲季/花海佑芽)、16 FANTASTIC GATHERING! = 飯田ヒカル/陽高真白 (藤田ことね/十王星南)。",
+ "songs": [
+  {
+   "id": "gakuen_濡羽色の薄明",
+   "title": "濡羽色の薄明",
+   "title_kana": "ぬればいろのはくめい",
+   "brand_id": "gakuen",
+   "song_type": "solo",
+   "release_date": "2026-11-09",
+   "streaming_date": "2026-11-09",
+   "composer": "加藤冴人",
+   "lyricist": "モリタコータ",
+   "arranger": "加藤冴人",
+   "original_singers": [
+    "gakuen_雨夜燕"
+   ]
+  },
+  {
+   "id": "gakuen_クロスファイア",
+   "title": "クロスファイア",
+   "title_kana": "くろすふぁいあ",
+   "brand_id": "gakuen",
+   "song_type": "unit",
+   "release_date": "2026-11-09",
+   "streaming_date": "2026-11-09",
+   "composer": "STEAKA",
+   "lyricist": "STEAKA",
+   "arranger": "STEAKA",
+   "original_singers": [
+    "gakuen_花海咲季",
+    "gakuen_花海佑芽"
+   ]
+  },
+  {
+   "id": "gakuen_fantastic_gathering",
+   "title": "FANTASTIC GATHERING!",
+   "title_kana": "ふぁんたすてぃっくぎゃざりんぐ",
+   "brand_id": "gakuen",
+   "song_type": "unit",
+   "release_date": "2026-11-09",
+   "streaming_date": "2026-11-09",
+   "composer": "Funk Uchino, SILLY TEMBA, BLOCKYYY",
+   "lyricist": "Funk Uchino",
+   "arranger": "SILLY TEMBA, Funk Uchino",
+   "original_singers": [
+    "gakuen_藤田ことね",
+    "gakuen_十王星南"
+   ]
+  }
+ ]
+}
