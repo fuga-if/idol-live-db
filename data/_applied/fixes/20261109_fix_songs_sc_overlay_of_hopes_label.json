@@ -1,0 +1,17 @@
+{
+ "title": "OVERLAY OF HOPES (sc_overlay_of_hopes) の歌唱者名義・ユニット名・試聴 URL を既存の全体曲に揃える",
+ "author": "daily-data-crawl",
+ "source": "https://itunes.apple.com/lookup?id=6820421590&country=jp (previewUrl) / derived:sc_borderline の unit_name・singer_label (同じ 28 人の全体曲)",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "sc_overlay_of_hopes",
+   "fields": {
+    "unit_name": "シャイニーカラーズ",
+    "singer_label": "シャイニーカラーズ（櫻木真乃、風野灯織、八宮めぐる、月岡恋鐘、田中摩美々、白瀬咲耶、三峰結華、幽谷霧子、小宮果穂、園田智代子、西城樹里、杜野凛世、有栖川夏葉、大崎甘奈、大崎甜花、桑山千雪、芹沢あさひ、黛冬優子、和泉愛依、浅倉透、樋口円香、福丸小糸、市川雛菜、七草にちか、緋田美琴、斑鳩ルカ、鈴木羽那、郁田はるき）",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/07/35/72/073572f6-9d05-0f67-2718-8235ce3492ff/mzaf_1582652614388141851.plus.aac.p.m4a"
+   },
+   "note": "投入時に unit_id だけで入れたため空だった列。原唱者 28 行は data/_applied/manual/20261109_sc_overlay_of_hopes_original_artists.sql"
+  }
+ ]
+}

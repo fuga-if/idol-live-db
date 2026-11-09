@@ -1,0 +1,12 @@
+{
+ "title": "学マス 4 曲 (慟哭のコンチェルト / 濡羽色の薄明 / クロスファイア / FANTASTIC GATHERING!) の cd_series を iTunes のアルバム名で埋める (daily-data-crawl 2026-11-09)",
+ "author": "daily-data-crawl",
+ "source": "https://itunes.apple.com/lookup?id=6828762268,6829641406,6829640973,6828257360&country=jp",
+ "_note": "fill_artwork_urls.py --apply が apple_music_album_id から cd_series (空欄のみ) を補完。apple_music_id / artwork_url は前日・当日の fix で入っていて変更なし。sync_song_apple_music.py --env production --ids で 4 行 push 済み",
+ "fixes": [
+  {"table": "songs", "id": "gakuen_慟哭のコンチェルト", "fields": {"cd_series": "慟哭のコンチェルト - Single"}},
+  {"table": "songs", "id": "gakuen_濡羽色の薄明", "fields": {"cd_series": "濡羽色の薄明 - Single"}},
+  {"table": "songs", "id": "gakuen_クロスファイア", "fields": {"cd_series": "クロスファイア - Single"}},
+  {"table": "songs", "id": "gakuen_fantastic_gathering", "fields": {"cd_series": "FANTASTIC GATHERING! - Single"}}
+ ]
+}

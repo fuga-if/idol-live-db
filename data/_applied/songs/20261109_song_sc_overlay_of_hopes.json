@@ -1,0 +1,27 @@
+{
+ "title": "曲「OVERLAY OF HOPES」(sc・シャニソン 3 周年記念の新全体曲) の追加",
+ "author": "daily-data-crawl",
+ "source": "https://x.com/imassc_prism/status/2116365040144027788 (シャニソン公式: 2026-10-31 ライブ楽曲に追加) / https://x.com/imassc_prism/status/2113593234899554476 (新全体曲として発表) / https://itunes.apple.com/lookup?id=6820421590&country=jp (シャイニーカラーズ / OVERLAY OF HOPES - Single / 2026-11-07 / ℗ 2026 Lantis / isStreamable=true) / https://music.apple.com/jp/album/overlay-of-hopes-single/6820421589 (composer 篠崎あやと & 橘 亮祐)",
+ "note": "シャニソン 3 周年記念イベントの新全体曲。2026-10-31 12:00 にゲームのライブ楽曲として追加 (初出)、2026-11-07 にサブスク配信開始。作詞 松井洋平 / 作曲・編曲 篠崎あやと、橘亮祐 は Lantis の配信告知の記載 (Apple Music のクレジットで作曲者は一致)。歌唱は 28 人全員 (歌い分けモード対応)。",
+ "songs": [
+  {
+   "id": "sc_overlay_of_hopes",
+   "title": "OVERLAY OF HOPES",
+   "title_kana": "おーばーれいおぶほーぷす",
+   "brand_id": "sc",
+   "song_type": "all",
+   "unit_id": "unit_シャイニーカラーズ",
+   "release_date": "2026-10-31",
+   "streaming_date": "2026-11-07",
+   "first_appearance_note": "シャニソン 3周年記念 新全体曲 (ライブ楽曲に追加)",
+   "lyricist": "松井洋平",
+   "composer": "篠崎あやと、橘亮祐",
+   "arranger": "篠崎あやと、橘亮祐",
+   "cd_series": "OVERLAY OF HOPES - Single",
+   "apple_music_id": "6820421590",
+   "apple_music_album_id": "6820421589",
+   "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/cf/94/2a/cf942a8a-5ad7-b8a3-3edf-731dd7cb532a/4540774750832.png/600x600bb.jpg",
+   "note": "シャニソン 3周年記念の新全体曲"
+  }
+ ]
+}
