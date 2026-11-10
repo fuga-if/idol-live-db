@@ -1,0 +1,80 @@
+{
+ "title": "ミリシタの曲 3 曲 (ハピピス♡ / BLACK LIPS / INVISIBLE LIGHT) の追加",
+ "author": "claude",
+ "source": "Apple Music lookup id=6816884061 (album 6816884059「ハピピス♡ - Single」2026-10-27) / id=6785366952 (album 6785366951「BLACK LIPS - Single」2026-07-28) / 実装日はファンの曲一覧 (https://music765plus.com/全曲一覧: ハピピス♡ 2026/10/18 ミリシタイベント) と pixiv 百科 (https://dic.pixiv.net/a/BLACK_LIPS: プラチナスターツアービンゴ ~BLACK LIPS~ 2026-07-19 開始)。作詞・作曲・編曲は公式の記載を確認できず空欄 / INVISIBLE LIGHT: Apple Music lookup id=6817192902 (album 6817192901「THE IDOLM@STER MILLION BATTLE OF THE@TER 10 INVISIBLE LIGHT - Single」2026-10-28 配信、曲の releaseDate は 2026-06-25 でミリシタ実装日と見て初出に使う)",
+ "songs": [
+  {
+   "id": "ml_ハピピス",
+   "title": "ハピピス♡",
+   "title_kana": "はぴぴす",
+   "brand_id": "ml",
+   "song_type": "unit",
+   "release_date": "2026-10-18",
+   "streaming_date": "2026-10-27",
+   "cd_series": "ハピピス♡ - Single",
+   "singer_label": "佐竹美奈子、島原エレナ、篠宮可憐、真壁瑞希",
+   "duration_sec": 202,
+   "apple_music_id": "6816884061",
+   "apple_music_album_id": "6816884059",
+   "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/86/b9/9f/86b99f4f-d792-a834-e1a2-96571522f2a9/4540774750887.png/600x600bb.jpg",
+   "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/ce/04/17/ce0417a7-e3dd-1865-2a79-02b95494d4af/mzaf_2804729167809507288.plus.aac.p.m4a",
+   "first_appearance_note": "ミリシタ イベント (2026-10-18) にて実装",
+   "original_singers": [
+    "ml_佐竹美奈子",
+    "ml_島原エレナ",
+    "ml_篠宮可憐",
+    "ml_真壁瑞希"
+   ]
+  },
+  {
+   "id": "ml_blacklips",
+   "title": "BLACK LIPS",
+   "title_kana": "ぶらっくりっぷす",
+   "brand_id": "ml",
+   "song_type": "unit",
+   "release_date": "2026-07-19",
+   "streaming_date": "2026-07-28",
+   "cd_series": "BLACK LIPS - Single",
+   "singer_label": "天空橋朋花、篠宮可憐、菊地真、桜守歌織、徳川まつり、舞浜歩",
+   "duration_sec": 207,
+   "apple_music_id": "6785366952",
+   "apple_music_album_id": "6785366951",
+   "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/0e/08/a9/0e08a90e-9093-4c9f-c6f0-fc0d929649a6/4540774749485.png/600x600bb.jpg",
+   "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/e1/eb/d8/e1ebd88a-79fa-b351-f9d9-074ee0881b02/mzaf_1078563913183675725.plus.aac.p.m4a",
+   "first_appearance_note": "ミリシタ イベント「プラチナスターツアービンゴ ～BLACK LIPS～」(2026-07-19) にて実装",
+   "original_singers": [
+    "ml_天空橋朋花",
+    "ml_篠宮可憐",
+    "765as_菊地真",
+    "ml_桜守歌織",
+    "ml_徳川まつり",
+    "ml_舞浜歩"
+   ]
+  },
+  {
+   "id": "ml_invisible_light",
+   "title": "INVISIBLE LIGHT",
+   "title_kana": "いんびじぶるらいと",
+   "brand_id": "ml",
+   "song_type": "unit",
+   "release_date": "2026-06-25",
+   "streaming_date": "2026-10-28",
+   "cd_series": "THE IDOLM@STER MILLION BATTLE OF THE@TER 10 INVISIBLE LIGHT - Single",
+   "singer_label": "伊吹翼、福田のり子、天海春香、秋月律子、北沢志保、箱崎星梨花",
+   "duration_sec": 254,
+   "apple_music_id": "6817192902",
+   "apple_music_album_id": "6817192901",
+   "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/d8/00/e0/d800e0f1-e0a2-8909-493c-614f3876bcad/4540774252909.png/600x600bb.jpg",
+   "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/a9/e1/b0/a9e1b012-6731-b55d-33a7-302e9e5dae37/mzaf_2114292217055797854.plus.aac.p.m4a",
+   "first_appearance_note": "ミリシタ MILLION BATTLE OF THE@TER にて実装",
+   "original_singers": [
+    "ml_伊吹翼",
+    "ml_福田のり子",
+    "765as_天海春香",
+    "765as_秋月律子",
+    "ml_北沢志保",
+    "ml_箱崎星梨花"
+   ]
+  }
+ ]
+}
