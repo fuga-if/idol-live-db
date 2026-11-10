@@ -1,0 +1,26 @@
+{
+ "title": "MIKI HOSHII SOLO SHOWCASE「THE FUTURE SPOTLIGHT」in ANIMONIUM 2027 の追加",
+ "author": "daily-data-crawl",
+ "source": "https://idolmaster-official.jp/news/01_20319.html",
+ "events": [
+  {
+   "id": "ev_miki_hoshii_solo_showcase_the_future_spotlight_in_animonium_2027",
+   "brand_id": "765as",
+   "name": "MIKI HOSHII SOLO SHOWCASE「THE FUTURE SPOTLIGHT」in ANIMONIUM 2027",
+   "event_type": "live",
+   "kind": "live",
+   "is_streaming": 0,
+   "is_solo": 0,
+   "shows": [
+    {
+     "id": "sh_miki_hoshii_solo_showcase_the_future_spotlight_in_animonium_2027_1",
+     "name": "MIKI HOSHII SOLO SHOWCASE「THE FUTURE SPOTLIGHT」in ANIMONIUM 2027",
+     "date": "2027-02-14",
+     "venue": "サイアム・パラゴン パラゴンホール (タイ)",
+     "venue_city": "バンコク",
+     "sort_order": 0
+    }
+   ]
+  }
+ ]
+}
