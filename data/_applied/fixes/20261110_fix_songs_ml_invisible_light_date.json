@@ -1,0 +1,1 @@
+{"title": "INVISIBLE LIGHT の初出日をミリシタ実装日 (2026-06-16) に直す", "author": "claude", "source": "アイドルマスター楽曲メモのオリジナル曲一覧 (https://music765plus.com/アイドルマスター_オリジナル曲一覧): INVISIBLE LIGHT 2026/06/16 ミリシタイベント。追加時は Apple Music の曲の releaseDate (2026-06-25) を仮に入れていた", "fixes": [{"table": "songs", "id": "ml_invisible_light", "fields": {"release_date": "2026-06-16"}}]}
