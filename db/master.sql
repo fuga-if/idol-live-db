@@ -1909,6 +1909,7 @@ INSERT INTO "events" VALUES('ev_project_ims_vα-liv_2ndlive_-beyond_the_custom_-
 INSERT INTO "events" VALUES('ev_the_idolm@ster_20th_anniversary_new_year_meeting_dj_party@tokyo','765as','THE IDOLM@STER 20th ANNIVERSARY NEW YEAR MEETING & DJ PARTY@TOKYO','',0,0,'live',NULL,NULL,'https://idolmaster-official.jp/live_event/newyear2026/','cg,ml,sidem,sc,gakuen',NULL,NULL);
 INSERT INTO "events" VALUES('ev_灯里愛夏_birthday_online_live_2026','876','灯里愛夏 BIRTHDAY ONLINE LIVE 2026','birthday',1,0,'live',NULL,NULL,'https://www.zan-live.com/ja/live/detail/11035',NULL,NULL,NULL);
 INSERT INTO "events" VALUES('ev_lisani_tokyo_2027_sunday_stage','sc','LISANI！TOKYO 2027 SUNDAY STAGE','external_event',0,0,'festival',NULL,NULL,'https://www.lisani.jp/live/ticket/',NULL,NULL,NULL);
+INSERT INTO "events" VALUES('ev_miki_hoshii_solo_showcase_the_future_spotlight_in_animonium_2027','765as','MIKI HOSHII SOLO SHOWCASE「THE FUTURE SPOTLIGHT」in ANIMONIUM 2027','live',0,0,'live',NULL,NULL,NULL,NULL,NULL,NULL);
 CREATE TABLE idol_brands (idol_id TEXT NOT NULL, brand_id TEXT NOT NULL, is_primary INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (idol_id, brand_id));
 INSERT INTO "idol_brands" VALUES('cg_大石泉','cg',1);
 INSERT INTO "idol_brands" VALUES('cg_双葉杏','cg',1);
@@ -3343,7 +3344,7 @@ INSERT INTO "idols" VALUES('cg_鷹富士茄子','cg','鷹富士茄子','たか�
 INSERT INTO "idols" VALUES('gakuen_氷渡香名江','gakuen','氷渡香名江','ひわたりかなえ',NULL,NULL,8018,'--08-20','A',165.0,NULL,NULL,15,NULL,NULL,NULL,'獅子座',NULL,NULL,'倉本家のメイドとして、倉本千奈の近侍を務める。真面目で献身的な努力家。主を中心に物事を考えており、自分自身の気持ちにはひどく鈍い。アイドルへの関心や素質を秘めているものの、本人はあくまで『お嬢様を支えるための研修』と考えている。','female',NULL,'氷渡','香名江',NULL,'2026-11-16',NULL,0,NULL,NULL);
 CREATE TABLE meta (key TEXT PRIMARY KEY NOT NULL, value TEXT);
 INSERT INTO "meta" VALUES('schema_version','1');
-INSERT INTO "meta" VALUES('data_version','122');
+INSERT INTO "meta" VALUES('data_version','123');
 INSERT INTO "meta" VALUES('migration_v14_idol_is_external','applied');
 INSERT INTO "meta" VALUES('content_hash','2aa7a46f3715a4a1ef87214b4fffccbd4137a8edc8d49048d0e084df00c7a2ce');
 CREATE TABLE setlist_items (id TEXT PRIMARY KEY NOT NULL, show_id TEXT NOT NULL, song_id TEXT NOT NULL, position INTEGER NOT NULL, section TEXT, notes TEXT, unit_name TEXT, UNIQUE(show_id, position));
@@ -86619,6 +86620,7 @@ INSERT INTO "show_cast" VALUES('sh_レトラ_birthday_online_live_2026_1','876_�
 INSERT INTO "show_cast" VALUES('sh_レトラ_birthday_online_live_2026_1','876_上水流宇宙','member');
 INSERT INTO "show_cast" VALUES('sh_レトラ_birthday_online_live_2026_1','876_灯里愛夏','member');
 INSERT INTO "show_cast" VALUES('sh_レトラ_birthday_online_live_2026_1','ml_ジュリア','member');
+INSERT INTO "show_cast" VALUES('sh_miki_hoshii_solo_showcase_the_future_spotlight_in_animonium_2027_1','765as_星井美希','member');
 CREATE TABLE show_cast_performers (
             show_id TEXT NOT NULL,
             idol_id TEXT NOT NULL,
@@ -89366,6 +89368,7 @@ INSERT INTO "shows" VALUES('sh_the_idolm@ster_20th_anniversary_new_year_meeting_
 INSERT INTO "shows" VALUES('sh_the_idolm@ster_20th_anniversary_new_year_meeting_dj_party@tokyo_2','ev_the_idolm@ster_20th_anniversary_new_year_meeting_dj_party@tokyo','DAY2','2026-01-11','Zepp DiverCity Tokyo','東京','17:00',2,'cast','venue_zeppdivercity',NULL,NULL,NULL);
 INSERT INTO "shows" VALUES('sh_灯里愛夏_birthday_online_live_2026_1','ev_灯里愛夏_birthday_online_live_2026','灯里愛夏 BIRTHDAY ONLINE LIVE 2026','2026-10-28','配信：ASOBI STAGE、LV会場：東京・ユナイテッド・シネマ アクアシティお台場 [3番スクリーン]',NULL,'19:00',0,'cast',NULL,'配信：Z-aN、LV会場：東京・ユナイテッド・シネマ アクアシティお台場 [3番スクリーン]','Z-aN','online');
 INSERT INTO "shows" VALUES('sh_lisani_tokyo_2027_sunday_stage_1','ev_lisani_tokyo_2027_sunday_stage','SUNDAY STAGE','2027-02-21','TOYOTA ARENA TOKYO','東京','16:00',1,'cast',NULL,NULL,NULL,NULL);
+INSERT INTO "shows" VALUES('sh_miki_hoshii_solo_showcase_the_future_spotlight_in_animonium_2027_1','ev_miki_hoshii_solo_showcase_the_future_spotlight_in_animonium_2027','MIKI HOSHII SOLO SHOWCASE「THE FUTURE SPOTLIGHT」in ANIMONIUM 2027','2027-02-14','サイアム・パラゴン パラゴンホール (タイ)','バンコク',NULL,0,'cast',NULL,NULL,NULL,NULL);
 CREATE TABLE song_artists (song_id TEXT NOT NULL, idol_id TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'original', PRIMARY KEY (song_id, idol_id, role));
 INSERT INTO "song_artists" VALUES('765as_shining_star彡','765as_天海春香','original');
 INSERT INTO "song_artists" VALUES('765as_shining_star彡','765as_如月千早','original');
@@ -121480,7 +121483,6 @@ INSERT INTO "ticket_sales" VALUES('ts_3d0e4069b1d0','ev_学園アイドルマス
 INSERT INTO "ticket_sales" VALUES('ts_e7046955bad7','ev_学園アイドルマスター_the_2nd_period_hatsuboshi_idol_festival',NULL,'lottery','アソビストア一般会員2次先行（抽選）','2026-02-14 12:00','2026-03-08 23:59','2026-03-26 13:00','https://asobiticket2.asobistore.jp/receptions/33c51969-034a-42d4-a51c-d3762b591f10','入金期間2026-03-26 13:00~03-30 23:59。枚数制限:1公演2枚まで(複数日程申込可)。','https://idolmaster-official.jp/live_event/gkmas_2ndperiod/ticket/',3);
 INSERT INTO "ticket_sales" VALUES('ts_95d85c02ef57','ev_学園アイドルマスター_the_2nd_period_hatsuboshi_idol_festival',NULL,'lottery','アソビストア一般会員先行（抽選）','2025-12-20 20:00','2026-01-18 23:59','2026-01-30 13:00','https://asobiticket2.asobistore.jp/receptions/4c940e04-2d66-4d36-9c9b-c5d401b08d4c','入金期間2026-01-30 13:00~02-03 23:59。枚数制限:1公演2枚まで(複数日程申込可)。','https://idolmaster-official.jp/live_event/gkmas_2ndperiod/ticket/',4);
 INSERT INTO "ticket_sales" VALUES('ts_85a9b11f036a','ev_学園アイドルマスター_the_2nd_period_hatsuboshi_idol_festival',NULL,'lottery','アソビストアプレミアム会員先行（抽選）','2025-11-15','2025-11-30','2025-12-12','https://asobiticket2.asobistore.jp/receptions/48b362bd-6f4d-4494-af76-8fb2a1cfedb4','入金期間2025-12-12 13:00~12-16 23:59。枚数制限:1公演2枚まで(複数日程申込可)。プレミアム12か月会員限定。','https://idolmaster-official.jp/live_event/gkmas_2ndperiod/ticket/',5);
-INSERT INTO "ticket_sales" VALUES('ts_7cd2867b9dae','ev_the_idolm@ster_shiny_colors_orchestra_concert_-radiant_chord-',NULL,'lottery','アソビストアプレミアム会員先行','2026-09-26 20:00','2026-10-18 23:59','2026-10-31 13:00','https://asobiticket2.asobistore.jp/receptions/8abc291c-dae2-4684-99e2-de68149135de','「アソビストアプレミアム12か月会員」限定。お一人様1公演につき2枚まで(複数公演申込可)。入金期間は2026年10月31日13:00〜11月4日23:59。','https://idolmaster-official.jp/live_event/shinycolors_orchestra_RC/',0);
 INSERT INTO "ticket_sales" VALUES('ts_cb91ad026cbc','ev_the_idolm@ster_shiny_colors_song_for_prism_ring_ring_ringの魔法_街角メランコリー_発売記念イベント',NULL,'lottery','CD初回生産分封入イベント応募券（抽選）','2026-04-28 12:00','2026-11-08 23:59','2026-11-13 13:00','https://shinycolors.lantis.jp/event/260429_1/','シリアル 1 点で 1 公演 1 枚。e+ で受付','https://shinycolors.lantis.jp/event/260429_1/',0);
 INSERT INTO "ticket_sales" VALUES('ts_f26649a54010','ev_the_idolm@ster_shiny_colors_song_for_prism_super_duper_dreamer_beast_mode_発売記念イベント',NULL,'lottery','CD初回生産分封入イベント応募券（抽選）','2026-03-31 12:00','2026-09-27 23:59','2026-10-02 13:00','https://shinycolors.lantis.jp/event/260312_1/','シリアル 1 点で 1 公演 1 枚。e+ で受付','https://shinycolors.lantis.jp/event/260312_1/',0);
 INSERT INTO "ticket_sales" VALUES('ts_65b493f8346c','ev_the_idolm@ster_shiny_colors_song_for_prism_tokyo自由系_ガール_my_time_発売記念イベント',NULL,'lottery','CD初回生産分封入イベント応募券（抽選）','2026-06-30 12:00','2026-11-01 23:59','2026-11-06 13:00','https://shinycolors.lantis.jp/event/260623_1/','シリアル 1 点で 1 公演 1 枚。e+ で受付','https://shinycolors.lantis.jp/event/260623_1/',0);
@@ -121526,6 +121528,8 @@ INSERT INTO "ticket_sales" VALUES('ts_ccb5ac08d13b','ev_283_production_live_perf
 INSERT INTO "ticket_sales" VALUES('ts_f51a9297e045','ev_283_production_live_performance_noctchill',NULL,'lottery','アソビストアプレミアム会員先行【ティーン割】','2026-09-27 19:00','2026-10-12 23:59','2026-10-24 13:00','https://asobiticket2.asobistore.jp/receptions/fe92f593-859d-48b9-a170-b3599a2f843c','ティーン割チケット(小学生〜20歳未満)の受付。「アソビストアプレミアム12か月会員」限定。お一人様1公演につき2枚まで(複数公演申込可)。入金期間は2026年10月24日13:00〜10月28日23:59。','https://idolmaster-official.jp/live_event/283_noctchill/',1);
 INSERT INTO "ticket_sales" VALUES('ts_921e99edb9ae','ev_283_production_live_performance_noctchill',NULL,'lottery','アソビストア一般会員先行','2026-11-07 12:00','2026-12-01 23:59','2026-12-12 13:00','https://asobiticket2.asobistore.jp/receptions/157d3088-23a9-4c05-b112-ff548cd3d834','受付対象: 【メモリアル特典付き】現地+xRライブストリーミングセットチケット・現地チケット（全席指定）。入金期間 2026年12月12日13:00〜12月16日23:59。お一人様1公演につき2枚まで(複数公演申込可)。セット券は演出参加キャンペーンの対象','https://idolmaster-official.jp/news/01_20299',2);
 INSERT INTO "ticket_sales" VALUES('ts_fc1ad43b56ab','ev_283_production_live_performance_noctchill',NULL,'lottery','アソビストア一般会員先行【ティーン割】','2026-11-07 12:00','2026-12-01 23:59','2026-12-12 13:00','https://asobiticket2.asobistore.jp/receptions/5aaf52eb-ffd7-490d-b3d5-fd403d3028d8','ティーン割チケット(小学生〜20歳未満)の受付。入金期間 2026年12月12日13:00〜12月16日23:59。お一人様1公演につき2枚まで(複数公演申込可)','https://idolmaster-official.jp/news/01_20299',3);
+INSERT INTO "ticket_sales" VALUES('ts_7cd2867b9dae','ev_the_idolm@ster_shiny_colors_orchestra_concert_-radiant_chord-',NULL,'lottery','アソビストアプレミアム会員先行','2026-09-26 20:00','2026-10-18 23:59','2026-10-31 13:00','https://asobiticket2.asobistore.jp/receptions/8abc291c-dae2-4684-99e2-de68149135de','「アソビストアプレミアム12か月会員」限定。お一人様1公演につき2枚まで(複数公演申込可)。入金期間は2026年10月31日13:00〜11月4日23:59。','https://idolmaster-official.jp/live_event/shinycolors_orchestra_RC/',0);
+INSERT INTO "ticket_sales" VALUES('ts_f9df25894a05','ev_the_idolm@ster_shiny_colors_orchestra_concert_-radiant_chord-',NULL,'lottery','ゲーム先行','2026-11-10 15:00','2026-12-01 23:59','2026-12-12 13:00',NULL,'enza版「シャイニーカラーズ」または「Song for Prism」のゲーム内「お知らせ」から申込(どちらか1回のみ)。お一人様1公演につき2枚まで(複数公演申込可)。入金期間は2026年12月12日13:00〜12月16日23:59。','https://idolmaster-official.jp/live_event/shinycolors_orchestra_RC/',1);
 CREATE TABLE unit_members (unit_id TEXT NOT NULL, idol_id TEXT NOT NULL, PRIMARY KEY (unit_id, idol_id));
 INSERT INTO "unit_members" VALUES('オリジナル_カラーズ_feat_和','cg_成宮由愛');
 INSERT INTO "unit_members" VALUES('オリジナル_カラーズ_feat_和','cg_的場梨沙');
