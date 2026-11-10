@@ -13,16 +13,25 @@
   3. 配信日が --days 以内で、trackId も曲名も songs に無いものを出す
 
 Off Vocal・Instrumental・GAME VERSION・ソロ Ver.・リミックス・Live 版は除く。
+
+配信されていない曲 (シャニソンの実装曲・CM 曲・特装版 CD のみの曲など) は Apple Music に
+無いので、もう 1 つの目として、ファンが保守している曲一覧 (アイドルマスター楽曲メモの
+「アイドルマスター オリジナル曲一覧」) の曲名とも突き合わせる (--no-list で切る)。
+一覧は候補を見つけるためだけに使い、登録する値は公式・Apple Music で確かめる。
+ゼノグラシア・ラジオ曲・ドラマ・BGM (歌唱者なし)・〈… Ver.〉は対象外として除く。
+
 書き込みはしない (見つけた曲は data/songs/ に JSON を書いて足す)。
 
 Usage:
     python3 tools/find_unregistered_releases.py            # 直近 30 日
     python3 tools/find_unregistered_releases.py --days 120
     python3 tools/find_unregistered_releases.py --json     # 機械向け
+    python3 tools/find_unregistered_releases.py --no-list  # Apple Music だけ
 """
 
 import argparse
 import datetime as dt
+import html
 import json
 import re
 import sqlite3
@@ -37,17 +46,23 @@ from lib import itunes  # noqa: E402
 ROOT = Path(__file__).parent.parent
 MASTER_SQL = ROOT / "db/master.sql"
 UA = "ImasLiveDB-unregistered/1.0"
+SONG_LIST_URL = ("https://music765plus.com/%E3%82%A2%E3%82%A4%E3%83%89%E3%83%AB%E3%83%9E%E3%82%B9"
+                 "%E3%82%BF%E3%83%BC_%E3%82%AA%E3%83%AA%E3%82%B8%E3%83%8A%E3%83%AB%E6%9B%B2%E4%B8%80%E8%A6%A7")
+# 一覧の行の class のうち、このアプリで扱わないもの
+LIST_SKIP_CLASSES = {"XENO", "RAD"}
 
 EXCLUDE = re.compile(
     r"(off vocal|instrumental|inst\.|game version|game ver\.|カラオケ|karaoke|"
-    r"ソロ\s*ver|ソロ・リミックス|remix|リミックス|-live|\(live|ver\.\)\s*\[|tv\s*size|tvサイズ)",
+    r"ソロ\s*ver|ソロ・リミックス|remix|リミックス|-live|\(live|ver\.\)|tv\s*size|tvサイズ|"
+    r"game\s*size|m@ster\s*version)",
     re.I,
 )
 
 
 def norm(s: str) -> str:
+    """曲名の比べ方: 全角半角・大小・空白・記号 (句読点・括弧・♡☆ など) の違いを無視する。"""
     s = unicodedata.normalize("NFKC", s or "").lower()
-    return re.sub(r"[\s・!！?？♡☆★〜～~\-‐]", "", s)
+    return "".join(ch for ch in s if unicodedata.category(ch)[0] not in "PSZ")
 
 
 def lookup(ids: list, **extra) -> list:
@@ -61,12 +76,57 @@ def lookup(ids: list, **extra) -> list:
     return []
 
 
+def parse_song_list(page: str) -> list:
+    """曲一覧の HTML から (区分, 曲名, 歌唱者, 日付, 初出) を取り出す。"""
+    out = []
+    for cls, body in re.findall(r'<tr class="filter-row ([^"]+)">(.*?)</tr>', page, re.S):
+        cells = [html.unescape(re.sub(r"<[^>]+>", "", c)).strip()
+                 for c in re.findall(r"<td>(.*?)</td>", body, re.S)]
+        if len(cells) < 5:
+            continue
+        classes = set(html.unescape(cls).replace("_", "").split())
+        _, title, singer, date, note = cells[:5]
+        out.append({"classes": sorted(classes), "title": title, "singer": singer,
+                    "date": date.replace("/", "-"), "note": " ".join(note.split())})
+    return out
+
+
+def list_candidates(rows: list, known_titles: set) -> list:
+    out = []
+    for r in rows:
+        if LIST_SKIP_CLASSES & set(r["classes"]):
+            continue
+        if r["singer"] in ("", "-") or r["singer"].startswith("(ドラマ"):
+            continue
+        if re.search(r"[〈<].*ver\.?[〉>]", r["title"], re.I):
+            continue
+        t = norm(r["title"])
+        # 「修楽旅行」のように、版ごとに分けて登録してある曲は前方一致で済みとする
+        if not t or t in known_titles or any(k.startswith(t) for k in known_titles):
+            continue
+        out.append(r)
+    return out
+
+
+def fetch_song_list() -> list:
+    for i in range(3):
+        try:
+            req = itunes.urllib.request.Request(SONG_LIST_URL, headers={"User-Agent": UA})
+            with itunes.urlopen(req, timeout=60) as res:
+                return parse_song_list(res.read().decode("utf-8", "replace"))
+        except Exception as e:  # noqa: BLE001
+            print(f"  retry song list ({e})", file=sys.stderr)
+            time.sleep(3 * (i + 1))
+    raise RuntimeError("曲一覧を読めなかった")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--days", type=int, default=30, help="配信日がこの日数以内の曲だけ")
     ap.add_argument("--since", default="2022-01-01", help="歌い手を集める曲の release_date 下限")
     ap.add_argument("--master-sql", default=str(MASTER_SQL))
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--no-list", action="store_true", help="曲一覧との突き合わせをしない")
     args = ap.parse_args()
 
     conn = sqlite3.connect(":memory:")
@@ -74,6 +134,15 @@ def main() -> int:
     known_ids = {r[0] for r in conn.execute(
         "SELECT apple_music_id FROM songs WHERE apple_music_id IS NOT NULL AND apple_music_id != ''")}
     known_titles = {norm(r[0]) for r in conn.execute("SELECT title FROM songs")}
+    # まだ db/master.sql に戻っていない (今日足した) 曲も済みとする
+    for f in sorted((ROOT / "data").glob("songs/*.json")) + sorted((ROOT / "data").glob("_applied/songs/*.json")):
+        try:
+            for song in json.loads(f.read_text()).get("songs", []):
+                known_titles.add(norm(song.get("title", "")))
+                if song.get("apple_music_id"):
+                    known_ids.add(str(song["apple_music_id"]))
+        except (ValueError, AttributeError):
+            continue
     unit_names = {norm(r[0]) for r in conn.execute("SELECT name FROM units")}
     unit_names |= {"シャイニーカラーズ", "765millionallstars", "765proallstars"}
     seed = [r[0] for r in conn.execute(
@@ -107,6 +176,7 @@ def main() -> int:
             if str(r.get("trackId")) in known_ids or norm(name) in known_titles:
                 continue
             found[r["trackId"]] = {
+                "source": "apple_music",
                 "track_id": str(r["trackId"]),
                 "album_id": str(r.get("collectionId") or ""),
                 "release": rel,
@@ -117,12 +187,22 @@ def main() -> int:
         time.sleep(0.5)
 
     rows = sorted(found.values(), key=lambda x: (x["release"], x["title"]))
+    listed = []
+    if not args.no_list:
+        apple_titles = {norm(x["title"]) for x in rows}
+        listed = [dict(r, source="song_list", source_url=SONG_LIST_URL)
+                  for r in list_candidates(fetch_song_list(), known_titles)
+                  if norm(r["title"]) not in apple_titles]
     if args.json:
-        print(json.dumps(rows, ensure_ascii=False, indent=1))
+        print(json.dumps(rows + listed, ensure_ascii=False, indent=1))
     else:
         print(f"歌い手 {len(artists)} 組 / 配信日 {cutoff} 以降で未登録: {len(rows)} 曲")
         for x in rows:
             print(f"  {x['release']}  {x['title']}  — {x['artist'][:60]}  (id={x['track_id']})")
+        if not args.no_list:
+            print(f"曲一覧にあって未登録 (配信なし or 上で拾えない): {len(listed)} 曲")
+            for x in listed:
+                print(f"  {x['date']}  {x['title']}  — {x['singer']}  [{x['note']}]")
     return 0
 
 

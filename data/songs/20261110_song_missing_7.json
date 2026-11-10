@@ -1,0 +1,72 @@
+{
+ "title": "曲一覧との突き合わせで見つかった未登録曲 7 曲の追加",
+ "author": "claude",
+ "source": "候補はアイドルマスター楽曲メモのオリジナル曲一覧 (https://music765plus.com/アイドルマスター_オリジナル曲一覧, 2026-11-10 取得) と tools/find_unregistered_releases.py。配信がある曲は Apple Music lookup の値 (各曲の apple_music_id)。作詞・作曲・編曲は公式の記載を確認できず空欄",
+ "songs": [
+  {
+   "id": "ml_stick_to_my_weapon", "title": "Stick to my weapon", "title_kana": "すてぃっくとぅまいうぇぽん",
+   "brand_id": "ml", "song_type": "unit", "release_date": "2026-04-18", "streaming_date": "2026-04-27",
+   "cd_series": "THE IDOLM@STER MILLION BATTLE OF THE@TER EX04 Stick to my weapon - Single",
+   "singer_label": "ジュリア、高槻やよい、天海春香、馬場このみ、福田のり子、舞浜歩", "duration_sec": 213,
+   "apple_music_id": "6793384007", "apple_music_album_id": "6793384006",
+   "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/9e/f4/ef/9ef4ef31-0508-8d86-4ca0-69446800d154/4540774248049.png/600x600bb.jpg",
+   "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/d8/1b/21/d81b21cd-f45b-6aad-5e80-c1f9b12e640f/mzaf_859506101469920498.plus.aac.p.m4a",
+   "first_appearance_note": "ミリシタ MILLION BATTLE OF THE@TER のイベント (2026-04-18) にて実装",
+   "original_singers": ["ml_ジュリア", "765as_高槻やよい", "765as_天海春香", "ml_馬場このみ", "ml_福田のり子", "ml_舞浜歩"]
+  },
+  {
+   "id": "cg_青春コンプレックス", "title": "青春コンプレックス", "title_kana": "せいしゅんこんぷれっくす",
+   "brand_id": "cg", "song_type": "cover", "release_date": "2025-10-29", "streaming_date": "2025-10-29",
+   "cd_series": "THE IDOLM@STER CINDERELLA GIRLS STARLIGHT MASTER CRYSTAL QUALIA 10 オトメゴコロ更新中",
+   "singer_label": "星輝子", "duration_sec": 206,
+   "apple_music_id": "1847289398", "apple_music_album_id": "1847289394",
+   "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/c2/e2/24/c2e22410-7097-bc32-8820-0e39524e57f6/COCC-18250.jpg/600x600bb.jpg",
+   "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/31/76/e8/3176e8d3-3534-dbcf-8533-34cd0c81d0d8/mzaf_14584123798753292531.plus.aac.p.m4a",
+   "original_singers": ["cg_星輝子"]
+  },
+  {
+   "id": "sc_after_the_glory_days", "title": "After the glory days", "title_kana": "あふたーざぐろーりーでいず",
+   "brand_id": "sc", "song_type": "unit", "release_date": "2026-09-29",
+   "unit_id": "放課後クライマックスガールズ", "unit_name": "放課後クライマックスガールズ",
+   "singer_label": "放課後クライマックスガールズ",
+   "first_appearance_note": "シャニソン (アイドルマスター シャイニーカラーズ Song for Prism) にて実装",
+   "original_singers": ["sc_小宮果穂", "sc_園田智代子", "sc_西城樹里", "sc_杜野凛世", "sc_有栖川夏葉"]
+  },
+  {
+   "id": "sc_monad", "title": "Monad", "title_kana": "もなど",
+   "brand_id": "sc", "song_type": "unit", "release_date": "2026-10-24",
+   "unit_id": "unit_fumage", "unit_name": "Fumage",
+   "singer_label": "Fumage（浅倉透、幽谷霧子）",
+   "first_appearance_note": "シャニソン (アイドルマスター シャイニーカラーズ Song for Prism) にて実装",
+   "original_singers": ["sc_浅倉透", "sc_幽谷霧子"]
+  },
+  {
+   "id": "sc_凪ぐ", "title": "凪ぐ", "title_kana": "なぐ",
+   "brand_id": "sc", "song_type": "unit", "release_date": "2026-10-30",
+   "unit_id": "unit_ノクチル", "unit_name": "ノクチル",
+   "singer_label": "ノクチル",
+   "first_appearance_note": "シャニソン (アイドルマスター シャイニーカラーズ Song for Prism) にて実装",
+   "original_singers": ["sc_浅倉透", "sc_樋口円香", "sc_福丸小糸", "sc_市川雛菜"]
+  },
+  {
+   "id": "gakuen_どんタスティック", "title": "どんどこ🥁どんどこ🥁どんどこ🥁どんどこ🥁どんタスティック!!!",
+   "title_kana": "どんどこどんどこどんどこどんどこどんたすてぃっく",
+   "brand_id": "gakuen", "song_type": "solo", "release_date": "2026-10-05", "streaming_date": "2026-10-06",
+   "is_collab": 1,
+   "cd_series": "どんどこ🥁どんどこ🥁どんどこ🥁どんどこ🥁どんタスティック!!! (feat. 花海佑芽) - Single",
+   "singer_label": "花海佑芽", "duration_sec": 140,
+   "apple_music_id": "6815546826", "apple_music_album_id": "6815546821",
+   "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/23/a9/90/23a990e3-c15f-7d79-7e20-3fd29c2837a2/PA00229025_0_255353_jacket.jpg/600x600bb.jpg",
+   "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/ce/4a/0a/ce4a0aa8-2cf7-941d-e66f-f021e7c987d2/mzaf_14910073308885188537.plus.aac.p.m4a",
+   "first_appearance_note": "太鼓の達人とのコラボ曲 (かめりあ feat. 花海佑芽)。MV 公開 (2026-10-05)",
+   "original_singers": ["gakuen_花海佑芽"]
+  },
+  {
+   "id": "gakuen_とめどなく", "title": "とめどなく", "title_kana": "とめどなく",
+   "brand_id": "gakuen", "song_type": "solo", "release_date": "2026-10-07", "cd_release_date": "2026-10-07",
+   "singer_label": "有村麻央",
+   "first_appearance_note": "「ゴルラ」7 巻特装版に収録 (曲一覧の記載)",
+   "original_singers": ["gakuen_有村麻央"]
+  }
+ ]
+}
