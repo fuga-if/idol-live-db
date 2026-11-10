@@ -287,6 +287,33 @@ class AddOriginalSingersTest(PostFixture):
         self.assertTrue(any("空は不可" in p for p in self.validate()))
 
 
+
+class NewSongSingerLabelTest(PostFixture):
+    """名義も歌唱者表記も無い新曲は、原唱者の名前を歌唱者表記にする。"""
+
+    def apply(self, song):
+        support.write_json(self.data / "songs" / "post.json",
+                           {"source": "https://example.com/cd", "songs": [song]})
+        conn = sqlite3.connect(str(self.db))
+        with contextlib.redirect_stdout(io.StringIO()):
+            apply_data.apply_all(conn)
+        label = conn.execute("SELECT singer_label FROM songs WHERE id='ml_new_song'").fetchone()[0]
+        conn.close()
+        return label
+
+    def test_singers_fill_an_empty_label(self):
+        """回帰 (2026-11-10): パラボラは原唱者だけあって歌唱者表記が空で、投票の行に歌唱者が出なかった。"""
+        self.assertEqual(self.apply(self.song(title_kana="しんきょく", original_singers=["ml_t"])), "テスト")
+
+    def test_a_given_label_or_unit_is_kept(self):
+        self.assertEqual(self.apply(self.song(title_kana="しんきょく", original_singers=["ml_t"],
+                                              singer_label="名義")), "名義")
+
+    def test_a_unit_song_keeps_its_label_empty(self):
+        self.assertIsNone(self.apply(self.song(title_kana="しんきょく", original_singers=["ml_t"],
+                                               unit_name="ユニット")))
+
+
 TICKET_SALES_DDL = (
     "CREATE TABLE ticket_sales ("
     " id TEXT PRIMARY KEY NOT NULL, event_id TEXT NOT NULL, show_ids TEXT, kind TEXT NOT NULL,"

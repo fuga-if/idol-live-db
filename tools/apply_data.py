@@ -983,6 +983,16 @@ def apply_all(conn):
         for s in data["songs"]:
             singers = s.pop("original_singers", [])
             s.pop("source", None); s.pop("note", None)
+            if singers and not (s.get("singer_label") or "").strip() and not (s.get("unit_name") or "").strip():
+                # 名義も歌唱者表記も無い曲は、原唱者の名前を歌唱者表記にする。投票・タグ・関連曲などの
+                # 行は曲だけで名義を決める (原唱者を引かない) ので、空のままだと歌唱者が出ない
+                # (2026-11-10 「パラボラ」の歌唱者が空だった)。
+                names = [
+                    r[0] for idol in singers
+                    for r in conn.execute("SELECT name FROM idols WHERE id=?", (idol,))
+                ]
+                if names:
+                    s["singer_label"] = "、".join(names)
             insert_row(conn, "songs", {k: v for k, v in s.items() if k in scol})
             for idol in singers:
                 conn.execute(
