@@ -3344,7 +3344,7 @@ INSERT INTO "idols" VALUES('cg_鷹富士茄子','cg','鷹富士茄子','たか�
 INSERT INTO "idols" VALUES('gakuen_氷渡香名江','gakuen','氷渡香名江','ひわたりかなえ',NULL,NULL,8018,'--08-20','A',165.0,NULL,NULL,15,NULL,NULL,NULL,'獅子座',NULL,NULL,'倉本家のメイドとして、倉本千奈の近侍を務める。真面目で献身的な努力家。主を中心に物事を考えており、自分自身の気持ちにはひどく鈍い。アイドルへの関心や素質を秘めているものの、本人はあくまで『お嬢様を支えるための研修』と考えている。','female',NULL,'氷渡','香名江',NULL,'2026-11-16',NULL,0,NULL,NULL);
 CREATE TABLE meta (key TEXT PRIMARY KEY NOT NULL, value TEXT);
 INSERT INTO "meta" VALUES('schema_version','1');
-INSERT INTO "meta" VALUES('data_version','123');
+INSERT INTO "meta" VALUES('data_version','124');
 INSERT INTO "meta" VALUES('migration_v14_idol_is_external','applied');
 INSERT INTO "meta" VALUES('content_hash','2aa7a46f3715a4a1ef87214b4fffccbd4137a8edc8d49048d0e084df00c7a2ce');
 CREATE TABLE setlist_items (id TEXT PRIMARY KEY NOT NULL, show_id TEXT NOT NULL, song_id TEXT NOT NULL, position INTEGER NOT NULL, section TEXT, notes TEXT, unit_name TEXT, UNIQUE(show_id, position));
@@ -17007,6 +17007,15 @@ INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_
 INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_2_0027','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_2','gakuen_初',27,NULL,'Orchestra ver.',NULL);
 INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_2_0028','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_2','gakuen_ガラクタロード',28,NULL,NULL,NULL);
 INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_2_0029','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_2','gakuen_標',29,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_レトラ_birthday_online_live_2026_1_0001','sh_レトラ_birthday_online_live_2026_1','sc_monochromatic',1,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_レトラ_birthday_online_live_2026_1_0002','sh_レトラ_birthday_online_live_2026_1','sc_wandering_dream_chaser',2,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_レトラ_birthday_online_live_2026_1_0003','sh_レトラ_birthday_online_live_2026_1','876_glass',3,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_レトラ_birthday_online_live_2026_1_0004','sh_レトラ_birthday_online_live_2026_1','876_breaker',4,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_レトラ_birthday_online_live_2026_1_0005','sh_レトラ_birthday_online_live_2026_1','cg_trancing_pulse',5,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_レトラ_birthday_online_live_2026_1_0006','sh_レトラ_birthday_online_live_2026_1','ml_スタートリップ',6,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_レトラ_birthday_online_live_2026_1_0007','sh_レトラ_birthday_online_live_2026_1','876_思い出の花束二度目の恋',7,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_レトラ_birthday_online_live_2026_1_0008','sh_レトラ_birthday_online_live_2026_1','gakuen_理論武装して',8,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_レトラ_birthday_online_live_2026_1_0009','sh_レトラ_birthday_online_live_2026_1','876_群青イニシエーション',9,NULL,'Obrigada Acoustic Ver.',NULL);
 CREATE TABLE "setlist_performers" (
             setlist_item_id TEXT NOT NULL,
             idol_id TEXT NOT NULL,
@@ -75190,6 +75199,20 @@ INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_
 INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_2_0029','gakuen_葛城リーリヤ');
 INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_2_0029','gakuen_藤田ことね');
 INSERT INTO "setlist_performers" VALUES('sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_2_0029','gakuen_雨夜燕');
+INSERT INTO "setlist_performers" VALUES('sh_レトラ_birthday_online_live_2026_1_0001','876_サラ_レトラ_オリヴェイラ_ウタガワ');
+INSERT INTO "setlist_performers" VALUES('sh_レトラ_birthday_online_live_2026_1_0002','876_サラ_レトラ_オリヴェイラ_ウタガワ');
+INSERT INTO "setlist_performers" VALUES('sh_レトラ_birthday_online_live_2026_1_0002','876_上水流宇宙');
+INSERT INTO "setlist_performers" VALUES('sh_レトラ_birthday_online_live_2026_1_0002','876_灯里愛夏');
+INSERT INTO "setlist_performers" VALUES('sh_レトラ_birthday_online_live_2026_1_0003','876_サラ_レトラ_オリヴェイラ_ウタガワ');
+INSERT INTO "setlist_performers" VALUES('sh_レトラ_birthday_online_live_2026_1_0003','876_上水流宇宙');
+INSERT INTO "setlist_performers" VALUES('sh_レトラ_birthday_online_live_2026_1_0003','876_灯里愛夏');
+INSERT INTO "setlist_performers" VALUES('sh_レトラ_birthday_online_live_2026_1_0004','876_サラ_レトラ_オリヴェイラ_ウタガワ');
+INSERT INTO "setlist_performers" VALUES('sh_レトラ_birthday_online_live_2026_1_0005','876_サラ_レトラ_オリヴェイラ_ウタガワ');
+INSERT INTO "setlist_performers" VALUES('sh_レトラ_birthday_online_live_2026_1_0006','876_サラ_レトラ_オリヴェイラ_ウタガワ');
+INSERT INTO "setlist_performers" VALUES('sh_レトラ_birthday_online_live_2026_1_0006','ml_ジュリア');
+INSERT INTO "setlist_performers" VALUES('sh_レトラ_birthday_online_live_2026_1_0007','876_サラ_レトラ_オリヴェイラ_ウタガワ');
+INSERT INTO "setlist_performers" VALUES('sh_レトラ_birthday_online_live_2026_1_0008','876_サラ_レトラ_オリヴェイラ_ウタガワ');
+INSERT INTO "setlist_performers" VALUES('sh_レトラ_birthday_online_live_2026_1_0009','876_サラ_レトラ_オリヴェイラ_ウタガワ');
 CREATE TABLE "show_cast" (
             show_id TEXT NOT NULL,
             idol_id TEXT NOT NULL, cast_role TEXT NOT NULL DEFAULT 'member',
