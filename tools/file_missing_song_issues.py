@@ -20,7 +20,10 @@ import subprocess
 import sys
 
 LABELS = ["edit-request", "missing-song"]
-TITLE_PREFIX = "[未登録の曲] "
+# 毎日の収集は「[修正リクエスト]」をタイトルに含む issue だけを triage-fix-requests で処理する
+# (2026-11-11 に「[未登録の曲] 」で立てた #415 が拾われなかった)。
+TITLE_PREFIX = "[修正リクエスト] 未登録の曲: "
+OLD_PREFIXES = ["[未登録の曲] "]
 
 
 def gh(*args: str) -> str:
@@ -30,7 +33,14 @@ def gh(*args: str) -> str:
 def existing_titles() -> set:
     out = gh("issue", "list", "--label", "missing-song", "--state", "all",
              "--limit", "1000", "--json", "title")
-    return {i["title"] for i in json.loads(out)}
+    titles = set()
+    for i in json.loads(out):
+        t = i["title"]
+        for p in OLD_PREFIXES:
+            if t.startswith(p):
+                t = TITLE_PREFIX + t[len(p):]
+        titles.add(t)
+    return titles
 
 
 def issue_title(c: dict) -> str:
