@@ -1,0 +1,18 @@
+{
+ "title": "レトラ BIRTHDAY ONLINE LIVE 2026 (2026-11-11) のセットリスト",
+ "author": "daily-data-crawl",
+ "source": "https://idolmaster-official.jp/news/01_20323.html (公式セットリスト画像 MUSIC SETLIST M1〜M9)",
+ "show_id": "sh_レトラ_birthday_online_live_2026_1",
+ "all_performers": ["876_サラ_レトラ_オリヴェイラ_ウタガワ", "876_灯里愛夏", "876_上水流宇宙", "ml_ジュリア"],
+ "songs": [
+  {"position": 1, "song_id": "sc_monochromatic", "performers": ["876_サラ_レトラ_オリヴェイラ_ウタガワ"]},
+  {"position": 2, "song_id": "sc_wandering_dream_chaser", "performers": ["876_サラ_レトラ_オリヴェイラ_ウタガワ", "876_灯里愛夏", "876_上水流宇宙"]},
+  {"position": 3, "song_id": "876_glass", "performers": ["876_サラ_レトラ_オリヴェイラ_ウタガワ", "876_灯里愛夏", "876_上水流宇宙"]},
+  {"position": 4, "song_id": "876_breaker", "performers": ["876_サラ_レトラ_オリヴェイラ_ウタガワ"]},
+  {"position": 5, "song_id": "cg_trancing_pulse", "performers": ["876_サラ_レトラ_オリヴェイラ_ウタガワ"]},
+  {"position": 6, "song_id": "ml_スタートリップ", "performers": ["876_サラ_レトラ_オリヴェイラ_ウタガワ", "ml_ジュリア"]},
+  {"position": 7, "song_id": "876_思い出の花束二度目の恋", "performers": ["876_サラ_レトラ_オリヴェイラ_ウタガワ"]},
+  {"position": 8, "song_id": "gakuen_理論武装して", "performers": ["876_サラ_レトラ_オリヴェイラ_ウタガワ"]},
+  {"position": 9, "song_id": "876_群青イニシエーション", "performers": ["876_サラ_レトラ_オリヴェイラ_ウタガワ"], "notes": "Obrigada Acoustic Ver."}
+ ]
+}
