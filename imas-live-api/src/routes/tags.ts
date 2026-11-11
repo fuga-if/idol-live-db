@@ -177,7 +177,11 @@ interface TagFields {
 
 /**
  * POST (新規作成) と PUT (更新) 共通の description / category / color の検証。
- * だめなら理由の文字列を返す。色の空文字は、そのまま保存する (従来どおり)。
+ * だめなら理由の文字列を返す。
+ *
+ * 色・カテゴリの空文字は「未設定」として null に倒して保存する。以前は空文字のまま保存していて、
+ * iOS は色を厳密に検証するので、空文字の色が 1 件あるだけで /tags 一覧と /tags/:id の
+ * デコードがまるごと失敗し、タグの絞り込みが効かなくなっていた (2026-11「カラオケ未実装」)。
  */
 function parseTagFields(body: JsonFields): TagFields | string {
   const { description, category, color } = body;
@@ -201,8 +205,8 @@ function parseTagFields(body: JsonFields): TagFields | string {
   // ここまでで 3 つとも string / null / undefined のどれかに絞れている。
   return {
     description: description as TagFields["description"],
-    category: category as TagFields["category"],
-    color: color as TagFields["color"],
+    category: category === "" ? null : (category as TagFields["category"]),
+    color: color === "" ? null : (color as TagFields["color"]),
   };
 }
 

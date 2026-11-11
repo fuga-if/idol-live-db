@@ -149,6 +149,19 @@ describe("曲タグ: 語彙の作成 (POST /tags。ハンドラは 3 プール�
       .toEqual({ created_by: "dev-a", updated_by: null });
   });
 
+  it("色・分類の空文字は未設定 (null) として保存する。作成でも更新でも", async () => {
+    // 空文字の色が 1 件あるだけで iOS の一覧デコードが丸ごと落ち、タグの絞り込みが効かなくなっていた。
+    const uid = "blank-editor";
+    await insertUser(uid);
+    const created = await createTag(pool, "blank", "dev-a", { category: "", color: "" });
+    expect(created.status).toBe(201);
+    expect(created.body.tag).toMatchObject({ category: null, color: null });
+    await callJson("PUT", `${pool.master}/blank`, { headers: await bearer(uid), body: { color: "#123456", category: "mood" } });
+    const cleared = await callJson("PUT", `${pool.master}/blank`, { headers: await bearer(uid), body: { color: "", category: "" } });
+    expect(cleared.status).toBe(200);
+    expect(cleared.body.tag).toMatchObject({ category: null, color: null });
+  });
+
   it("日本語の名前は tag_ + base64url の先頭 16 文字、衝突したら -2", async () => {
     const first = await createTag(pool, "エモい");
     expect(first.body.tag.id).toBe("tag_" + btoa(unescape(encodeURIComponent("エモい")))
