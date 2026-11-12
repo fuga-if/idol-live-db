@@ -29,7 +29,7 @@ packages:
 settings:
   base:
     MARKETING_VERSION: "2.9.0"
-    CURRENT_PROJECT_VERSION: "71"
+    CURRENT_PROJECT_VERSION: "72"
 
 targets:
   ImasLiveDB:
