@@ -84991,6 +84991,10 @@ INSERT INTO "show_cast" VALUES('sh_the_idolm@ster_sidem_×_shiny_colors_sparkle_
 INSERT INTO "show_cast" VALUES('sh_the_idolm@ster_sidem_×_shiny_colors_sparkle_showdown_1','sidem_蒼井享介','member');
 INSERT INTO "show_cast" VALUES('sh_the_idolm@ster_sidem_×_shiny_colors_sparkle_showdown_1','sidem_蒼井悠介','member');
 INSERT INTO "show_cast" VALUES('sh_the_idolm@ster_sidem_×_shiny_colors_sparkle_showdown_1','sidem_黒野玄武','member');
+INSERT INTO "show_cast" VALUES('sh_the_idolm@ster_sidem_×_shiny_colors_sparkle_showdown_1','sidem_岡村直央','member');
+INSERT INTO "show_cast" VALUES('sh_the_idolm@ster_sidem_×_shiny_colors_sparkle_showdown_1','sidem_橘志狼','member');
+INSERT INTO "show_cast" VALUES('sh_the_idolm@ster_sidem_×_shiny_colors_sparkle_showdown_1','sidem_姫野かのん','member');
+INSERT INTO "show_cast" VALUES('sh_the_idolm@ster_sidem_×_shiny_colors_sparkle_showdown_1','sidem_眉見鋭心','member');
 INSERT INTO "show_cast" VALUES('sh_the_idolm@ster_sidem_×_shiny_colors_sparkle_showdown_2','sc_三峰結華','member');
 INSERT INTO "show_cast" VALUES('sh_the_idolm@ster_sidem_×_shiny_colors_sparkle_showdown_2','sc_八宮めぐる','member');
 INSERT INTO "show_cast" VALUES('sh_the_idolm@ster_sidem_×_shiny_colors_sparkle_showdown_2','sc_和泉愛依','member');
@@ -85020,6 +85024,7 @@ INSERT INTO "show_cast" VALUES('sh_the_idolm@ster_sidem_×_shiny_colors_sparkle_
 INSERT INTO "show_cast" VALUES('sh_the_idolm@ster_sidem_×_shiny_colors_sparkle_showdown_2','sidem_舞田類','member');
 INSERT INTO "show_cast" VALUES('sh_the_idolm@ster_sidem_×_shiny_colors_sparkle_showdown_2','sidem_葛之葉雨彦','member');
 INSERT INTO "show_cast" VALUES('sh_the_idolm@ster_sidem_×_shiny_colors_sparkle_showdown_2','sidem_都築圭','member');
+INSERT INTO "show_cast" VALUES('sh_the_idolm@ster_sidem_×_shiny_colors_sparkle_showdown_2','sidem_東雲荘一郎','member');
 INSERT INTO "show_cast" VALUES('sh_shibuya_lovez_opening_series_lantis_dayz_1','sidem_アスランbbⅱ世','member');
 INSERT INTO "show_cast" VALUES('sh_shibuya_lovez_opening_series_lantis_dayz_1','sidem_卯月巻緒','member');
 INSERT INTO "show_cast" VALUES('sh_shibuya_lovez_opening_series_lantis_dayz_1','sidem_東雲荘一郎','member');
@@ -88139,6 +88144,10 @@ INSERT INTO "show_tickets" VALUES('tkt_sh_project_imas_valiv_3rdlive_meeting_qon
 INSERT INTO "show_tickets" VALUES('tkt_sh_lisani_tokyo_2027_sunday_stage_1_live_seat_5cd289','sh_lisani_tokyo_2027_sunday_stage_1','live','全席指定',13200,0,'出典: https://www.lisani.jp/live/',1,NULL,NULL);
 INSERT INTO "show_tickets" VALUES('tkt_sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1_stream_day1_34d63e','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1','stream','DAY1視聴チケット',6500,0,'税込・機能利用料込。両日視聴チケット 13,000円あり。販売期間 2026/10/20〜11/23 / 出典: https://asobistage.asobistore.jp/event/gakuen_shirube_final/ticket',1,'2026-11-09 18:00','2026-11-23 23:59');
 INSERT INTO "show_tickets" VALUES('tkt_sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_2_stream_day2_290b3a','sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_2','stream','DAY2視聴チケット',6500,0,'税込・機能利用料込。両日視聴チケット 13,000円あり。販売期間 2026/10/20〜11/23 / 出典: https://asobistage.asobistore.jp/event/gakuen_shirube_final/ticket',1,'2026-11-09 18:00','2026-11-23 23:59');
+INSERT INTO "show_tickets" VALUES('tkt_sh_シンデレラガールズ_15周年_大型イベント_1_stream_ticket_667d32','sh_シンデレラガールズ_15周年_大型イベント_1','stream','通常 視聴チケット',6500,0,'両日視聴チケット 13,000円。アーカイブ視聴付き / 出典: https://asobistage.asobistore.jp/event/cinderella_15th_party/ticket',1,'2026-11-30 18:00','2026-12-07 23:59');
+INSERT INTO "show_tickets" VALUES('tkt_sh_シンデレラガールズ_15周年_大型イベント_1_stream_ticket_bcd260','sh_シンデレラガールズ_15周年_大型イベント_1','stream','マルチアングル プレミアム視聴チケット',8500,0,'両日 17,000円。通常券からの追加は 2,000円(両日 4,000円)。アーカイブ視聴付き / 出典: https://asobistage.asobistore.jp/event/cinderella_15th_party/ticket',2,'2026-11-30 18:00','2026-12-07 23:59');
+INSERT INTO "show_tickets" VALUES('tkt_sh_シンデレラガールズ_15周年_大型イベント_2_stream_ticket_667d32','sh_シンデレラガールズ_15周年_大型イベント_2','stream','通常 視聴チケット',6500,0,'両日視聴チケット 13,000円。アーカイブ視聴付き / 出典: https://asobistage.asobistore.jp/event/cinderella_15th_party/ticket',1,'2026-11-30 18:00','2026-12-07 23:59');
+INSERT INTO "show_tickets" VALUES('tkt_sh_シンデレラガールズ_15周年_大型イベント_2_stream_ticket_bcd260','sh_シンデレラガールズ_15周年_大型イベント_2','stream','マルチアングル プレミアム視聴チケット',8500,0,'両日 17,000円。通常券からの追加は 2,000円(両日 4,000円)。アーカイブ視聴付き / 出典: https://asobistage.asobistore.jp/event/cinderella_15th_party/ticket',2,'2026-11-30 18:00','2026-12-07 23:59');
 CREATE TABLE shows (id TEXT PRIMARY KEY NOT NULL, event_id TEXT NOT NULL, name TEXT NOT NULL, date TEXT NOT NULL, venue TEXT, venue_city TEXT, start_time TEXT, sort_order INTEGER NOT NULL, performer_type TEXT DEFAULT 'cast', venue_id TEXT, hall TEXT, stream_platform TEXT, venue_mode TEXT);
 INSERT INTO "shows" VALUES('sh_L0003','ev_アイドルマスター6911時の回13時の回15時30分の回','アイドルマスター6/9（11時の回、13時の回、15時30分の回）','2005-02-19','千葉・幕張メッセ国際展示場',NULL,NULL,1,'cast','venue_幕張メッセ','国際展示場',NULL,NULL);
 INSERT INTO "shows" VALUES('sh_L0005','ev_the_idolmster_masterpieceシリーズ発売記念シークレットイベント','「THE IDOLM@STER MASTERPIECE」シリーズ発売記念シークレットイベント','2006-01-21','東京・赤羽会館',NULL,NULL,1,'cast','venue_赤羽会館',NULL,NULL,NULL);

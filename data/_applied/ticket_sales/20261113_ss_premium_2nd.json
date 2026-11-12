@@ -1,0 +1,30 @@
+{
+ "title": "SPARKLE SHOWDOWN アソビストアプレミアム会員2次先行",
+ "author": "daily-data-crawl",
+ "ticket_sales": [
+  {
+   "event_id": "ev_the_idolm@ster_sidem_×_shiny_colors_sparkle_showdown",
+   "kind": "lottery",
+   "name": "アソビストアプレミアム会員2次先行(SPプロデューサーシート)",
+   "starts_at": "2026-11-12 12:00",
+   "ends_at": "2026-11-29 23:59",
+   "result_at": "2026-12-12 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/26d37697-fe13-4442-a773-9d326b96444b",
+   "note": "「アソビストアプレミアム12か月会員」限定。お一人様1公演につき2枚まで（複数公演申込可）。入金期間は2026年12月12日13:00〜12月16日23:59。",
+   "source_url": "https://idolmaster-official.jp/news/01_20255",
+   "sort_order": 2
+  },
+  {
+   "event_id": "ev_the_idolm@ster_sidem_×_shiny_colors_sparkle_showdown",
+   "kind": "lottery",
+   "name": "アソビストアプレミアム会員2次先行(プロデューサーシート・全席指定)",
+   "starts_at": "2026-11-12 12:00",
+   "ends_at": "2026-11-29 23:59",
+   "result_at": "2026-12-12 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/d305ea86-1bd7-4e9f-9576-834333a108fd",
+   "note": "「アソビストアプレミアム12か月会員」限定。お一人様1公演につき4枚まで（複数公演申込可）。入金期間は2026年12月12日13:00〜12月16日23:59。",
+   "source_url": "https://idolmaster-official.jp/news/01_20255",
+   "sort_order": 3
+  }
+ ]
+}
