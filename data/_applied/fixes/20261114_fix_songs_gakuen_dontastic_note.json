@@ -1,0 +1,15 @@
+{
+ "title": "どんタスティック!!! の補足: 太鼓の達人 コラボ楽曲",
+ "author": "daily-data-crawl (issue #418)",
+ "source": "Apple Music (id 6815546826): artist「かめりあ, 太鼓の達人 & Bandai Namco Game Music」、曲名「… (feat. 花海佑芽)」",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "gakuen_どんタスティック",
+   "fields": {
+    "note": "太鼓の達人 コラボ楽曲"
+   },
+   "note": "issue #418 の投稿「太鼓の達人の曲」を、既存のコラボ曲の書き方 (プリンセスコネクト！Re:Dive コラボ楽曲) に揃えて反映。公式ポータルに呼び方の記事は見当たらず、Apple Music のクレジットで太鼓の達人の楽曲 (feat. 花海佑芽) と確認"
+  }
+ ]
+}
