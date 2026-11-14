@@ -25,7 +25,8 @@ import uniffi.imas_core.attendanceStatus
 import uniffi.imas_core.buildLedgerSummary
 import uniffi.imas_core.formatYen
 import uniffi.imas_core.nextShowIndex
-import uniffi.imas_core.votesRemaining
+import uniffi.imas_core.featuredPollIndex
+import kotlin.random.Random
 
 /** 「最近見た」チップ 1 件 (id を名前まで解決したもの)。 */
 data class RecentChip(val kind: RecentKind, val entityId: String, val name: String)
@@ -216,39 +217,25 @@ class ProduceViewModel(app: Application) : AndroidViewModel(app) {
      * 先頭に出す「開催中のお題」を 1 件選ぶ。まだ投票していないお題を優先し、
      * その中からランダムで選ぶ (毎回違うお題に触れてもらう導線)。
      *
-     * iOS は一覧のレスポンスに自分の投票数が入っているのでその場で絞れるが、Android の
-     * `polls()` は id/タイトル/対象種別しか読まない。ここで一覧を全部詳細まで引くと
-     * タブを開くたびにお題の数だけ往復するので、シャッフルした先頭から数件だけ詳細を見て
-     * 「未投票が見つかったら即採用」で打ち切る。全部投票済み (3/3) なら出さない。
+     * 一覧の応答に自分の票数と候補の数が入っているので、往復は一覧の 1 本だけ
+     * (お題ごとの詳細は引かない)。どれを選ぶかの規則はコア (`featuredPollIndex`)。
      */
     private suspend fun loadFeaturedPoll() {
-        val polls = runCatching { module.communityApi.polls() }.getOrNull().orEmpty()
-        var fallback: FeaturedPoll? = null
-        for (summary in polls.shuffled().take(MAX_POLL_PROBES)) {
-            val detail = runCatching { module.communityApi.pollDetail(summary.id) }.getOrNull() ?: continue
-            if (!detail.isActive) continue
-            // 票を使い切ったお題はバナーに出さない (押しても投票できない)。票の上限はコア。
-            if (votesRemaining(detail.myVoteCount.coerceAtLeast(0).toUInt()) == 0u) continue
-            val card = detail.toFeaturedPoll(summary)
-            if (detail.myVoteCount == 0) {
-                _uiState.value = _uiState.value.copy(featuredPoll = card)
-                return
+        val polls = runCatching { module.communityApi.polls() }.getOrNull().orEmpty().filter { it.isActive }
+        val picked = featuredPollIndex(
+            polls.map { it.myVoteCount.coerceAtLeast(0).toUInt() },
+            Random.nextLong().toULong()
+        )?.let { polls.getOrNull(it.toInt()) }
+        _uiState.value = _uiState.value.copy(
+            featuredPoll = picked?.let {
+                FeaturedPoll(
+                    id = it.id,
+                    title = it.title,
+                    totalVotes = it.totalVotes,
+                    entryCount = it.entryCount,
+                    remainingLabel = it.statusLabel
+                )
             }
-            if (fallback == null) fallback = card
-        }
-        _uiState.value = _uiState.value.copy(featuredPoll = fallback)
-    }
-
-    private fun CommunityApi.PollDetail.toFeaturedPoll(summary: CommunityApi.PollSummary) = FeaturedPoll(
-        id = id.ifEmpty { summary.id },
-        title = title.ifEmpty { summary.title },
-        totalVotes = totalVotes,
-        entryCount = entries.size,
-        remainingLabel = statusLabel
-    )
-
-    companion object {
-        /** 1 タブ表示あたりに詳細を引くお題の上限。 */
-        private const val MAX_POLL_PROBES = 3
+        )
     }
 }

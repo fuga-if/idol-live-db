@@ -121,6 +121,28 @@ pub fn votes_remaining(my_vote_count: u32) -> u32 {
     VOTE_LIMIT_PER_TARGET.saturating_sub(my_vote_count)
 }
 
+/// 先頭に出す「開催中のお題」を 1 件選ぶ。`my_vote_counts` は一覧の並びのままの自分の票数。
+/// 返すのはその並びでの添字。出すものが無ければ `None`。
+///
+/// 票を使い切ったお題は出さない (押しても投票できない)。まだ 1 票も入れていないお題を優先し、
+/// その中から `seed` で 1 件選ぶ (毎回違うお題に触れてもらう)。全部に入れ始めていたら、
+/// 票の残っているものから選ぶ。
+pub fn featured_poll_index(my_vote_counts: &[u32], seed: u64) -> Option<u32> {
+    let votable: Vec<usize> = (0..my_vote_counts.len())
+        .filter(|&i| votes_remaining(my_vote_counts[i]) > 0)
+        .collect();
+    let unvoted: Vec<usize> = votable
+        .iter()
+        .copied()
+        .filter(|&i| my_vote_counts[i] == 0)
+        .collect();
+    let pool = if unvoted.is_empty() { votable } else { unvoted };
+    if pool.is_empty() {
+        return None;
+    }
+    Some(pool[(seed % pool.len() as u64) as usize] as u32)
+}
+
 /// 選び直した結果から、投票・取り消しを決めたもの。
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
 pub struct VoteSelectionPlan {
@@ -167,6 +189,25 @@ pub fn plan_vote_selection(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn featured_poll_prefers_unvoted_and_never_shows_used_up_polls() {
+        // 0 票のお題があれば、seed が何でもその中から選ぶ。
+        for seed in 0..20 {
+            let picked = featured_poll_index(&[1, 0, 3, 0], seed).unwrap();
+            assert!(picked == 1 || picked == 3);
+        }
+        // seed で両方とも選ばれうる。
+        assert_eq!(featured_poll_index(&[1, 0, 3, 0], 0), Some(1));
+        assert_eq!(featured_poll_index(&[1, 0, 3, 0], 1), Some(3));
+        // 0 票のお題が無ければ、票の残っているものから。使い切ったものは選ばない。
+        for seed in 0..20 {
+            assert_eq!(featured_poll_index(&[3, 2, 5], seed), Some(1));
+        }
+        // 全部使い切った / お題が無い。
+        assert_eq!(featured_poll_index(&[3, 4], 7), None);
+        assert_eq!(featured_poll_index(&[], 7), None);
+    }
 
     /// JS の `trim()` が落とす文字 (node で全 BMP を舐めて得た一覧) とちょうど同じ。
     #[test]
