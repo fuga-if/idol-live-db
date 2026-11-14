@@ -34,6 +34,9 @@ struct CallGuidePreviewHarness: View {
         case parts
         /// プレイリスト (見本のプレイリストを 1 つ作って開く。端末 DB に書く)。
         case playlist
+        /// カラオケモード (歌唱者は DB の実在曲から借りて行に順に振る。歌詞はダミー)。
+        /// `KARAOKE_STATE=sing` で合わせた後、`parts` でパートのシートを開いたところ。
+        case karaoke
     }
 
     /// 環境変数で指定されたモード。未指定なら nil (通常起動)。
@@ -48,6 +51,7 @@ struct CallGuidePreviewHarness: View {
     @State private var startedAt = Date()
     @State private var scrollTarget: String?
     @State private var playlistPath = NavigationPath()
+    @State private var karaoke: (lyrics: Lyrics, cast: LyricPartCast)?
 
     init(mode: Mode) {
         self.mode = mode
@@ -86,6 +90,14 @@ struct CallGuidePreviewHarness: View {
                     }
                 }
                 .background(DS.bg)
+            case .karaoke:
+                if let karaoke {
+                    KaraokeModeView(song: Self.sampleSong, seed: nil, artistLine: nil, artworkURL: nil,
+                                    lyrics: karaoke.lyrics, cast: karaoke.cast,
+                                    debugState: ProcessInfo.processInfo.environment["KARAOKE_STATE"])
+                } else {
+                    DS.bg
+                }
             case .playlist:
                 NavigationStack(path: $playlistPath) { PlaylistsView() }
                     .environment(AppDatabase.shared)
@@ -123,10 +135,28 @@ struct CallGuidePreviewHarness: View {
             }
         }
         .task {
+            if mode == .karaoke { await loadKaraoke(); return }
             // パート分けは歌唱者が要るので、先に DB の実在曲から引いておく (歌詞より先に揃える)。
             if mode == .parts || mode == .record { await vm.loadData(song: Self.partsArtistSource) }
             await vm.loadServerData(song: Self.sampleSong)
         }
+    }
+
+    /// カラオケの見本: ダミー歌詞に時刻を振り、実在曲の原唱者を行に順に振る (5 行おきに全員)。
+    private func loadKaraoke() async {
+        guard let base = try? await HarnessSongDetailReading(timed: true).songDetail(songId: Self.sampleSong.id).lyrics,
+              let artists = try? await AppContainer.shared.songReading.songArtists(songId: Self.partsArtistSource.id, role: "original"),
+              !artists.isEmpty else { return }
+        var lyricIndex = 0
+        let lines = base.lines.map { line -> LyricLine in
+            var l = line
+            guard l.kind == .lyric, !l.isOverlay else { return l }
+            l.singers = lyricIndex % 5 == 4 ? artists.map(\.id) : [artists[(lyricIndex / 2) % artists.count].id]
+            lyricIndex += 1
+            return l
+        }
+        karaoke = (Lyrics(songId: base.songId, source: base.source, updatedAt: base.updatedAt, lines: lines, status: base.status),
+                   LyricPartCast(artists: artists))
     }
 
     /// パート分けの確認で歌唱者だけ借りる実在曲 (原唱者 3 人)。

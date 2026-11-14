@@ -58,6 +58,7 @@ pub mod lyric_ocr;
 pub mod lyric_submission;
 pub mod lyric_display;
 pub mod lyric_penlight;
+pub mod karaoke;
 pub mod lyric_sync;
 pub mod lyrics_query;
 pub mod lyrics_quiz;

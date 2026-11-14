@@ -369,7 +369,7 @@ fn same_title(title_key: &str, name_key: &str) -> bool {
 }
 
 /// 突き合わせの鍵。かな・大小・全角半角を畳み、空白と記号を落とす。
-fn match_key(s: &str) -> String {
+pub(crate) fn match_key(s: &str) -> String {
     let widened: String = s.chars().map(fold_width).collect();
     imas_text_fold::fold(&widened)
         .chars()

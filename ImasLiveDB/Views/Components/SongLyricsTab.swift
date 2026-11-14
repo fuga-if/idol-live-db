@@ -62,6 +62,8 @@ struct SongLyricsTab: View {
     @State private var recorder: LyricTimingRecorder?
     /// 歌詞プレイヤーを開いている。
     @State private var showsPlayer = false
+    /// カラオケモードを開いている。
+    @State private var showsKaraoke = false
     /// 開いたプレイヤーが、いま鳴っている曲に付いていく方か (プレイリストの途中で開いたとき)。
     @State private var playerFollowsQueue = false
     /// 行の区切りを編集している (くっつける / 切り離す)。
@@ -172,6 +174,13 @@ struct SongLyricsTab: View {
                                      Task { await beginRecording(lyrics) }
                                  },
                                  cast: partCast)
+            }
+        }
+        .fullScreenCover(isPresented: $showsKaraoke) {
+            if let lyrics = vm.lyrics {
+                KaraokeModeView(song: song, seed: seed, artistLine: vm.artistLine(for: song),
+                                artworkURL: vm.artworkInfo?.artworkURL ?? song.artworkUrl.flatMap(URL.init(string:)),
+                                lyrics: lyrics, cast: partCast)
             }
         }
         .sensoryFeedback(.impact(weight: .light), trigger: likeToken)
@@ -446,6 +455,13 @@ struct SongLyricsTab: View {
                         playerFollowsQueue = MusicKitService.shared.hasQueue
                             && MusicKitService.shared.nowPlayingSongId == song.id
                         showsPlayer = true
+                    }
+                    // カラオケモードは行の時刻がある曲だけ (時刻が無いと合わせる先が無い)。
+                    if lyricHasTiming(starts: lyrics.lines.map { $0.startMs.map(Int64.init) }) {
+                        ImasIconButton(systemImage: "music.mic", label: "カラオケモード", size: .small) {
+                            AppAnalytics.tap("karaoke.open_from_tab")
+                            showsKaraoke = true
+                        }
                     }
                     // 歌詞の時刻・コールの時刻・パート分けは、どれもこの 1 つの入口から (段を切り替える)。
                     ImasIconButton(systemImage: "metronome", label: "タイミング・パートを編集",
