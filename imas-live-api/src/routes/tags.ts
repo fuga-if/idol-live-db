@@ -268,25 +268,28 @@ async function fetchEntityTagList(
   entityId: string,
   deviceId: string | null
 ): Promise<{ tags: unknown[]; my_tag_ids: string[] }> {
-  const { results: tags } = await db
-    .prepare(
-      `SELECT t.id, t.name, t.color, t.category, l.vote_count
-         FROM ${pool.linkTable} l
-         JOIN ${pool.masterTable} t ON t.id = l.tag_id
-        WHERE l.${pool.entityKey} = ? AND t.status != 'removed'
-        ORDER BY l.vote_count DESC`
-    )
-    .bind(entityId)
-    .all();
-
-  let myTagIds: string[] = [];
+  // 一覧と自分の票を 1 往復で引く (逐次 await だと 2 往復)。
+  const stmts = [
+    db
+      .prepare(
+        `SELECT t.id, t.name, t.color, t.category, l.vote_count
+           FROM ${pool.linkTable} l
+           JOIN ${pool.masterTable} t ON t.id = l.tag_id
+          WHERE l.${pool.entityKey} = ? AND t.status != 'removed'
+          ORDER BY l.vote_count DESC`
+      )
+      .bind(entityId),
+  ];
   if (deviceId) {
-    const { results: myRows } = await db
-      .prepare(`SELECT tag_id FROM ${pool.deviceTable} WHERE device_id = ? AND ${pool.entityKey} = ?`)
-      .bind(deviceId, entityId)
-      .all<{ tag_id: string }>();
-    myTagIds = myRows.map((r) => r.tag_id);
+    stmts.push(
+      db
+        .prepare(`SELECT tag_id FROM ${pool.deviceTable} WHERE device_id = ? AND ${pool.entityKey} = ?`)
+        .bind(deviceId, entityId)
+    );
   }
+  const batch = await db.batch<Record<string, unknown>>(stmts);
+  const tags: unknown[] = batch[0].results;
+  const myTagIds = (batch[1]?.results ?? []).map((r) => r.tag_id as string);
 
   return { tags, my_tag_ids: myTagIds };
 }

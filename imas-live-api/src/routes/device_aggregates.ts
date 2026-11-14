@@ -31,32 +31,32 @@ export async function fetchPenlightVotes(
   total_votes: number;
   my_vote: { color_set_key: string; colors: string[] } | null;
 }> {
-  const { results: topSets } = await db
+  // 3 本を 1 往復で引く (D1 は文ごとに往復するので、逐次 await だと 3 往復になる)。
+  const topStmt = db
     .prepare(
       `SELECT color_set_key, count FROM penlight_color_set_votes
          WHERE song_id = ? ORDER BY count DESC LIMIT 5`
     )
-    .bind(songId)
-    .all<{ color_set_key: string; count: number }>();
-
-  const totalRow = await db
+    .bind(songId);
+  const totalStmt = db
     .prepare(`SELECT SUM(count) as total FROM penlight_color_set_votes WHERE song_id = ?`)
-    .bind(songId)
-    .first<{ total: number }>();
-
-  let myVote: { color_set_key: string; colors: string[] } | null = null;
+    .bind(songId);
+  const stmts = [topStmt, totalStmt];
   if (deviceId) {
-    const myRow = await db
-      .prepare("SELECT color_set_key FROM device_song_penlight WHERE device_id = ? AND song_id = ?")
-      .bind(deviceId, songId)
-      .first<{ color_set_key: string }>();
-    if (myRow) {
-      myVote = {
-        color_set_key: myRow.color_set_key,
-        colors: myRow.color_set_key.split("-"),
-      };
-    }
+    stmts.push(
+      db
+        .prepare("SELECT color_set_key FROM device_song_penlight WHERE device_id = ? AND song_id = ?")
+        .bind(deviceId, songId)
+    );
   }
+  const batch = await db.batch<Record<string, unknown>>(stmts);
+  const topSets = batch[0].results as Array<{ color_set_key: string; count: number }>;
+  const totalRow = (batch[1].results[0] ?? null) as { total: number } | null;
+  const myRow = (batch[2]?.results[0] ?? null) as { color_set_key: string } | null;
+
+  const myVote: { color_set_key: string; colors: string[] } | null = myRow
+    ? { color_set_key: myRow.color_set_key, colors: myRow.color_set_key.split("-") }
+    : null;
 
   return {
     top_sets: topSets.map((row) => ({
@@ -157,7 +157,10 @@ export async function handleDeviceAggregates(ctx: RouteContext): Promise<Respons
       const { results } = await env.DB.prepare(
         "SELECT * FROM penlight_palette ORDER BY sort_order"
       ).all();
-      return json(results);
+      // 色の一覧はマスタで、利用者にも端末にも依らない。エッジで共有する。
+      return json(results, 200, {
+        "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
+      });
     }
 
     // ----------------------------------------------------------------

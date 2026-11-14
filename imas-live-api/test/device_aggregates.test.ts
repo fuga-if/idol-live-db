@@ -66,10 +66,10 @@ describe("GET /favorites/ranking", () => {
 });
 
 describe("ペンライト", () => {
-  it("GET /penlight/palette は並び順どおりの全色 (キャッシュ指定なし)", async () => {
+  it("GET /penlight/palette は並び順どおりの全色 (エッジで共有キャッシュ)", async () => {
     const res = await callJson("GET", "/penlight/palette");
     expect(res.status).toBe(200);
-    expect(res.res.headers.get("Cache-Control")).toBeNull();
+    expect(res.res.headers.get("Cache-Control")).toBe("public, max-age=3600, stale-while-revalidate=86400");
     expect(res.body).toHaveLength(15);
     expect(res.body[0]).toEqual({
       color_hex: "#FFFFFF", name: "白", sort_order: 1, note: "黒ペンライトの代用として使われることが多い",
