@@ -209,6 +209,51 @@ class CloudKitSyncEngineTest {
         assertTrue("人が頼んだ差分で Brand を省いた: $asked", "Brand" in asked)
     }
 
+    /**
+     * フル同期は、単一 PK の型 (孤児掃除が要る) を毎回 epoch から取り直す。複合 PK の型は
+     * 一度 epoch から取り切ったら、次からは取り込んだ最大の modifiedAt の少し手前から取り、
+     * 目録で動いていないと分かれば問い合わせない。全データ同期は続き位置を捨てて全部 epoch から。
+     */
+    @Test
+    fun fullSyncResumesCompositeTypesFromTheirCursor() = runBlocking {
+        db.syncDao().upsertBrands(listOf(Brand("b0", "ブランド", "B", null, 0)))
+        val prefs = context.getSharedPreferences("imas_sync", Context.MODE_PRIVATE)
+        val modifiedAt = System.currentTimeMillis() - 86_400_000L
+        val since = java.util.concurrent.ConcurrentHashMap<String, MutableList<Long>>()
+        var manifest: String? = null
+        val engine = engine(manifest = { manifest }) { recordType, sinceMs ->
+            since.getOrPut(recordType) { java.util.Collections.synchronizedList(mutableListOf()) } += sinceMs
+            when (recordType) {
+                "Brand" -> listOf(brandRecord("b0"))
+                "IdolBrand" -> if (sinceMs == 0L) listOf(
+                    """{"recordName":"idol_brands-i0-b0","recordType":"IdolBrand","fields":{"idolId":{"value":"i0","type":"STRING"},"brandId":{"value":"b0","type":"STRING"},"deletedAt":{"value":$modifiedAt,"type":"TIMESTAMP"},"modifiedAt":{"value":$modifiedAt,"type":"TIMESTAMP"}}}"""
+                ) else emptyList()
+                else -> emptyList()
+            }
+        }
+        suspend fun fullRun(manual: Boolean = false) = withTimeout(30_000) {
+            prefs.edit().remove("last_full_sync_ms").commit()   // フルの時期が来たことにする
+            (if (manual) engine.requestFullSync() else engine.requestSync(automatic = true)).await()
+        }
+
+        fullRun()   // 1 回目: 続き位置が無い → 全部 epoch から
+        assertEquals(listOf(0L), since["IdolBrand"]?.toList())
+        assertEquals(modifiedAt, prefs.getLong("type_cursor_ms_IdolBrand", 0L))
+
+        fullRun()   // 2 回目: 複合 PK は続き位置の 10 分手前から、単一 PK はまた epoch から
+        assertEquals(listOf(0L, modifiedAt - 600_000L), since["IdolBrand"]?.toList())
+        assertEquals(listOf(0L, 0L), since["Brand"]?.toList())
+
+        // 3 回目: 目録が「IdolBrand は続き位置から動いていない」と言う → 問い合わせない
+        manifest = """{"generatedAt":${System.currentTimeMillis()},"types":{"IdolBrand":$modifiedAt,"Brand":$modifiedAt}}"""
+        fullRun()
+        assertEquals("動いていない複合 PK の型を問い合わせた", 2, since["IdolBrand"]?.size)
+        assertEquals("単一 PK の型を省いた (孤児掃除ができない)", 3, since["Brand"]?.size)
+
+        fullRun(manual = true)   // 全データ同期: 続き位置を捨てて epoch から
+        assertEquals(0L, since["IdolBrand"]?.last())
+    }
+
     private fun brandRecord(id: String) =
         """{"recordName":"$id","recordType":"Brand","fields":{"name":{"value":"ブランド","type":"STRING"},"shortName":{"value":"B","type":"STRING"}}}"""
 

@@ -276,6 +276,13 @@ struct ManifestBody {
     types: std::collections::HashMap<String, Option<f64>>,
 }
 
+/// 本文が読めて、時刻が今から [`MANIFEST_MAX_AGE_SECONDS`] 以内の目録だけを返す。
+fn trusted_manifest(manifest_json: &str, now_epoch: f64) -> Option<ManifestBody> {
+    let body = serde_json::from_str::<ManifestBody>(manifest_json).ok()?;
+    let generated = body.generated_at / 1000.0;
+    (generated.is_finite() && (now_epoch - generated).abs() <= MANIFEST_MAX_AGE_SECONDS).then_some(body)
+}
+
 /// 目録 (Worker `GET /sync/manifest` の応答本文) から、問い合わせを省ける型を決める。
 ///
 /// 省いてよいのは「差分クエリ `modifiedAt > since` が 0 件になると分かっている型」だけ:
@@ -308,13 +315,10 @@ pub fn manifest_plan(
     let Some(since) = modified_since_epoch else {
         return unusable;
     };
-    let Ok(body) = serde_json::from_str::<ManifestBody>(manifest_json) else {
+    let Some(body) = trusted_manifest(manifest_json, now_epoch) else {
         return unusable;
     };
     let generated = body.generated_at / 1000.0;
-    if !generated.is_finite() || (now_epoch - generated).abs() > MANIFEST_MAX_AGE_SECONDS {
-        return unusable;
-    }
     let checkpointed: HashSet<&str> = checkpointed_record_types.iter().map(String::as_str).collect();
     let skip_record_types = record_types
         .iter()
@@ -330,6 +334,125 @@ pub fn manifest_plan(
         usable: true,
         skip_record_types,
         last_sync_epoch_to_save: Some(now_epoch.min(generated - MANIFEST_SAFETY_MARGIN_SECONDS)),
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 1.6 フル同期を、型ごとの続き位置から取る
+// ---------------------------------------------------------------------------
+
+/// 続き位置から取るときに手前へ戻す幅 (10 分)。
+///
+/// 続き位置は「その型で取り込んだ最大の modifiedAt」= サーバ側の時刻。書き込み側の時計の
+/// ずれや CloudKit の索引の遅れで、それより少し前の modifiedAt を持つレコードが後から
+/// 見えることがあるので、その分だけ手前から取り直す (取り込みは upsert なので重複は無害)。
+pub const TYPE_CURSOR_REWIND_SECONDS: f64 = 600.0;
+
+/// 続き位置を持つ型でも、これだけ経ったら epoch から全件を取り直す (7 日)。
+///
+/// 続き位置から取る方式が拾えないもの (戻し幅より古い modifiedAt で後から書かれたレコード)
+/// を、いつかは必ず直すための保険。
+pub const TYPE_EPOCH_PASS_INTERVAL_SECONDS: f64 = 7.0 * 24.0 * 3600.0;
+
+/// ある型について端末が覚えている、フル同期の進み具合。
+#[derive(uniffi::Record, Clone, Debug, PartialEq)]
+pub struct SyncTypeCursor {
+    pub record_type: String,
+    /// フル同期でその型から取り込んだ最大の modifiedAt (サーバ側の時刻)。
+    /// **差分同期では進めない**: 差分の起点は端末の時計で、取りこぼしがありうる。
+    /// 取りこぼした先まで続き位置を進めると、そのレコードを取りに行かなくなる。
+    pub cursor_epoch: Option<f64>,
+    /// epoch からの全件取得を最後に完走した時刻 (端末の時計)。
+    pub last_epoch_pass_epoch: Option<f64>,
+}
+
+/// フル同期での 1 ステップの進め方。
+#[derive(uniffi::Record, Clone, Debug, PartialEq)]
+pub struct SyncFullStepPlan {
+    pub record_type: String,
+    /// 問い合わせ自体を省く (目録で、続き位置より後に何も動いていないと分かった)。
+    pub skip: bool,
+    /// `modifiedAt > start_epoch` の start。
+    pub start_epoch: f64,
+    /// epoch から全件を取り直すか。**孤児掃除を許してよいのはこれが true のステップだけ**。
+    pub started_from_epoch: bool,
+}
+
+/// フル同期で、各型をどこから取るかを決める。
+///
+/// フル同期が毎回 epoch から全件を取り直す理由は 2 つある:
+///
+/// 1. CloudKit で物理削除された行を端末から消す (孤児掃除)。全件の ID が要る。
+/// 2. 差分同期の取りこぼしを直す。差分の起点は端末の時計なので、ずれると落とす。
+///
+/// 1 が効くのは単一 PK の表だけ ([`supports_orphan_cleanup`])。複合 PK の表
+/// (SetlistPerformer / SongArtist / ShowCast など。行数の大半) は孤児掃除の対象外なので、
+/// 全件を取り直しても 2 しか得ていない。2 は「サーバ側の時刻で持つ続き位置から取る」で
+/// 足りる (端末の時計に依らないので落とさない)。
+///
+/// - 単一 PK の型: これまでどおり毎回 epoch から (孤児掃除のため)。
+/// - 複合 PK の型: 続き位置があれば、そこから [`TYPE_CURSOR_REWIND_SECONDS`] 戻した所から。
+///   続き位置が無い・epoch からの完走が [`TYPE_EPOCH_PASS_INTERVAL_SECONDS`] より古い
+///   (または時計が巻き戻っている) なら epoch から。
+/// - 続き位置から取る型は、目録が使えて、その型の最新 modifiedAt が続き位置以下なら
+///   問い合わせを省く。目録が無い・読めない・古いときは省かない。
+///
+/// `cursors` に載っていない型は続き位置なしとして扱う。全件を強制したいとき
+/// (手動の全データ同期・ローカルが空・入れ直しの直後) は `cursors` を空で渡す。
+pub fn full_step_plans(
+    record_types: &[String],
+    cursors: &[SyncTypeCursor],
+    manifest_json: Option<&str>,
+    now_epoch: f64,
+) -> Vec<SyncFullStepPlan> {
+    let manifest = manifest_json.and_then(|json| trusted_manifest(json, now_epoch));
+    record_types
+        .iter()
+        .map(|record_type| {
+            let from_epoch = SyncFullStepPlan {
+                record_type: record_type.clone(),
+                skip: false,
+                start_epoch: 0.0,
+                started_from_epoch: true,
+            };
+            if supports_orphan_cleanup(record_type) {
+                return from_epoch;
+            }
+            let Some(state) = cursors.iter().find(|c| &c.record_type == record_type) else {
+                return from_epoch;
+            };
+            let (Some(cursor), Some(last_pass)) = (state.cursor_epoch, state.last_epoch_pass_epoch)
+            else {
+                return from_epoch;
+            };
+            let since_pass = now_epoch - last_pass;
+            if !cursor.is_finite() || since_pass < 0.0 || since_pass > TYPE_EPOCH_PASS_INTERVAL_SECONDS {
+                return from_epoch;
+            }
+            let unchanged = manifest
+                .as_ref()
+                .and_then(|body| body.types.get(record_type.as_str()))
+                .is_some_and(|latest| match latest {
+                    None => true,
+                    Some(latest_ms) => latest_ms.is_finite() && latest_ms / 1000.0 <= cursor,
+                });
+            SyncFullStepPlan {
+                record_type: record_type.clone(),
+                skip: unchanged,
+                start_epoch: (cursor - TYPE_CURSOR_REWIND_SECONDS).max(0.0),
+                started_from_epoch: false,
+            }
+        })
+        .collect()
+}
+
+/// フル同期で 1 つの型を取り切った後の、新しい続き位置。
+///
+/// 続き位置は後ろへ戻さない (今回 1 件も取れなくても、前の値を保つ)。
+pub fn next_type_cursor(previous_epoch: Option<f64>, max_seen_epoch: Option<f64>) -> Option<f64> {
+    match (previous_epoch, max_seen_epoch) {
+        (Some(prev), Some(seen)) => Some(prev.max(seen)),
+        (prev, seen) => prev.or(seen),
     }
 }
 
@@ -1029,6 +1152,84 @@ mod tests {
             })
             .collect();
         format!("{{\"generatedAt\":{},\"types\":{{{}}}}}", generated * 1000.0, types.join(","))
+    }
+
+    #[test]
+    fn full_sync_refetches_single_pk_types_but_resumes_composite_ones() {
+        use super::{
+            full_step_plans, SyncTypeCursor, TYPE_CURSOR_REWIND_SECONDS as REWIND,
+            TYPE_EPOCH_PASS_INTERVAL_SECONDS as INTERVAL,
+        };
+        let now = 2_000_000.0;
+        let cursor = |name: &str, cursor: Option<f64>, pass: Option<f64>| SyncTypeCursor {
+            record_type: name.to_string(),
+            cursor_epoch: cursor,
+            last_epoch_pass_epoch: pass,
+        };
+        let all = types(&["Song", "SongArtist", "ShowCast", "SetlistPerformer", "UnitMember", "IdolBrand"]);
+        let cursors = vec![
+            cursor("Song", Some(1_900_000.0), Some(now - 3600.0)), // 単一 PK → 孤児掃除のため毎回 epoch
+            cursor("SongArtist", Some(1_900_000.0), Some(now - 3600.0)),
+            cursor("ShowCast", None, Some(now - 3600.0)),          // 続き位置なし → epoch
+            cursor("SetlistPerformer", Some(1_900_000.0), Some(now - INTERVAL - 1.0)), // 保険の全件
+            cursor("UnitMember", Some(1_900_000.0), Some(now + 60.0)), // 時計が巻き戻った → epoch
+            // IdolBrand は cursors に無い → epoch
+        ];
+        let plans = full_step_plans(&all, &cursors, None, now);
+        let by = |name: &str| plans.iter().find(|p| p.record_type == name).unwrap();
+        assert_eq!(plans.len(), all.len());
+        assert!(by("Song").started_from_epoch && by("Song").start_epoch == 0.0);
+        assert!(!by("SongArtist").started_from_epoch);
+        assert_eq!(by("SongArtist").start_epoch, 1_900_000.0 - REWIND);
+        assert!(!by("SongArtist").skip, "目録なしで問い合わせを省いた");
+        for name in ["ShowCast", "SetlistPerformer", "UnitMember", "IdolBrand"] {
+            assert!(by(name).started_from_epoch && !by(name).skip, "{name}");
+        }
+        // 続き位置を渡さなければ (手動の全データ同期・入れ直しの直後) 全部 epoch から。
+        assert!(full_step_plans(&all, &[], None, now).iter().all(|p| p.started_from_epoch));
+    }
+
+    #[test]
+    fn full_sync_skips_composite_types_the_manifest_says_are_unchanged() {
+        use super::{full_step_plans, SyncTypeCursor, MANIFEST_MAX_AGE_SECONDS as MAX_AGE};
+        let now = 2_000_000.0;
+        let at = 1_900_000.0;
+        let cursors: Vec<SyncTypeCursor> = ["SongArtist", "ShowCast", "UnitMember", "Song"]
+            .iter()
+            .map(|name| SyncTypeCursor {
+                record_type: name.to_string(),
+                cursor_epoch: Some(at),
+                last_epoch_pass_epoch: Some(now - 3600.0),
+            })
+            .collect();
+        let all = types(&["SongArtist", "ShowCast", "UnitMember", "Song"]);
+        let entries = [
+            ("SongArtist", Some(at)),     // 続き位置と同じ → 省く
+            ("ShowCast", Some(at + 1.0)), // 動いた → 問い合わせる
+            ("Song", Some(at)),           // 単一 PK → 動いていなくても全件 (孤児掃除)
+        ];
+        let skipped = |json: &str| -> Vec<String> {
+            full_step_plans(&all, &cursors, Some(json), now)
+                .into_iter()
+                .filter(|p| p.skip)
+                .map(|p| p.record_type)
+                .collect()
+        };
+        // UnitMember は目録に載っていない → 省かない。
+        assert_eq!(skipped(&manifest(now - 30.0, &entries)), types(&["SongArtist"]));
+        // 古い目録・読めない目録では何も省かない。
+        assert!(skipped(&manifest(now - MAX_AGE - 1.0, &entries)).is_empty());
+        assert!(skipped("<html>").is_empty());
+    }
+
+    #[test]
+    fn type_cursor_never_moves_backwards() {
+        use super::next_type_cursor as next;
+        assert_eq!(next(None, None), None);
+        assert_eq!(next(None, Some(5.0)), Some(5.0));
+        assert_eq!(next(Some(9.0), None), Some(9.0));
+        assert_eq!(next(Some(9.0), Some(5.0)), Some(9.0));
+        assert_eq!(next(Some(9.0), Some(12.0)), Some(12.0));
     }
 
     #[test]

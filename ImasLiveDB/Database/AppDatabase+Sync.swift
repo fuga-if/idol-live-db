@@ -261,6 +261,40 @@ extension AppDatabase {
         return ISO8601DateFormatter.shared.date(from: value)
     }
 
+    // MARK: - フル同期の続き位置 (型ごと)
+    //
+    // meta 表に置く (UserDefaults ではなく)。DB が作り直されたら続き位置も一緒に消えて
+    // ほしいので、マスタと同じ DB ファイルに同居させる。同梱データの入れ直し (reseed) は
+    // マスタを古い状態へ戻すので、そこでも消している (AppDatabase.reseedMasterTablesIfNeeded)。
+
+    static let syncCursorKeyPrefix = "sync_cursor_"
+    static let syncEpochPassKeyPrefix = "sync_epoch_pass_"
+
+    /// 型ごとの続き位置と、epoch からの全件取得を最後に完走した時刻。記録の無い型は載らない。
+    func syncTypeCursors(recordTypes: [String]) throws -> [String: SyncTypeCursor] {
+        try dbQueue.read { db in
+            var out: [String: SyncTypeCursor] = [:]
+            for type in recordTypes {
+                let cursor = try Meta.getValue(db, forKey: Self.syncCursorKeyPrefix + type).flatMap(Double.init)
+                let pass = try Meta.getValue(db, forKey: Self.syncEpochPassKeyPrefix + type).flatMap(Double.init)
+                guard cursor != nil || pass != nil else { continue }
+                out[type] = SyncTypeCursor(recordType: type, cursorEpoch: cursor, lastEpochPassEpoch: pass)
+            }
+            return out
+        }
+    }
+
+    func saveSyncTypeCursor(recordType: String, cursorEpoch: Double?, lastEpochPassEpoch: Double?) throws {
+        try dbQueue.write { db in
+            if let cursorEpoch {
+                try Meta.setValue(db, String(cursorEpoch), forKey: Self.syncCursorKeyPrefix + recordType)
+            }
+            if let lastEpochPassEpoch {
+                try Meta.setValue(db, String(lastEpochPassEpoch), forKey: Self.syncEpochPassKeyPrefix + recordType)
+            }
+        }
+    }
+
     /// 直近の fullSync (modifiedSince=nil) 実行日時。
     /// 24時間以上経過したら起動時に再度 fullSync する判定に使う。
     func updateLastFullSyncDate(_ date: Date) throws {

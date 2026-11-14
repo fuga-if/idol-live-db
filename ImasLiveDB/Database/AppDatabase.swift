@@ -329,6 +329,9 @@ final class AppDatabase: Sendable {
                     ok += 1
                 }
                 try db.execute(sql: "UPDATE main.meta SET value = ? WHERE key = 'data_version'", arguments: [String(newVersion)])
+                // マスタを同梱データの時点へ戻したので、フル同期の続き位置も捨てる。残すと、
+                // 同梱データより新しく続き位置より古い変更を、次のフル同期が取り直さない。
+                try db.execute(sql: "DELETE FROM main.meta WHERE key LIKE 'sync\\_cursor\\_%' ESCAPE '\\' OR key LIKE 'sync\\_epoch\\_pass\\_%' ESCAPE '\\'")
                 // 「最後に取り込んだ同梱データ」を指紋で記録する。次回の判定はこれと突き合わせる。
                 // meta は台帳に無いので一括コピーの対象外。ここで自分で書く。
                 if let newContentHash {

@@ -13,8 +13,8 @@
 //! 巻き戻しが 1000 倍ずれて境界レコードを取りこぼす。
 
 use crate::domain::sync_planning::{
-    self, SyncChunkAction, SyncCompletion, SyncCompletionState, SyncManifestPlan, SyncRecordPartition,
-    SyncRunStart,
+    self, SyncChunkAction, SyncCompletion, SyncCompletionState, SyncFullStepPlan, SyncManifestPlan,
+    SyncRecordPartition, SyncRunStart, SyncTypeCursor,
     SyncStartupPlan, SyncStartupState, SyncStep, SyncStepStart, SyncTableInfo,
 };
 
@@ -60,6 +60,24 @@ pub fn sync_manifest_plan(
         modified_since_epoch,
         now_epoch,
     )
+}
+
+/// フル同期で各型をどこから取るかを決める (単一 PK は epoch から、複合 PK は続き位置から)。
+/// 全件を強制したいときは `cursors` を空で渡す。
+#[uniffi::export]
+pub fn sync_full_step_plans(
+    record_types: Vec<String>,
+    cursors: Vec<SyncTypeCursor>,
+    manifest_json: Option<String>,
+    now_epoch: f64,
+) -> Vec<SyncFullStepPlan> {
+    sync_planning::full_step_plans(&record_types, &cursors, manifest_json.as_deref(), now_epoch)
+}
+
+/// フル同期で 1 つの型を取り切った後の、新しい続き位置 (後ろへは戻さない)。
+#[uniffi::export]
+pub fn sync_next_type_cursor(previous_epoch: Option<f64>, max_seen_epoch: Option<f64>) -> Option<f64> {
+    sync_planning::next_type_cursor(previous_epoch, max_seen_epoch)
 }
 
 // --- 取り込み順序 ---

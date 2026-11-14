@@ -128,7 +128,8 @@ final class CloudKitSyncEngine: @unchecked Sendable {
                 UIApplication.shared.endBackgroundTask(bgTask)
             }
         }
-        await performSync(database: database, modifiedSince: nil)
+        // 人が頼んだ全データ同期は、続き位置を使わず全部の型を epoch から取り直す (最後の手段)。
+        await performSync(database: database, modifiedSince: nil, forceEpoch: true)
     }
 
     /// 差分Sync — 前回同期以降の変更のみ
@@ -215,7 +216,10 @@ final class CloudKitSyncEngine: @unchecked Sendable {
     ///   問い合わせを省くか。自動の同期 (起動時・前面復帰) だけ true にする。目録はエッジで
     ///   60 秒共有されるので、手動更新や自分の編集の直後に使うと「今入れた変更」がまだ
     ///   載っておらず、取りに行かないことがある。そちらは従来どおり全部の型を問い合わせる。
-    private func performSync(database: AppDatabase, modifiedSince: Date?, useManifest: Bool = false) async {
+    /// - Parameter forceEpoch: フル同期で、型ごとの続き位置を無視して全部 epoch から取るか。
+    private func performSync(
+        database: AppDatabase, modifiedSince: Date?, useManifest: Bool = false, forceEpoch: Bool = false
+    ) async {
         // 再入防止 (atomic): MainActor で check-and-set し、既に走っていればスキップ。
         // 重い DB 書き込み (GRDB DatabaseQueue の blocking write) を MainActor に載せないため、
         // ガードだけ MainActor に隔離し、本体は非隔離のまま実行する。
@@ -223,13 +227,17 @@ final class CloudKitSyncEngine: @unchecked Sendable {
             logger.info("[Sync] skip: already running")
             return
         }
-        await performSyncBody(database: database, modifiedSince: modifiedSince, useManifest: useManifest)
+        await performSyncBody(
+            database: database, modifiedSince: modifiedSince, useManifest: useManifest, forceEpoch: forceEpoch
+        )
         endRunning()
     }
 
     /// performSync の本体。再入ガード取得後にのみ呼ばれる。内部の早期 return はここから返り、
     /// 呼び出し元 performSync が確実に endRunning() を実行する (ガードのリークを防ぐ)。
-    private func performSyncBody(database: AppDatabase, modifiedSince: Date?, useManifest: Bool) async {
+    private func performSyncBody(
+        database: AppDatabase, modifiedSince: Date?, useManifest: Bool, forceEpoch: Bool
+    ) async {
         // iCloudアカウント確認
         do {
             let status = try await CloudKitService.shared.accountStatus()
@@ -289,6 +297,31 @@ final class CloudKitSyncEngine: @unchecked Sendable {
             logger.info("[Sync] manifest usable=\(plan.usable), skip \(skipTypes.count)/\(recordTypes.count) types")
         }
 
+        // フル同期: 各型をどこから取るかはコア (`sync_planning::full_step_plans`)。
+        // 単一 PK の型は孤児掃除のため毎回 epoch から。複合 PK の型 (行数の大半) は、
+        // サーバ時刻で持つ続き位置から取り、目録で動いていないと分かれば問い合わせも省く。
+        var fullPlans: [String: SyncFullStepPlan] = [:]
+        var typeCursors: [String: SyncTypeCursor] = [:]
+        if isFullSync {
+            let recordTypes = syncSteps.map(\.recordType)
+            if !forceEpoch {
+                typeCursors = (try? database.syncTypeCursors(recordTypes: recordTypes)) ?? [:]
+            }
+            // 目録を読むのは、続き位置から取れる型があるときだけ (無ければ省ける型も無い)。
+            let manifestJson = typeCursors.values.contains { $0.cursorEpoch != nil }
+                ? await fetchSyncManifest() : nil
+            let plans = syncFullStepPlans(
+                recordTypes: recordTypes,
+                cursors: Array(typeCursors.values),
+                manifestJson: manifestJson,
+                nowEpoch: syncStartDate.timeIntervalSince1970
+            )
+            fullPlans = Dictionary(uniqueKeysWithValues: plans.map { ($0.recordType, $0) })
+            let resumed = plans.filter { !$0.startedFromEpoch }.count
+            let skipped = plans.filter(\.skip).count
+            logger.info("[Sync] full plan: \(resumed) types from cursor (\(skipped) skipped), \(plans.count - resumed) from epoch")
+        }
+
         var totalFetched = 0
         var fetchedByType: [String: Int] = [:]
         // 2026-09-06 に廃止した SongCall の途中再開キーが残っている端末がある。一度だけ捨てる。
@@ -302,15 +335,31 @@ final class CloudKitSyncEngine: @unchecked Sendable {
             }
 
             let ckptKey = "sync_ckpt_\(step.recordType)"
+            // そのチェックポイントが「epoch からの全件取得」の途中のものか。再開して取り切ったら
+            // epoch からの完走として数える (印が無いと、中断のたびに毎日 epoch からやり直す)。
+            let ckptFromEpochKey = "sync_ckpt_epoch_\(step.recordType)"
+            let fullPlan = fullPlans[step.recordType]
+            let hasCheckpoint = ud.object(forKey: ckptKey) != nil
+            if let fullPlan, fullPlan.skip, !hasCheckpoint {
+                // 続き位置より後に何も動いていない → 問い合わせずに完了扱い。
+                doneSteps.insert(step.recordType)
+                ud.set(Array(doneSteps), forKey: pendingFullDoneKey)
+                continue
+            }
             do {
                 // ステップ内チャンクループ: バッチ毎に upsert + チェックポイント保存。
                 // 巨大ステップ (SongArtist ~20k 等) が途中中断されても、保存した modifiedAt
                 // から再開できる (= 全件取り直さない)。
                 // このステップを epoch から全件取得するか (= フルsync かつ checkpoint 途中再開でない)。
                 // orphan 掃除は「完走した全件パス」でのみ安全に行える (途中再開だと seen が不完全)。
-                let stepStartedFromEpoch = isFullSync && ud.object(forKey: ckptKey) == nil
+                let stepStartedFromEpoch = isFullSync && !hasCheckpoint && (fullPlan?.startedFromEpoch ?? true)
+                if stepStartedFromEpoch { ud.set(true, forKey: ckptFromEpochKey) }
+                let coversFromEpoch = stepStartedFromEpoch || (hasCheckpoint && ud.bool(forKey: ckptFromEpochKey))
                 var start = (ud.object(forKey: ckptKey) as? Double).map { Date(timeIntervalSince1970: $0) }
+                    ?? fullPlan.map { Date(timeIntervalSince1970: $0.startEpoch) }
                     ?? modifiedSince ?? Date(timeIntervalSince1970: 0)
+                // このステップ全体で見た最大 modifiedAt (続き位置の更新用)。
+                var maxDateInStep: Date?
                 var seen = Set<String>()
                 // 現在のクエリ (modifiedAt > start) を cursor で読み切るためのカーソル。
                 var cursor: CKQueryOperation.Cursor?
@@ -344,6 +393,7 @@ final class CloudKitSyncEngine: @unchecked Sendable {
 
                         if let maxDate = records.compactMap({ $0["modifiedAt"] as? Date }).max() {
                             maxDateSinceRestart = max(maxDateSinceRestart ?? maxDate, maxDate)
+                            maxDateInStep = max(maxDateInStep ?? maxDate, maxDate)
                             ud.set(maxDate.timeIntervalSince1970, forKey: ckptKey)   // 途中チェックポイント
                         }
                     }
@@ -380,8 +430,26 @@ final class CloudKitSyncEngine: @unchecked Sendable {
                 }
 
                 // ステップ完了: チェックポイント削除 + (フルsync) 完了ステップを記録。
+                // チェックポイントから再開した場合、中断前に見た分は maxDateInStep に入っていない
+                // ので、チェックポイント自身 (= 中断前に取り込んだ最大 modifiedAt) も足す。
+                let checkpointDate = (ud.object(forKey: ckptKey) as? Double).map { Date(timeIntervalSince1970: $0) }
                 ud.removeObject(forKey: ckptKey)
+                ud.removeObject(forKey: ckptFromEpochKey)
                 if isFullSync {
+                    // 続き位置を進めるのはフル同期だけ (差分の起点は端末の時計で、取りこぼしが
+                    // ありうる。その先まで進めると取りに行かなくなる)。
+                    let seen = [maxDateInStep, checkpointDate].compactMap { $0 }.max()
+                    let previous = typeCursors[step.recordType]
+                    let cursor = syncNextTypeCursor(
+                        previousEpoch: previous?.cursorEpoch,
+                        maxSeenEpoch: seen?.timeIntervalSince1970
+                    )
+                    try? database.saveSyncTypeCursor(
+                        recordType: step.recordType,
+                        cursorEpoch: cursor,
+                        lastEpochPassEpoch: coversFromEpoch
+                            ? Date().timeIntervalSince1970 : previous?.lastEpochPassEpoch
+                    )
                     doneSteps.insert(step.recordType)
                     ud.set(Array(doneSteps), forKey: pendingFullDoneKey)
                 }

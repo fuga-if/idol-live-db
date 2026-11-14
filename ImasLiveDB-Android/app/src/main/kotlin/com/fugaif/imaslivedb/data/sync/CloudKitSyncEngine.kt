@@ -27,7 +27,9 @@ import uniffi.imas_core.SyncStartupState
 import uniffi.imas_core.SyncStep
 import uniffi.imas_core.syncCompletionPlan
 import uniffi.imas_core.syncDefaultFullSyncIntervalSeconds
+import uniffi.imas_core.syncFullStepPlans
 import uniffi.imas_core.syncManifestPlan
+import uniffi.imas_core.syncNextTypeCursor
 import uniffi.imas_core.syncOrphanIds
 import uniffi.imas_core.syncParseCompositeRecordName
 import uniffi.imas_core.syncRunStartPlan
@@ -36,6 +38,8 @@ import uniffi.imas_core.syncStepStartPlan
 import uniffi.imas_core.syncStepsInOrder
 import uniffi.imas_core.syncSupportsOrphanCleanup
 import uniffi.imas_core.syncTableInfo
+import uniffi.imas_core.SyncModeReason
+import uniffi.imas_core.SyncTypeCursor
 import kotlin.coroutines.coroutineContext
 import kotlin.math.roundToLong
 
@@ -356,7 +360,12 @@ class CloudKitSyncEngine(
         // アプリを更新して同梱の seed が新しくなっていれば、マスタ表を入れ直す (iOS の reseed)。
         // seed を作った時点より後の変更を取り直すため、次の同期はフルにする (差分の起点を捨てる)。
         val reseeded = SeedImporter.reseedIfNeeded(appContext, db)
-        if (reseeded) prefs.edit().remove(KEY_LAST_SYNC).remove(KEY_BACKFILLED).apply()
+        if (reseeded) {
+            prefs.edit().remove(KEY_LAST_SYNC).remove(KEY_BACKFILLED).apply()
+            // マスタを seed の時点へ戻したので、フル同期の続き位置も捨てる。残すと、seed より
+            // 新しく続き位置より古い変更を、次のフル同期が取り直さない。
+            clearTypeCursors()
+        }
         if (wasEmpty || reseeded) _localDataReplaced.tryEmit(Unit)
         return true
     }
@@ -391,7 +400,11 @@ class CloudKitSyncEngine(
         if (current != null && !full) return current
         scope.async {
             current?.join()
-            if (full) prefs.edit().remove(KEY_LAST_SYNC).remove(KEY_BACKFILLED).apply()
+            if (full) {
+                prefs.edit().remove(KEY_LAST_SYNC).remove(KEY_BACKFILLED).apply()
+                // 人が頼んだ全データ同期は、続き位置を使わず全部の型を epoch から取り直す。
+                clearTypeCursors()
+            }
             runSync(manualFull = full, useManifest = automatic && !full)
         }.also { running = it }
     }
@@ -450,6 +463,19 @@ class CloudKitSyncEngine(
             }
             val skipTypes = manifestPlan?.skipRecordTypes?.toSet() ?: emptySet()
 
+            // フル同期: 各型をどこから取るかはコア (`full_step_plans`)。単一 PK の型は孤児掃除の
+            // ため毎回 epoch から。複合 PK の型 (行数の大半) は、サーバ時刻で持つ続き位置から取り、
+            // 目録で動いていないと分かれば問い合わせも省く。ローカルが空なら続き位置は信じない。
+            val typeCursors: Map<String, SyncTypeCursor> =
+                if (isFullSync && plan.reason != SyncModeReason.LOCAL_DATA_EMPTY) loadTypeCursors(steps.map { it.recordType })
+                else emptyMap()
+            val fullPlans = if (!isFullSync) emptyMap() else {
+                // 目録を読むのは、続き位置から取れる型があるときだけ (無ければ省ける型も無い)。
+                val json = if (typeCursors.values.any { it.cursorEpoch != null }) runCatching { manifestSource() }.getOrNull() else null
+                syncFullStepPlans(steps.map { it.recordType }, typeCursors.values.toList(), json, startMs.toEpochSeconds())
+                    .associateBy { it.recordType }
+            }
+
             steps.forEachIndexed { i, step ->
                 coroutineContext.ensureActive()
                 if (step.recordType in skipTypes) return@forEachIndexed
@@ -462,6 +488,11 @@ class CloudKitSyncEngine(
                     modifiedSinceEpoch = if (isBackfill) null else plan.modifiedSinceEpoch
                 )
                 if (stepStart.skip) return@forEachIndexed
+                // 埋め直しは起点が別 (必ず epoch から) なので、続き位置の計画より優先する。
+                val fullPlan = fullPlans[step.recordType]?.takeUnless { isBackfill }
+                if (fullPlan?.skip == true) return@forEachIndexed
+                val startEpoch = fullPlan?.startEpoch ?: stepStart.startEpoch
+                val startedFromEpoch = fullPlan?.startedFromEpoch ?: stepStart.startedFromEpoch
 
                 // コンテナのスキーマにこのレコードタイプがまだ無いときは、このステップだけ
                 // 飛ばして先へ進む (iOS の CKError.unknownItem → continue と同じ)。
@@ -469,7 +500,7 @@ class CloudKitSyncEngine(
                 // 公演・楽曲・セトリまで丸ごと取り込まれず、Completed も流れない
                 // (= スナップショットも作り直されない)。本物の失敗は従来どおり実行を止める。
                 val recordJsons = try {
-                    source.query(step.recordType, stepStart.startEpoch.toEpochMillis())
+                    source.query(step.recordType, startEpoch.toEpochMillis())
                 } catch (e: CloudKitQueryException) {
                     if (!e.isUnknownRecordType) throw e
                     Log.w(TAG, "${step.recordType}: レコードタイプ未作成 → スキップ (${e.serverErrorCode}: ${e.reason})")
@@ -502,7 +533,18 @@ class CloudKitSyncEngine(
                 // epoch から全件取り直して完走したステップに限り、CloudKit 側で tombstone
                 // 無しに物理削除されたレコードをローカルからも掃除する (safety net)。
                 // 取得0件は通信異常の可能性があるので、コア側で valid_ids が空なら no-op になる。
-                if (stepStart.startedFromEpoch && syncSupportsOrphanCleanup(step.recordType)) {
+                // フル同期で取り切った型の続き位置を進める (差分では進めない: 差分の起点は端末の
+                // 時計で、取りこぼしがありうる。その先まで進めると取りに行かなくなる)。
+                if (isFullSync) {
+                    val previous = typeCursors[step.recordType]
+                    saveTypeCursor(
+                        step.recordType,
+                        cursorEpoch = syncNextTypeCursor(previous?.cursorEpoch, maxModifiedAtMs(recordJsons)?.toEpochSeconds()),
+                        lastEpochPassEpoch = if (startedFromEpoch) System.currentTimeMillis().toEpochSeconds()
+                        else previous?.lastEpochPassEpoch
+                    )
+                }
+                if (startedFromEpoch && syncSupportsOrphanCleanup(step.recordType)) {
                     val localIds = io.localIds ?: return@forEachIndexed
                     // valid_ids には「行にできたレコード」だけでなく「必須キー欠損で捨てた
                     // レコード」も入れる。捨てたレコードもサーバ上には在る以上、保護対象から
@@ -556,6 +598,36 @@ class CloudKitSyncEngine(
         }
     }
 
+    // --- フル同期の続き位置 (型ごと) ---
+
+    private fun loadTypeCursors(recordTypes: List<String>): Map<String, SyncTypeCursor> =
+        recordTypes.mapNotNull { type ->
+            val cursor = prefs.getLong(KEY_TYPE_CURSOR + type, 0L).takeIf { it > 0L }?.toEpochSeconds()
+            val pass = prefs.getLong(KEY_TYPE_EPOCH_PASS + type, 0L).takeIf { it > 0L }?.toEpochSeconds()
+            if (cursor == null && pass == null) null else type to SyncTypeCursor(type, cursor, pass)
+        }.toMap()
+
+    private fun saveTypeCursor(recordType: String, cursorEpoch: Double?, lastEpochPassEpoch: Double?) {
+        prefs.edit().apply {
+            cursorEpoch?.let { putLong(KEY_TYPE_CURSOR + recordType, it.toEpochMillis()) }
+            lastEpochPassEpoch?.let { putLong(KEY_TYPE_EPOCH_PASS + recordType, it.toEpochMillis()) }
+        }.apply()
+    }
+
+    private fun clearTypeCursors() {
+        prefs.edit().apply {
+            prefs.all.keys
+                .filter { it.startsWith(KEY_TYPE_CURSOR) || it.startsWith(KEY_TYPE_EPOCH_PASS) }
+                .forEach { remove(it) }
+        }.apply()
+    }
+
+    /** レコードの生 JSON の並びから、最大の modifiedAt (ms) を拾う。1 件も無ければ null。 */
+    private fun maxModifiedAtMs(recordJsons: List<String>): Long? =
+        recordJsons.mapNotNull { json ->
+            MODIFIED_AT.find(json)?.groupValues?.get(1)?.toLongOrNull()
+        }.maxOrNull()
+
     // コアのエポックは秒 (f64)。Android は ms を持っているので境界で必ず換算する。
     // 単位を混ぜると境界巻き戻し幅が 1000 倍ずれる。
     private fun Long.toEpochSeconds(): Double = this / 1000.0
@@ -572,5 +644,13 @@ class CloudKitSyncEngine(
 
         /** epoch から一度取り直したレコードタイプ (v8→v9 移行の埋め直しを 1 回に限るため)。 */
         private const val KEY_BACKFILLED = "backfilled_record_types"
+
+        /** フル同期で取り込んだ最大の modifiedAt (型ごと、ms)。キーは接頭辞 + レコードタイプ。 */
+        private const val KEY_TYPE_CURSOR = "type_cursor_ms_"
+        /** epoch からの全件取得を最後に完走した時刻 (型ごと、ms)。 */
+        private const val KEY_TYPE_EPOCH_PASS = "type_epoch_pass_ms_"
+
+        /** `"modifiedAt":{"value":1700000000000,"type":"TIMESTAMP"}` の value (キーの順は問わない)。 */
+        private val MODIFIED_AT = Regex(""""modifiedAt"\s*:\s*\{[^}]*?"value"\s*:\s*(\d+)""")
     }
 }
