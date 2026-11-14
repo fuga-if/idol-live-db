@@ -1,5 +1,8 @@
 package com.fugaif.imaslivedb.ui.songs
 
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import androidx.compose.runtime.produceState
 import com.fugaif.imaslivedb.ui.theme.MasteryPalette
 import com.fugaif.imaslivedb.ui.designsystem.ImasFullScreenDialog
 import com.fugaif.imaslivedb.ui.designsystem.ImasSwipeKind
@@ -202,8 +205,16 @@ fun SongListScreen(
             } else {
                 // 歌唱・作詞作曲で絞っているときの「なぜ出ているか」の説明は、画面の行ぶんを
                 // コアで 1 回に作る (行ごとに呼ばない)。
-                val matchDetails = remember(uiState.songs, uiState.fuzzySongs, uiState.searchText, uiState.searchMode) {
-                    searchMatchDetails(uiState.songs + uiState.fuzzySongs, uiState.searchText, uiState.searchMode)
+                // 全行の射影とコアの呼び出しなので、コンポジション (メインスレッド) では回さない。
+                // 組み直している間は前の説明を出したままにする。
+                val matchDetails by produceState(
+                    emptyMap<String, String>(),
+                    uiState.songs, uiState.fuzzySongs, uiState.searchText, uiState.searchMode
+                ) {
+                    val rows = uiState.songs + uiState.fuzzySongs
+                    val text = uiState.searchText
+                    val mode = uiState.searchMode
+                    value = withContext(Dispatchers.Default) { searchMatchDetails(rows, text, mode) }
                 }
                 // 広い画面では本文幅を抑える (iOS の readableContentMargins と対)。
                 ReadableWidth { readable ->

@@ -144,6 +144,17 @@ class SongListViewModel : ViewModel() {
      */
     private var lyricsIdsCache: Pair<Long, Set<String>>? = null
 
+    /** タグの詳細 (付いた曲の一覧) を少しの間覚える。絞り込み中は読み直しのたびに要るので、毎回は引かない。 */
+    private val tagDetailCache = mutableMapOf<String, Pair<Long, CommunityApi.TagDetail>>()
+
+    private suspend fun tagDetail(module: AppModule, tagId: String): CommunityApi.TagDetail? {
+        val now = System.currentTimeMillis()
+        tagDetailCache[tagId]?.let { (at, detail) -> if (now - at < TAG_DETAIL_TTL_MS) return detail }
+        val fetched = runCatching { module.communityApi.tagDetail(tagId) }.getOrNull() ?: return null
+        tagDetailCache[tagId] = now to fetched
+        return fetched
+    }
+
     fun init(context: Context) {
         appContext = context.applicationContext
         loadSongs()
@@ -151,7 +162,9 @@ class SongListViewModel : ViewModel() {
 
     fun setSearchText(text: String) {
         _uiState.value = _uiState.value.copy(searchText = text)
-        loadSongs()
+        // 打鍵ごとに全曲を引き直さない。打ち終わりを少し待ってから 1 回だけ読む
+        // (次の打鍵が来たら、待っている読みは取り消される)。
+        loadSongs(debounceMs = SEARCH_DEBOUNCE_MS)
     }
 
     /** 検索欄の頭のチップからスコープ (曲名 / アイドル / 作詞作曲) を切り替える。 */
@@ -325,11 +338,21 @@ class SongListViewModel : ViewModel() {
         }
     }
 
-    private fun loadSongs() {
+    private fun loadSongs(debounceMs: Long = 0) {
         val ctx = appContext ?: return
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            if (debounceMs > 0) delay(debounceMs)
+            // 読み直しの間は、出ている一覧をそのまま残す (届いたら差し替わる)。毎回スケルトンに
+            // すると、タブを戻るたび・絞り込みのたびに一覧が消えてスクロール位置も失う。
+            // スケルトンは出すものがまだ無いときだけ。
+            val shown = _uiState.value
+            val hasRows = when (shown.listMode) {
+                SongListMode.SONGS -> shown.songs.isNotEmpty()
+                SongListMode.ALBUMS -> shown.albums.isNotEmpty()
+                SongListMode.SERIES -> shown.series.isNotEmpty()
+            }
+            if (!hasRows) _uiState.value = shown.copy(isLoading = true)
             val state = _uiState.value
             val module = AppModule.from(ctx)
             // アルバム / シリーズ表示は曲行を組まない (集計カードだけ)。
@@ -344,9 +367,7 @@ class SongListViewModel : ViewModel() {
 
             // タグ絞り込み: Worker D1 (コミュニティタグ) は端末外データなので、選択中タグそれぞれの
             // 詳細 (付いた曲の song_id 一覧) を取得して AND (積集合) を取る。
-            val tagDetails = state.selectedTags.map { tag ->
-                runCatching { module.communityApi.tagDetail(tag.id) }.getOrNull()
-            }
+            val tagDetails = state.selectedTags.map { tag -> tagDetail(module, tag.id) }
             // 1 つでも取れなければ絞り込みを **適用しない**。空集合で絞ると
             // 「オフラインで引けなかった」が「そのタグの曲は 0 件」と区別が付かない。
             val tagFilterError = state.selectedTags.isNotEmpty() && tagDetails.any { it == null }
@@ -592,6 +613,10 @@ class SongListViewModel : ViewModel() {
         const val FUZZY_DEBOUNCE_MS = 250L
         /** 歌詞の公開曲 id を持っておく時間 (サーバのエッジキャッシュと同じ 30 分)。 */
         const val LYRICS_IDS_TTL_MS = 30 * 60 * 1000L
+        /** 検索欄の打ち終わりを待つ時間 (iOS の一覧の読み直しと同じ 200ms)。 */
+        const val SEARCH_DEBOUNCE_MS = 200L
+        /** タグの詳細を持っておく時間。付けたばかりのタグが絞り込みに出るまでの遅れにもなるので短く。 */
+        const val TAG_DETAIL_TTL_MS = 60 * 1000L
     }
 }
 

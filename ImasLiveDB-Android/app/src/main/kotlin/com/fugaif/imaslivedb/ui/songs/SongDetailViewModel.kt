@@ -1,6 +1,8 @@
 package com.fugaif.imaslivedb.ui.songs
 
 import com.fugaif.imaslivedb.ui.theme.ImasMotion
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import android.content.Context
 import androidx.lifecycle.ViewModel
@@ -91,30 +93,33 @@ class SongDetailViewModel : ViewModel() {
     fun load(context: Context, songId: String) {
         currentSongId = songId
         viewModelScope.launch {
-            delay(ImasMotion.LOAD_AFTER_TRANSITION_MS)
             val module = AppModule.from(context)
             appModule = module
             api = module.communityApi
-            val song = module.songRepository.fetchSong(songId)
-            val originalArtists = module.songRepository.fetchSongArtists(songId, "original")
-            val performerArtists = module.songRepository.fetchSongArtists(songId, "performer")
-            val history = module.songRepository.fetchSongPerformanceHistory(songId)
-            val dateRows = module.songRepository.fetchSongDateRows(songId)
-            val unit = if (song?.unitId != null) {
-                module.unitRepository.fetchUnit(song.unitId)
-            } else {
-                null
+            // 画面遷移のアニメーション中に中身を差し替えると引っかかるので、**出すのは**遷移の後。
+            // 読むのは今すぐ始める (待ってから読み始めると、待ち時間ぶんがそのまま遅れになる)。
+            val transition = launch { delay(ImasMotion.LOAD_AFTER_TRANSITION_MS) }
+            // 集計系コミュニティ (Worker D1) はネットワーク。手元の読みと並べて投げる。
+            val community = async { fetchCommunity(songId) }
+
+            val songs = module.songRepository
+            val song = songs.fetchSong(songId)
+            // 互いに独立な読みは並べる。直列に待つと、その本数ぶん中身が出るのが遅れる。
+            val originalArtistsJob = async { songs.fetchSongArtists(songId, "original") }
+            val performerArtistsJob = async { songs.fetchSongArtists(songId, "performer") }
+            val historyJob = async { songs.fetchSongPerformanceHistory(songId) }
+            val dateRowsJob = async { songs.fetchSongDateRows(songId) }
+            val unitJob = async { song?.unitId?.let { module.unitRepository.fetchUnit(it) } }
+            val brandJob = async { song?.brandId?.let { module.eventRepository.fetchBrand(it) } }
+            val collectedShowsJob = async { songs.fetchCollectedShows(songId) }
+            val relatedSongsJob = async {
+                if (song != null) songs.fetchRelatedSongs(song, limit = 8) else emptyList()
             }
-            val brand = song?.brandId?.let { brandId ->
-                module.eventRepository.fetchBrand(brandId)
-            }
-            val collectedShows = module.songRepository.fetchCollectedShows(songId)
-            val relatedSongs = if (song != null) module.songRepository.fetchRelatedSongs(song, limit = 8) else emptyList()
             // 曲詳細 1 オープンにつき FFI は 1 回だけ。共起と歌唱者はコア側で束ねてある
             // (スナップショットが無いときは Room の固定 4 クエリ。行ごとには引かない)。
-            val evidence = module.performanceEvidenceRepository.fetchSongPerformanceEvidence(songId)
-            val videos = module.database.communityDao().videosForSong(songId)
-            val isFavorite = module.userMarkRepository.isOn(UserMark.SONG, songId, UserMark.FAVORITE)
+            val evidenceJob = async { module.performanceEvidenceRepository.fetchSongPerformanceEvidence(songId) }
+            val videosJob = async { module.database.communityDao().videosForSong(songId) }
+            val isFavoriteJob = async { module.userMarkRepository.isOn(UserMark.SONG, songId, UserMark.FAVORITE) }
             // コンプ率は KAMISABI 収録曲だけが対象。それ以外の曲では無駄な集計を避ける。
             // 分母は**この曲のブランド (商品)** — KAMISABI は ML/SideM/シャニの別商品なので、
             // 全商品合算 (brandId=null) を出すと「収録 150 曲中」のような実態と合わない数になる。
@@ -122,43 +127,64 @@ class SongDetailViewModel : ViewModel() {
             var kamisabiCompletion: KamisabiCompletion? = null
             if (song?.hasKamisabiCard == true) {
                 val ownedIds = module.userMarkRepository.ownedSongIds()
-                kamisabiCompletion = module.songRepository.fetchKamisabiCompletion(song.brandId, ownedIds.toList())
+                kamisabiCompletion = songs.fetchKamisabiCompletion(song.brandId, ownedIds.toList())
                 isCardOwned = songId in ownedIds
             }
-            _uiState.value = SongDetailUiState(
+            val loaded = SongDetailUiState(
                 isLoading = false,
                 song = song,
-                originalArtists = originalArtists,
-                performerArtists = performerArtists,
-                performanceHistory = history,
-                dateRows = dateRows,
-                unit = unit,
-                brand = brand,
-                collectedShows = collectedShows,
-                relatedSongs = relatedSongs,
-                performanceEvidence = evidence,
-                songVideos = videos,
-                isFavorite = isFavorite,
+                originalArtists = originalArtistsJob.await(),
+                performerArtists = performerArtistsJob.await(),
+                performanceHistory = historyJob.await(),
+                dateRows = dateRowsJob.await(),
+                unit = unitJob.await(),
+                brand = brandJob.await(),
+                collectedShows = collectedShowsJob.await(),
+                relatedSongs = relatedSongsJob.await(),
+                performanceEvidence = evidenceJob.await(),
+                songVideos = videosJob.await(),
+                isFavorite = isFavoriteJob.await(),
                 isCardOwned = isCardOwned,
                 kamisabiCompletion = kamisabiCompletion
             )
-            // 集計系コミュニティ (Worker D1) はネットワーク。失敗しても本体表示は維持。
-            loadCommunity(songId)
-            loadSimilarSongs(songId)
+            transition.join()
+            _uiState.value = loaded
+            // 失敗しても本体表示は維持。
+            val fetched = community.await()
+            applyCommunity(songId, fetched)
+            applySimilarSongs(songId, fetched.detail?.similar.orEmpty())
         }
     }
 
+    private class CommunityFetch(
+        val detail: CommunityApi.SongDetail?,
+        val counts: uniffi.imas_core.SongCommunityStat?
+    )
+
+    /** タグ・ペンライト・似ている曲は束ねの 1 往復。数は 30 分持っている全曲ぶんの集計から引く。 */
+    private suspend fun fetchCommunity(songId: String): CommunityFetch = coroutineScope {
+        val a = api ?: return@coroutineScope CommunityFetch(null, null)
+        val detail = async { runCatching { a.songDetail(songId) }.getOrNull() }
+        val stats = async { runCatching { a.songStats() }.getOrNull() }
+        CommunityFetch(
+            detail.await(),
+            stats.await()?.let { uniffi.imas_core.communityStatFor(it, songId) }
+        )
+    }
+
+    private fun applyCommunity(songId: String, fetched: CommunityFetch) {
+        if (currentSongId != songId) return
+        _uiState.value = _uiState.value.copy(
+            tags = fetched.detail?.tags ?: emptyList(),
+            penlight = fetched.detail?.penlight,
+            communityCounts = fetched.counts,
+            favoriteAtLoad = _uiState.value.isFavorite
+        )
+    }
+
+    /** タグや投票を変えた後の取り直し。似ている曲は入れ替えない (顔ぶれが変わると落ち着かない)。 */
     private suspend fun loadCommunity(songId: String) {
-        val a = api ?: return
-        val tags = runCatching { a.songTags(songId) }.getOrDefault(emptyList())
-        val pen = runCatching { a.penlightVotes(songId) }.getOrNull()
-        val counts = runCatching { a.songStats() }.getOrNull()?.let { uniffi.imas_core.communityStatFor(it, songId) }
-        if (currentSongId == songId) {
-            _uiState.value = _uiState.value.copy(
-                tags = tags, penlight = pen, communityCounts = counts,
-                favoriteAtLoad = _uiState.value.isFavorite
-            )
-        }
+        applyCommunity(songId, fetchCommunity(songId))
     }
 
     /**
@@ -168,10 +194,8 @@ class SongDetailViewModel : ViewModel() {
      * 近さを重みにした重み付き抽選なので、似ている曲が中心に出つつ、
      * 少しだけタグが被っている曲もときどき混ざる。曲を開き直すと顔ぶれが変わる。
      */
-    private suspend fun loadSimilarSongs(songId: String) {
-        val a = api ?: return
+    private suspend fun applySimilarSongs(songId: String, candidates: List<CommunityApi.SimilarSongEntry>) {
         val module = appModule ?: return
-        val candidates = runCatching { a.similarSongsByTags(songId) }.getOrDefault(emptyList())
         if (candidates.isEmpty() || currentSongId != songId) return
         val picked = WeightedSampling.pick(candidates, SIMILAR_SONGS_DISPLAY_COUNT) { it.pickWeight }
         val resolved = module.songRepository.fetchSongsByIds(picked.map { it.songId })

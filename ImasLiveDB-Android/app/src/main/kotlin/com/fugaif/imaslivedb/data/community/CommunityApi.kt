@@ -35,6 +35,10 @@ class CommunityApi(private val http: WorkerHttpClient) {
         val topEntityId: String? = null,
         /** 1 位の票数 (無投票なら null)。終了タブの行に「1位 ○○ · N票」と出す。古いサーバでは null。 */
         val topVoteCount: Int? = null,
+        /** 候補の数。 */
+        val entryCount: Int = 0,
+        /** 自分が入れた票数 (未ログインは 0)。 */
+        val myVoteCount: Int = 0,
     ) {
         /** iOS Poll.isActive の移植: サーバが active かつ締切前。 */
         val isActive: Boolean get() = status == "active" && endsAtMs > System.currentTimeMillis()
@@ -172,13 +176,46 @@ class CommunityApi(private val http: WorkerHttpClient) {
     /** GET /songs/{id}/tags — タグ一覧 (件数 + 自分が付けたか)。 */
     suspend fun songTags(songId: String): List<SongTag> = withContext(Dispatchers.IO) {
         val json = get("/songs/${enc(songId)}/tags") ?: return@withContext emptyList()
+        parseSongTags(json)
+    }
+
+    private fun parseSongTags(json: JSONObject): List<SongTag> {
         val mine = json.optJSONArray("my_tag_ids")?.let { a -> (0 until a.length()).map { a.getString(it) }.toSet() } ?: emptySet()
         val tags = json.optJSONArray("tags") ?: JSONArray()
-        (0 until tags.length()).map { i ->
+        return (0 until tags.length()).map { i ->
             val t = tags.getJSONObject(i)
             SongTag(t.getString("id"), t.optString("name"), t.strOrNull("color"),
                 t.optInt("vote_count"), mine.contains(t.getString("id")))
         }
+    }
+
+    /**
+     * 曲詳細の集計の束ね。取れなかった部分は null (サーバが部分ごとに null を返す契約)。
+     * 束ねごと取れなかったときは [songDetail] が null を返す。
+     */
+    data class SongDetail(
+        val tags: List<SongTag>?,
+        val similar: List<SimilarSongEntry>?,
+        val penlight: PenlightResult?
+    )
+
+    /**
+     * GET /songs/{id}/detail — タグ・似ている曲・ペンライトを 1 往復で取る (iOS `SongDetailAPI` と同じ口)。
+     *
+     * 曲を開くたびに 3 本を順に叩いていたのを 1 本にする。**認証は付けない**: 付けると
+     * サーバが歌詞を同梱し、歌詞の閲覧として数える。この画面の歌詞は歌詞タブを開いたときに
+     * 別の口で取る。
+     */
+    suspend fun songDetail(songId: String, similarLimit: Int = 50): SongDetail? = withContext(Dispatchers.IO) {
+        val json = get("/songs/${enc(songId)}/detail?similar_limit=$similarLimit") ?: return@withContext null
+        // 1 つの部分の形が合わなくても、ほかの部分は出す。
+        fun <T> part(key: String, parse: (JSONObject) -> T): T? =
+            json.optJSONObject(key)?.let { runCatching { parse(it) }.getOrNull() }
+        SongDetail(
+            tags = part("tags", ::parseSongTags),
+            similar = part("similar", ::parseSimilarSongs),
+            penlight = part("penlight", ::parsePenlight)
+        )
     }
 
     /** POST /songs/{id}/tags — 自分のタグ投票を追加。 */
@@ -485,13 +522,17 @@ class CommunityApi(private val http: WorkerHttpClient) {
     /** GET /penlight/votes/{id} — ペンライト投票集計。 */
     suspend fun penlightVotes(songId: String): PenlightResult? = withContext(Dispatchers.IO) {
         val json = get("/penlight/votes/${enc(songId)}") ?: return@withContext null
+        parsePenlight(json)
+    }
+
+    private fun parsePenlight(json: JSONObject): PenlightResult {
         val sets = json.optJSONArray("top_sets") ?: JSONArray()
         val top = (0 until sets.length()).map { i ->
             val s = sets.getJSONObject(i)
             val colors = s.optJSONArray("colors")?.let { a -> (0 until a.length()).map { a.getString(it) } } ?: emptyList()
             PenlightSet(s.optString("key"), colors, s.optInt("count"))
         }
-        PenlightResult(top, json.optInt("total_votes"))
+        return PenlightResult(top, json.optInt("total_votes"))
     }
 
     /** POST /penlight/vote — 色セットに投票。 */
@@ -519,8 +560,12 @@ class CommunityApi(private val http: WorkerHttpClient) {
      */
     suspend fun similarSongsByTags(songId: String, limit: Int = 50): List<SimilarSongEntry> = withContext(Dispatchers.IO) {
         val json = get("/songs/${enc(songId)}/similar?limit=$limit") ?: return@withContext emptyList()
+        parseSimilarSongs(json)
+    }
+
+    private fun parseSimilarSongs(json: JSONObject): List<SimilarSongEntry> {
         val arr = json.optJSONArray("songs") ?: JSONArray()
-        (0 until arr.length()).map { i ->
+        return (0 until arr.length()).map { i ->
             val o = arr.getJSONObject(i)
             SimilarSongEntry(
                 o.optString("song_id"),
@@ -790,6 +835,8 @@ class CommunityApi(private val http: WorkerHttpClient) {
             scopeEntityIds = o.optJSONArray("scope_entity_ids")?.toStringList().orEmpty(),
             topEntityId = o.strOrNull("top_entity_id"),
             topVoteCount = if (o.isNull("top_vote_count")) null else o.optInt("top_vote_count"),
+            entryCount = o.optInt("entry_count"),
+            myVoteCount = o.optInt("my_vote_count"),
         )
     }
 

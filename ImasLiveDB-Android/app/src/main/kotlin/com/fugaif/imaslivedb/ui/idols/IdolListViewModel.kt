@@ -1,5 +1,8 @@
 package com.fugaif.imaslivedb.ui.idols
 
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import android.app.Application
 import android.content.Context
 import androidx.lifecycle.AndroidViewModel
@@ -232,8 +235,25 @@ class IdolListViewModel(app: Application) : AndroidViewModel(app) {
     // トグルが別に持っているので、ここには残さない (使わない操作を残すと二重管理になる)。
     // favoriteIds 自体はグリッド表示・絞り込みが引き続き使うので消さない。
 
+    private var searchRebuildJob: Job? = null
+
+    /**
+     * 検索欄の打鍵。文字はすぐ反映し、絞り込みの組み直しはメインスレッドの外で回す。
+     *
+     * 組み直しは全アイドルの射影とコアの呼び出しが数回入るので、打鍵のたびにメインスレッドで
+     * 回すと入力 (IME の変換中も) が引っかかる。次の打鍵が来たら前の組み直しは捨てる。
+     */
     fun setSearchText(text: String) {
-        _uiState.value = _uiState.value.copy(searchText = text).rebuilt()
+        _uiState.value = _uiState.value.copy(searchText = text)
+        searchRebuildJob?.cancel()
+        searchRebuildJob = viewModelScope.launch {
+            val snapshot = _uiState.value
+            val rebuilt = withContext(Dispatchers.Default) { snapshot.rebuilt() }
+            // 組み直している間にほかの状態 (担当の付け外し等) が動いていたら、そちらが
+            // 自分で組み直している。古い入力から作った結果では上書きしない。
+            if (_uiState.value !== snapshot) return@launch
+            _uiState.value = rebuilt
+        }
     }
 
     fun setSearchTarget(target: IdolSearchTarget) {
