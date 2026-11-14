@@ -3,6 +3,7 @@ import { runScheduledTasks } from "./scheduled";
 import type { RouteContext } from "./routes/context";
 import { gateCommunityRead, handleAppAttest } from "./routes/app_attest";
 import { handleAppLinks } from "./routes/app_links";
+import { handleSyncManifest } from "./routes/sync_manifest";
 import { handleAuth } from "./routes/auth";
 import { handleUsers } from "./routes/users";
 import { handleEdits } from "./routes/edits";
@@ -176,6 +177,7 @@ async function handleRoot(ctx: RouteContext): Promise<Response | null> {
     endpoints: [
       "POST /auth/login",
       "GET /auth/me",
+      "GET /sync/manifest",
       "POST /edits",
       "GET /edits?brand_id=&record_type=&editor_id=&page=1&limit=20",
       "GET /me/edits?page=1&limit=20",
@@ -254,6 +256,8 @@ const ROUTES: ReadonlyArray<(ctx: RouteContext) => Promise<Response | null>> = [
   gateCommunityRead,
   handleRoot,
   handleAppLinks,
+  // 同期の目録 (型ごとの最新 modifiedAt)。公開キャッシュ 60 秒。
+  handleSyncManifest,
   handleAuth,
   // 手応え (Good の新着・セトリの閲覧数) と公演の奥付。/users/me/credit は handleUsers より前。
   handleContributionFeedback,
@@ -384,10 +388,13 @@ export default {
     // 「未認証は配れない」という要件でない制約が付いてくる。除外はパスで明示する。
     const isLyricsRead =
       /^\/songs\/[^/]+\/lyrics$/.test(path) || path === "/lyrics/search";
+    // 同期の目録は誰が呼んでも同じ値で、作るたびに CloudKit を型の数だけ問い合わせる。
+    // Authorization を付ければ共有キャッシュを素通りできる、という抜け道を作らない。
+    const sharedForEveryone = path === "/sync/manifest";
     const edgeCacheEligible =
       request.method === "GET" &&
       !isLyricsRead &&
-      !request.headers.get("Authorization") &&
+      (sharedForEveryone || !request.headers.get("Authorization")) &&
       !(varyByDeviceId && request.headers.get("X-Device-Id"));
     const cacheKey = new Request(url.toString(), { method: "GET" });
     if (edgeCacheEligible) {

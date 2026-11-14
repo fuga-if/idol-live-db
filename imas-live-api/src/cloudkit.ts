@@ -327,6 +327,61 @@ export async function cloudKitQuery(
   return { ok: true, records: out };
 }
 
+// ---------------------------------------------------------------------------
+// CloudKit query — recordType の最新 modifiedAt だけを 1 件引く (同期の目録用)
+// ---------------------------------------------------------------------------
+
+export type CloudKitLatestResult =
+  /** modifiedAt は epoch ミリ秒。レコードが 1 件も無い型は null。 */
+  | { ok: true; modifiedAt: number | null }
+  | { ok: false; error: string };
+
+/**
+ * recordType の中で最も新しい modifiedAt (epoch ミリ秒) を返す。
+ *
+ * modifiedAt 降順で 1 件だけ引く。論理削除 (deletedAt 付き) も modifiedAt が動くので
+ * 除かない — 端末は削除も差分で受け取る必要がある。
+ */
+export async function cloudKitLatestModifiedAt(
+  recordType: string,
+  keyId: string,
+  privKeyPem: string
+): Promise<CloudKitLatestResult> {
+  const payload = {
+    query: { recordType, sortBy: [{ fieldName: "modifiedAt", ascending: false }] },
+    resultsLimit: 1,
+    desiredKeys: ["modifiedAt"],
+  };
+  const body = utf8(JSON.stringify(payload));
+  let headers: Record<string, string>;
+  try {
+    headers = await signRequest(body, QUERY_PATH, keyId, privKeyPem);
+  } catch (e: any) {
+    return { ok: false, error: `sign error: ${e.message}` };
+  }
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}${QUERY_PATH}`, { method: "POST", headers, body });
+  } catch (e: any) {
+    return { ok: false, error: `fetch error: ${e.message}` };
+  }
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    return { ok: false, error: `CloudKit HTTP ${res.status}: ${text.slice(0, 300)}` };
+  }
+  const data = (await res.json().catch(() => null)) as
+    | { records?: Array<{ serverErrorCode?: string; fields?: Record<string, { value: unknown }> }> }
+    | null;
+  if (!data || !Array.isArray(data.records)) return { ok: false, error: "unreadable body" };
+  const first = data.records[0];
+  if (!first) return { ok: true, modifiedAt: null };
+  const value = first.fields?.modifiedAt?.value;
+  if (first.serverErrorCode || typeof value !== "number" || !Number.isFinite(value)) {
+    return { ok: false, error: `no modifiedAt: ${first.serverErrorCode ?? "missing field"}` };
+  }
+  return { ok: true, modifiedAt: value };
+}
+
 /** CloudKit lookup の {value,type} fields を平坦な値マップへ。modifiedAt 等システム系は落とす。 */
 export function flattenCkFields(fields: Record<string, { value: unknown; type?: string }>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
