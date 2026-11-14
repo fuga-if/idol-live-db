@@ -1,3 +1,5 @@
+import ImageIO
+import UIKit
 import Nuke
 import NukeUI
 import SwiftUI
@@ -543,5 +545,43 @@ struct ImasPenlightColorBar: View {
         .clipShape(RoundedRectangle(cornerRadius: DS.rXS, style: .continuous))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(penlightAccessibilityLabel(hexes: colors))
+    }
+}
+
+// MARK: - 端末内の小さな画像
+
+/// 端末内の小さな画像 (ブランドのロゴ) を、表示する大きさまで縮めて覚えておく。
+///
+/// `UIImage(contentsOfFile:)` を body の中で呼ぶと、描き直しのたびにファイルを読んで
+/// 元の大きさのまま展開する。ブランドの判子は 1 画面に十数個並ぶので、タブを切り替えるたびに
+/// その回数ぶんメインスレッドが止まっていた。
+///
+/// ロゴはユーザーが差し替えられるので、鍵に更新時刻を入れる (差し替えたら次の描画で入れ替わる)。
+enum ImasLocalImage {
+    @MainActor private static let cache: NSCache<NSString, UIImage> = {
+        let cache = NSCache<NSString, UIImage>()
+        cache.countLimit = 64
+        return cache
+    }()
+
+    /// `maxPointSize` は画面上の長辺 (pt)。画素数は画面の倍率を掛けて決める。
+    @MainActor
+    static func image(at url: URL, maxPointSize: CGFloat) -> UIImage? {
+        let modified = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?
+            .contentModificationDate?.timeIntervalSince1970 ?? 0
+        let pixels = Int((maxPointSize * UIScreen.main.scale).rounded(.up))
+        let key = "\(url.path)|\(modified)|\(pixels)" as NSString
+        if let hit = cache.object(forKey: key) { return hit }
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true,
+            kCGImageSourceThumbnailMaxPixelSize: pixels,
+        ]
+        guard let cg = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return nil }
+        let image = UIImage(cgImage: cg)
+        cache.setObject(image, forKey: key)
+        return image
     }
 }

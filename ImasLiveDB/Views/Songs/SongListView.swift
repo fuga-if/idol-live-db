@@ -246,7 +246,8 @@ struct SongListView: View {
                     )
                     .environment(database)
                     .presentationDetents([.medium, .large])
-                    .onDisappear { reload() }
+                    // 何も変えずに閉じたときは読み直さない (全曲を引き直して一覧が一瞬消える)。
+                    .onDisappear { if vm.lastLoadedRequest != loadRequest { reload() } }
                 }
                 .sheet(item: $playlistTarget) { AddToPlaylistSheet(song: $0) }
                 .sheet(item: $sheetDestination) { dest in
@@ -729,7 +730,10 @@ struct SongListView: View {
         Group {
             // 歌詞検索中もスケルトンにする。前の結果を消した直後は絞り込み無しの状態
             // (= 全曲) なので、そのまま出すと 1,991 件が一瞬めくれてから絞られる。
-            if vm.isLoading || lyricsSearching {
+            // 読み直しの間は、出ている一覧をそのまま残す (届いたら差し替わる)。毎回スケルトンに
+            // すると、並び替えや絞り込みのたびに一覧が消えてスクロール位置も失う。
+            // スケルトンは出すものがまだ無い最初の読み込みだけ。
+            if (vm.isLoading && vm.songs.isEmpty) || lyricsSearching {
                 ScrollView {
                     ImasListSkeleton(rows: 12, thumb: .square)
                         .padding(.top, DS.sp3)

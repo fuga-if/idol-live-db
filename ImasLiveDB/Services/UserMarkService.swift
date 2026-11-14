@@ -58,16 +58,32 @@ final class UserMarkService {
     /// `.task(id:)` の鍵に混ぜれば、**本当に変わったときだけ**組み直せる。
     var changeToken: Int {
         songVersion &+ idolVersion &+ eventVersion &+ showVersion &+ releaseVersion &+ masteryVersion &+ lyricLikeVersion
+            &+ collectedVersion
     }
 
     /// bool 系マーク (collected/favorite/myPick/attended) のインメモリ集合。
     /// キーは "entity|kind|id"。一覧の各行トグルが body 評価のたびに同期 SQLite を引いて
     /// メインスレッドをブロックしていたのを、O(1) のメモリ参照に置き換えるためのキャッシュ。
     /// 書き込みは全て本サービス経由なので、setBool / setAttendance で同期更新すれば整合する。
-    private var boolMarks: Set<String> = []
+    ///
+    /// 観測には載せない。載せると、どれか 1 つのマークを変えただけで、この集合を読んだ行が
+    /// 実体の種類に関係なく全部描き直しになる (描き直しの合図は上の `*Version`)。
+    @ObservationIgnored private var boolMarks: Set<String> = []
 
-    /// 自動回収済み song_id キャッシュ（attended 変更時に更新）
+    /// 全マークの行そのもの (解除済みの行も含む)。キーは `boolMarks` と同じ。
+    ///
+    /// メモ・座席・参加形態・申込・ここ好きは、読むたびに同期 SQLite を 1 行引いていた。
+    /// 一覧の行が body のたびに引くと、行数 × 描き直しの回数だけメインスレッドが止まる。
+    /// 書き込みは全て本サービス経由で、書いた行だけ `refreshRow` で読み直す。
+    @ObservationIgnored private var rows: [String: UserMark] = [:]
+
+    /// 自動回収済み song_id キャッシュ（attended 変更時に更新）。
+    /// 集計は裏で回して届いたら差し替えるので、これは観測に載せる (届いたら描き直す)。
     private var collectedIds: Set<String> = []
+    /// 回収の集計の世代。遅れて届いた古い結果を捨てる。
+    @ObservationIgnored private var collectedGeneration = 0
+    /// 回収の集計が届いて中身が変わるたびに増える (`changeToken` に混ぜる)。
+    private var collectedVersion = 0
 
     /// マーク変更を iCloud KVS にミラーするデバウンス用タスク。
     private var backupTask: Task<Void, Never>?
@@ -76,14 +92,14 @@ final class UserMarkService {
         self.db = AppDatabase.shared
         // iCloud バックアップから非破壊で復元 (再インストール/機種変対策)。ローカルは消さない。
         restoreFromBackup()
-        reloadBoolMarks()
-        reloadMastery()
-        refreshAutoCollected()
+        reloadMarks()
+        // 最初の 1 回だけは同期で読む。集計を待たずに空集合を返すと、起動直後に
+        // 「回収済み」で絞った一覧や集計が空になる (読む側の多くは描き直しの合図を持たない)。
+        collectedIds = (try? db.fetchAutoCollectedSongIds()) ?? []
         // 他端末での変更を受信したら非破壊マージ + キャッシュ更新。
         UserMarkBackup.shared.startObserving { [weak self] in
             self?.restoreFromBackup()
-            self?.reloadBoolMarks()
-            self?.reloadMastery()
+            self?.reloadMarks()
             self?.refreshAutoCollected()
             self?.bumpAll()
         }
@@ -131,23 +147,50 @@ final class UserMarkService {
     /// (実データは入っており、アプリを再起動すると現れる)。投票だけ戻って見えたのは、
     /// あちらが自前のメモリ状態を更新していたため。
     func reloadAfterExternalWrite() {
-        reloadBoolMarks()
-        reloadMastery()
+        reloadMarks()
         refreshAutoCollected()
         bumpAll()
     }
 
-    /// 全 bool 系マークを DB から読み直してメモリ集合を再構築する (起動時に1回)。
-    private func reloadBoolMarks() {
+    /// 全マークを DB から 1 回で読み、メモリ側 (行・bool の集合・習熟度) を作り直す。
+    /// 起動時と、このサービスを経由しない書き込みの後に呼ぶ。
+    private func reloadMarks() {
+        let all = (try? db.allUserMarks()) ?? []
+        var byKey: [String: UserMark] = [:]
+        byKey.reserveCapacity(all.count)
+        for mark in all {
+            byKey["\(mark.entityType)|\(mark.kind)|\(mark.entityId)"] = mark
+        }
+        rows = byKey
+
+        let boolKinds: Set<String> = Set(
+            [UserMarkKind.collected, .favorite, .myPick, .attended, .owned].map(\.rawValue))
         var marks: Set<String> = []
-        for kind in [UserMarkKind.collected, .favorite, .myPick, .attended, .owned] {
-            guard let rows = try? db.fetchAllUserMarks(kind: kind) else { continue }
-            for mark in rows where mark.boolValue {
-                guard let entity = UserMarkEntity(rawValue: mark.entityType) else { continue }
-                marks.insert(Self.markKey(entity, kind, mark.entityId))
+        var mastery: [String: UInt8] = [:]
+        // 付いているとみなす規則はコア (`UserMark.meaningful`)。
+        for mark in UserMark.meaningful(all) {
+            if boolKinds.contains(mark.kind), mark.boolValue, UserMarkEntity(rawValue: mark.entityType) != nil {
+                marks.insert("\(mark.entityType)|\(mark.kind)|\(mark.entityId)")
+            }
+            if mark.kind == UserMarkKind.mastery.rawValue, mark.entityType == UserMarkEntity.song.rawValue,
+               let raw = mark.textValue, let level = UInt8(raw), level > 0 {
+                mastery[mark.entityId] = level
             }
         }
         boolMarks = marks
+        masteryById = mastery
+        if let saved = UserDefaults.standard.stringArray(forKey: Self.scaleDefaultsKey), !saved.isEmpty {
+            scale = MasteryScale(labels: saved)
+        }
+    }
+
+    /// 書いた 1 行を DB から読み直してメモリ側へ写す (消えた行はメモリからも消える)。
+    private func refreshRow(_ entity: UserMarkEntity, _ kind: UserMarkKind, _ id: String) {
+        rows[Self.markKey(entity, kind, id)] = try? db.fetchUserMark(entity: entity, id: id, kind: kind)
+    }
+
+    private func row(_ entity: UserMarkEntity, _ kind: UserMarkKind, _ id: String) -> UserMark? {
+        rows[Self.markKey(entity, kind, id)]
     }
 
     private func updateBoolCache(_ entity: UserMarkEntity, _ kind: UserMarkKind, _ id: String, _ value: Bool) {
@@ -162,6 +205,7 @@ final class UserMarkService {
 
     func setBool(_ kind: UserMarkKind, entity: UserMarkEntity, id: String, value: Bool) throws {
         try db.upsertUserMark(entity: entity, id: id, kind: kind, boolValue: value)
+        refreshRow(entity, kind, id)
         updateBoolCache(entity, kind, id, value)
         // attended 変更時は自動回収キャッシュを更新
         if kind == .attended {
@@ -185,27 +229,13 @@ final class UserMarkService {
     ///
     /// bool 系と同じ理由でメモリに持つ: 一覧の各行が body 評価のたびに同期 SQLite を
     /// 引くとメインスレッドが詰まる。書き込みは全てここを通るので整合する。
-    private var masteryById: [String: UInt8] = [:]
+    @ObservationIgnored private var masteryById: [String: UInt8] = [:]
 
     /// 段階の定義。段数を変えると既存の記録の寄せ先が変わるので、
     /// 変更は `setScale` からだけ行う (規則は core の `remapMasteryLevel`)。
     private(set) var scale: MasteryScale = MasteryScale.standard
 
     private static let scaleDefaultsKey = "mastery_scale_labels_v1"
-
-    private func reloadMastery() {
-        var map: [String: UInt8] = [:]
-        if let rows = try? db.fetchAllUserMarks(kind: .mastery) {
-            for mark in rows where mark.entityType == UserMarkEntity.song.rawValue {
-                guard let raw = mark.textValue, let level = UInt8(raw), level > 0 else { continue }
-                map[mark.entityId] = level
-            }
-        }
-        masteryById = map
-        if let saved = UserDefaults.standard.stringArray(forKey: Self.scaleDefaultsKey), !saved.isEmpty {
-            scale = MasteryScale(labels: saved)
-        }
-    }
 
     func mastery(songId: String) -> UInt8 {
         _ = masteryVersion
@@ -222,6 +252,7 @@ final class UserMarkService {
             try db.upsertUserMarkText(entity: .song, id: songId, kind: .mastery, text: String(clamped))
             masteryById[songId] = clamped
         }
+        refreshRow(.song, .mastery, songId)
         masteryVersion &+= 1
         scheduleBackup()
     }
@@ -234,6 +265,7 @@ final class UserMarkService {
         let text: String? = clamped == 0 ? nil : String(clamped)
         for id in songIds {
             try db.upsertUserMarkText(entity: .song, id: id, kind: .mastery, text: text)
+            refreshRow(.song, .mastery, id)
             if clamped == 0 { masteryById.removeValue(forKey: id) } else { masteryById[id] = clamped }
         }
         masteryVersion &+= 1
@@ -253,6 +285,7 @@ final class UserMarkService {
                 if moved != level {
                     try db.upsertUserMarkText(entity: .song, id: songId, kind: .mastery,
                                               text: moved == 0 ? nil : String(moved))
+                    refreshRow(.song, .mastery, songId)
                     if moved == 0 { masteryById.removeValue(forKey: songId) } else { masteryById[songId] = moved }
                 }
             }
@@ -274,16 +307,12 @@ final class UserMarkService {
 
     func note(entity: UserMarkEntity, id: String) -> String? {
         observe(entity)
-        do {
-            return (try db.fetchUserMark(entity: entity, id: id, kind: .note))?.textValue
-        } catch {
-            logger.error("fetchUserMark(note) failed: entity=\(entity.rawValue) id=\(id) error=\(error.localizedDescription)")
-            return nil
-        }
+        return row(entity, .note, id)?.textValue
     }
 
     func setNote(entity: UserMarkEntity, id: String, text: String?) throws {
         try db.upsertUserMarkNote(entity: entity, id: id, text: text)
+        refreshRow(entity, .note, id)
         bump(entity)
         scheduleBackup()
     }
@@ -293,14 +322,14 @@ final class UserMarkService {
     /// その受付への自分の申込の記録。記録なし・知らない保存値は nil。
     func ticketApplication(saleId: String) -> TicketApplication? {
         observe(.ticketSale)
-        let stored = try? db.fetchUserMark(entity: .ticketSale, id: saleId, kind: .application)?.textValue
-        return ticketApplicationFromRaw(raw: stored ?? nil)
+        return ticketApplicationFromRaw(raw: row(.ticketSale, .application, saleId)?.textValue)
     }
 
     /// 申込の記録を付ける。nil で外す (行ごと消す)。
     func setTicketApplication(saleId: String, _ application: TicketApplication?) throws {
         try db.upsertUserMarkText(entity: .ticketSale, id: saleId, kind: .application,
                                   text: application.map { ticketApplicationRaw(application: $0) })
+        refreshRow(.ticketSale, .application, saleId)
         bump(.ticketSale)
         scheduleBackup()
     }
@@ -310,13 +339,7 @@ final class UserMarkService {
     /// その曲で「ここ好き」を付けた歌詞行の ID。本文は持たない (行 ID だけ)。
     func lyricLikes(songId: String) -> Set<String> {
         _ = lyricLikeVersion
-        do {
-            let stored = try db.fetchUserMark(entity: .song, id: songId, kind: .lyricLikes)?.textValue
-            return Set(lyricLikesParse(stored: stored))
-        } catch {
-            logger.error("fetchUserMark(lyricLikes) failed: id=\(songId) error=\(error.localizedDescription)")
-            return []
-        }
+        return Set(lyricLikesParse(stored: row(.song, .lyricLikes, songId)?.textValue))
     }
 
     /// 行の「ここ好き」を付け外しする。並べ方・消し方はコア (`lyricLikesToggle`)。
@@ -324,6 +347,7 @@ final class UserMarkService {
         let stored = try db.fetchUserMark(entity: .song, id: songId, kind: .lyricLikes)?.textValue
         let next = lyricLikesToggle(stored: stored, lineId: lineId)
         try db.upsertUserMarkText(entity: .song, id: songId, kind: .lyricLikes, text: next)
+        refreshRow(.song, .lyricLikes, songId)
         lyricLikeVersion &+= 1
         scheduleBackup()
     }
@@ -331,18 +355,14 @@ final class UserMarkService {
     /// 座席メモ (公演単位)。 空/空白なら nil で消す。
     func seat(entity: UserMarkEntity, id: String) -> String? {
         observe(entity)
-        do {
-            return (try db.fetchUserMark(entity: entity, id: id, kind: .seat))?.textValue
-        } catch {
-            logger.error("fetchUserMark(seat) failed: entity=\(entity.rawValue) id=\(id) error=\(error.localizedDescription)")
-            return nil
-        }
+        return row(entity, .seat, id)?.textValue
     }
 
     func setSeat(entity: UserMarkEntity, id: String, text: String?) throws {
         let trimmed = text?.trimmingCharacters(in: .whitespacesAndNewlines)
         try db.upsertUserMarkText(entity: entity, id: id, kind: .seat,
                                   text: (trimmed?.isEmpty ?? true) ? nil : trimmed)
+        refreshRow(entity, .seat, id)
         bump(entity)
         scheduleBackup()
     }
@@ -354,16 +374,14 @@ final class UserMarkService {
     /// 読み方 (旧来の text なし = 現地 など) はコア (`attendanceTypes`)。
     func attendedTypes(entity: UserMarkEntity, id: String) -> [AttendanceType] {
         observe(entity)
-        guard let mark = try? db.fetchUserMark(entity: entity, id: id, kind: .attended),
-              mark.boolValue else { return [] }
+        guard let mark = row(entity, .attended, id), mark.boolValue else { return [] }
         return attendanceTypes(textValue: mark.textValue).compactMap(AttendanceType.init(rawValue:))
     }
 
     /// 参加マークの保存値そのまま (コアに渡す経路用)。不参加なら nil、形態の無い旧来の行は空文字。
     func attendanceText(entity: UserMarkEntity, id: String) -> String? {
         observe(entity)
-        guard let mark = try? db.fetchUserMark(entity: entity, id: id, kind: .attended),
-              mark.boolValue else { return nil }
+        guard let mark = row(entity, .attended, id), mark.boolValue else { return nil }
         return mark.textValue ?? ""
     }
 
@@ -385,6 +403,7 @@ final class UserMarkService {
     /// `text` が nil なら不参加。`added` はいま付けた形態 (付けたときだけ)。
     private func writeAttendance(entity: UserMarkEntity, id: String, text: String?, added: AttendanceType?) throws {
         try db.setAttendanceMark(entity: entity, id: id, text: text)
+        refreshRow(entity, .attended, id)
         updateBoolCache(entity, .attended, id, text != nil)
         // 参加ライブの登録は「一区切りついた瞬間」なのでレビュー依頼の好機に数える。
         // 取り消しは数えない (良い体験ではないので)。
@@ -407,12 +426,9 @@ final class UserMarkService {
 
     func allMarked(kind: UserMarkKind, entity: UserMarkEntity) -> [String] {
         observe(entity)
-        do {
-            return try db.fetchMarkedEntityIds(entity: entity, kind: kind)
-        } catch {
-            logger.error("fetchMarkedEntityIds failed: entity=\(entity.rawValue) kind=\(kind.rawValue) error=\(error.localizedDescription)")
-            return []
-        }
+        let matching = rows.values.filter { $0.entityType == entity.rawValue && $0.kind == kind.rawValue }
+        // 並びは DB の主キー順 (= id 順) に合わせる。
+        return UserMark.meaningful(Array(matching)).map(\.entityId).sorted()
     }
 
     // MARK: - Auto Collected
@@ -423,13 +439,26 @@ final class UserMarkService {
         return collectedIds.contains(songId)
     }
 
-    /// 自動回収済み song_id セットを再構築する（attended 変更後に呼ぶ）
+    /// 自動回収済み song_id セットを再構築する（attended 変更後に呼ぶ）。
+    ///
+    /// 集計はセトリ全行を公演・イベントに結合する読みなので、メインスレッドでは回さない。
+    /// 参加を付け外しした指の下で画面が止まる原因だった。届いたら `collectedIds` を差し替え、
+    /// 読んでいた行だけが描き直る。失敗したら前の値を残す。
     func refreshAutoCollected() {
-        do {
-            collectedIds = try db.fetchAutoCollectedSongIds()
-        } catch {
-            logger.error("fetchAutoCollectedSongIds failed: \(error.localizedDescription)")
-            collectedIds = []
+        collectedGeneration &+= 1
+        let generation = collectedGeneration
+        let db = self.db
+        Task { [weak self] in
+            do {
+                let ids = try await db.fetchAutoCollectedSongIdsAsync()
+                guard let self, generation == self.collectedGeneration else { return }
+                if ids != self.collectedIds {
+                    self.collectedIds = ids
+                    self.collectedVersion &+= 1
+                }
+            } catch {
+                logger.error("fetchAutoCollectedSongIds failed: \(error.localizedDescription)")
+            }
         }
     }
 

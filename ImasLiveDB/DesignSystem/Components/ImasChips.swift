@@ -329,7 +329,7 @@ private struct ImasChipLeadingView: View {
                 .environment(\.imasTheme, theme)
                 .padding(.leading, -4)
         case .logo(let url):
-            if let image = UIImage(contentsOfFile: url.path) {
+            if let image = ImasLocalImage.image(at: url, maxPointSize: 20) {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFit()

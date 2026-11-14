@@ -15,9 +15,9 @@ import os
 @MainActor
 @Observable
 final class SongListViewModel {
-    private(set) var songs: [SongWithArtists] = [] {
-        didSet { rebuildSearchIndex() }
-    }
+    private(set) var songs: [SongWithArtists] = []
+    /// 直近に読み終えた条件。同じ条件での読み直しを省く判断に使う (画面側が見比べる)。
+    @ObservationIgnored private(set) var lastLoadedRequest: SongListRequest?
     /// `searchText` で絞り込んだ表示用キャッシュ (毎 body 評価で全曲走査しないため)。
     private(set) var displayedSongs: [SongWithArtists] = []
     /// 打った語には部分一致しないが、あいまい一致で拾えた候補 (「もしかして」)。
@@ -39,11 +39,19 @@ final class SongListViewModel {
     /// `searchCatalogs` と同じ並び・同じ綴りで作るあいまい一致用のカタログ。
     ///
     /// 部分一致で 0 件になった打ち間違い・かな入力を拾う。**添字で `songs` を引く**ので
-    /// 部分一致側と綴りの出所を分けてはいけない (下の `rebuildSearchIndex` で
+    /// 部分一致側と綴りの出所を分けてはいけない (下の `buildSearchIndex` で
     /// 綴り表を 1 本だけ作り、両方をそこから起こしている理由)。
     private var fuzzyCatalogs: [SongSearchMode: FuzzySearchCatalog] = [:]
 
-    private func rebuildSearchIndex() {
+    /// 検索カタログ一式。`songs` と必ず同じ並びで作り、同時に差し替える。
+    private struct SearchIndex: @unchecked Sendable {
+        var text: [SongSearchMode: TextSearchCatalog]
+        var fuzzy: [SongSearchMode: FuzzySearchCatalog]
+    }
+
+    /// メインアクターの外で組む。約 2,000 曲 × 3 スコープの綴り表を作ってコアへ 6 回渡すので、
+    /// 一覧を読み直すたびにメインスレッドで回すと、その間スクロールも入力も止まる。
+    private nonisolated static func buildSearchIndex(_ songs: [SongWithArtists]) async -> SearchIndex {
         // 綴り表はスコープごとに 1 本。部分一致とあいまい一致で別々に書くと、
         // 片方だけ直したときに添字がずれて別の曲が出る。
         let spellings: [SongSearchMode: [[String?]]] = [
@@ -60,8 +68,9 @@ final class SongListViewModel {
             },
             // .lyrics はサーバ側。手元のカタログでは判定できない
         ]
-        searchCatalogs = spellings.mapValues { TextSearchCatalog(fieldsPerItem: $0) }
-        fuzzyCatalogs = spellings.mapValues { FuzzySearchCatalog(spellingsPerItem: $0) }
+        return SearchIndex(
+            text: spellings.mapValues { TextSearchCatalog(fieldsPerItem: $0) },
+            fuzzy: spellings.mapValues { FuzzySearchCatalog(spellingsPerItem: $0) })
     }
 
     /// いま効いている絞り込みの中で、**表示中でない**スコープに何件当たるか。
@@ -198,10 +207,15 @@ final class SongListViewModel {
             for i in results.indices {
                 results[i].performerIdols = performerMap[results[i].song.id] ?? []
             }
+            let index = await Self.buildSearchIndex(results)
             // 世代ガード: await の間により新しい load が始まっていたら、この結果は stale なので捨てる。
             guard currentTaskId == taskId else { return }
             performanceCounts = counts
+            // 一覧とカタログは添字で対応するので、間に await を挟まず同時に差し替える。
+            searchCatalogs = index.text
+            fuzzyCatalogs = index.fuzzy
             songs = results
+            lastLoadedRequest = request
             applyFilter(searchText: request.searchText, scope: request.searchScope)
             await refreshMarkDisplays()
         } catch is CancellationError {
@@ -521,7 +535,7 @@ final class SongListViewModel {
 }
 
 /// SongListView の現在の UI 状態を、データ取得に必要な純粋値へまとめたリクエスト。
-struct SongListRequest {
+struct SongListRequest: Equatable {
     var filter: SongSearchFilter
     var sortOrder: SongSortOrder
     var sortAscending: Bool?

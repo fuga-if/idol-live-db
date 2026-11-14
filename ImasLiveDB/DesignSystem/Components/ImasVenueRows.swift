@@ -615,7 +615,7 @@ struct ImasBrandCell: View {
 
     @ViewBuilder private func seal(_ t: ImasTheme) -> some View {
         let ring = t.penlight
-        if let logoURL, let image = UIImage(contentsOfFile: logoURL.path) {
+        if let logoURL, let image = ImasLocalImage.image(at: logoURL, maxPointSize: Self.size) {
             // 配布しているロゴは「円 + 四隅透過」。独自に横長の絵を入れても切れないよう fit で収める。
             Image(uiImage: image)
                 .resizable()

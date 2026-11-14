@@ -536,7 +536,7 @@ enum CalendarEntry: Identifiable, Hashable, Sendable {
 
 // MARK: - Song Filter / Sort
 
-struct SongSearchFilter: Sendable {
+struct SongSearchFilter: Sendable, Equatable {
     /// 空集合 = 全ブランド対象。 複数選択時は OR 結合 (= IN)。
     var brandIds: Set<String> = []
     var title: String?

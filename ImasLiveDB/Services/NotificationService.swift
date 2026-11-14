@@ -167,10 +167,11 @@ final class NotificationService {
 
     /// 設定と印を詰めて、コアに予定表を訊く。日付と時刻は**端末のその地**の暦で渡す。
     private func buildPlan(database: AppDatabase) async throws -> [PlannedNotificationRecord] {
-        let pickIdolIds = try database.fetchMarkedEntityIds(entity: .idol, kind: .myPick)
+        // このサービスはメインアクター上で動く (起動直後にも呼ばれる)。DB の読みは止めない版で。
+        let pickIdolIds = try await database.fetchMarkedEntityIdsAsync(entity: .idol, kind: .myPick)
         // お気に入り ∪ 参加マークのイベント。
-        let favoriteIds = Set(try database.fetchMarkedEntityIds(entity: .event, kind: .favorite))
-        let attendedIds = Set(try database.fetchAttendedEventsWithDate().map(\.id))
+        let favoriteIds = Set(try await database.fetchMarkedEntityIdsAsync(entity: .event, kind: .favorite))
+        let attendedIds = Set(try await database.fetchAttendedEventsWithDateAsync().map(\.id))
         let now = Date()
         let calendar = Calendar.current
         let parts = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: now)

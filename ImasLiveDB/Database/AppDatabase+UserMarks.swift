@@ -123,17 +123,19 @@ extension AppDatabase {
     @discardableResult
     func restoreUserMarksIfAbsent(_ marks: [UserMark]) throws -> Int {
         try dbQueue.write { db in
+            // 手元にある行の鍵を 1 回で読む。行ごとに有無を引くと、バックアップの行数ぶんの
+            // 問い合わせが起動のたびにメインスレッドで走る (復元するものが無い普段の起動でも)。
+            let rows = try Row.fetchAll(db, sql: "SELECT entity_type, entity_id, kind FROM user_marks")
+            var existing = Set(rows.map { row -> String in
+                let type: String = row["entity_type"], id: String = row["entity_id"], kind: String = row["kind"]
+                return "\(type)\u{1F}\(id)\u{1F}\(kind)"
+            })
             var inserted = 0
             for m in marks {
-                let exists = try UserMark
-                    .filter(UserMark.Columns.entityType == m.entityType
-                            && UserMark.Columns.entityId == m.entityId
-                            && UserMark.Columns.kind == m.kind)
-                    .fetchCount(db) > 0
-                if !exists {
-                    try m.insert(db)
-                    inserted += 1
-                }
+                // 同じ鍵がバックアップの中で重なっていても 1 行だけ入れる。
+                guard existing.insert("\(m.entityType)\u{1F}\(m.entityId)\u{1F}\(m.kind)").inserted else { continue }
+                try m.insert(db)
+                inserted += 1
             }
             return inserted
         }

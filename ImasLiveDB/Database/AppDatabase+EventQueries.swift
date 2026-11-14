@@ -34,6 +34,11 @@ extension AppDatabase {
         try dbQueue.read { db in try Self.fetchAttendedEventsWithDateQuery(db) }
     }
 
+    /// (async) 呼び出し元のスレッドを止めない版。メインアクターから呼ぶならこちら。
+    func fetchAttendedEventsWithDateAsync() async throws -> [EventWithDate] {
+        try await dbQueue.read { db in try Self.fetchAttendedEventsWithDateQuery(db) }
+    }
+
     private static func fetchAttendedEventsWithDateQuery(_ db: Database) throws -> [EventWithDate] {
         let sql = """
             SELECT e.id, e.brand_id, e.name, e.event_type, e.is_streaming, e.is_solo, e.kind,
