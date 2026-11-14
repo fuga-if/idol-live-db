@@ -99,14 +99,7 @@ struct KaraokeModeView: View {
             applyDebugState()
             #endif
             AppAnalytics.tap("karaoke.open")
-            listener.start(song: song) { songMs, at in
-                let wasSynced = clock.isSynced
-                clock.heard(songMs: songMs, at: at)
-                if !wasSynced, clock.isSynced {
-                    AppAnalytics.tap("karaoke.heard_sync")
-                    syncPulse += 1
-                }
-            }
+            startListening()
         }
         .onDisappear {
             listener.stop()
@@ -120,6 +113,18 @@ struct KaraokeModeView: View {
         .sensoryFeedback(.success, trigger: syncPulse)
         .sheet(isPresented: $showsParts) {
             KaraokePartSheet(lyrics: lyrics, cast: cast, mine: $mine)
+        }
+    }
+
+    private func startListening() {
+        listener.start(song: song) { songMs, at in
+            let wasSynced = clock.isSynced
+            let needsConfirm = clock.heard(songMs: songMs, at: at)
+            if !wasSynced, clock.isSynced {
+                AppAnalytics.tap("karaoke.heard_sync")
+                syncPulse += 1
+            }
+            return needsConfirm
         }
     }
 
@@ -403,6 +408,8 @@ struct KaraokeModeView: View {
                 clock.reset()
                 activeLineId = nil
                 turn = nil
+                // 合った後の聞き直しは 30 秒おきなので、張り直してすぐ聞く。
+                startListening()
             }
         }
     }
@@ -430,7 +437,9 @@ struct KaraokeModeView: View {
         switch listener.state {
         case .idle: return nil
         case .listening: return Status(symbol: "mic", text: clock.isSynced ? "聞いて直しています" : "耳で合わせています")
-        case .matched: return Status(symbol: "waveform", text: "耳で合わせました")
+        case .matched:
+            return clock.isSynced ? Status(symbol: "waveform", text: "耳で合わせました")
+                : Status(symbol: "mic", text: "耳で合わせています")
         case .otherSong: return Status(symbol: "mic", text: "別の曲が聞こえます")
         case .notFound: return Status(symbol: "mic", text: clock.isSynced ? "聞き取れませんでした" : "まだ聞き取れません")
         case .denied: return Status(symbol: "mic.slash", text: "マイクが使えないので、タップで合わせます")

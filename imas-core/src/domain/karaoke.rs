@@ -19,10 +19,13 @@ use std::cmp::Ordering;
 
 use crate::domain::lyric_sync;
 
-/// 速さの補正を信じる下限・上限。カラオケ機のテンポ変更 (±数段) はこの中に収まる。
-/// 外れたら打ち間違い (別の行を叩いた) とみて速さは変えない。
-const RATE_MIN: f64 = 0.8;
-const RATE_MAX: f64 = 1.25;
+/// 速さの補正を信じる下限・上限。off vocal は原曲と同じ速さなので、ずれは機械の揺れか
+/// カラオケ機のテンポ変更 (数 %) くらい。外れたら打ち間違いとみて速さは変えない。
+const RATE_MIN: f64 = 0.9;
+const RATE_MAX: f64 = 1.1;
+/// 速さを出すのは、タップした行が今の時計の予測にこれ以内で合っていたときだけ
+/// (大きく外れたタップは「別の行を叩いた / 前の合わせが違っていた」で、速さの材料にならない)。
+const RATE_TAP_AGREE_MS: i64 = 1_500;
 /// 速さを 2 点から出すのに要る最短の間隔。近い 2 点だとタップの揺れ (±0.2 秒) が速さに化ける。
 const RATE_MIN_SPAN_MS: i64 = 20_000;
 /// 耳で聞いた位置と時計の差がこれ以下なら直さない (照合そのものの揺れ)。
@@ -140,13 +143,15 @@ pub fn nudge(clock: &KaraokeClock, delta_ms: i64) -> KaraokeClock {
 
 /// 「この行 (`line_start_ms`) が今始まった」とタップしたときの時計。
 ///
-/// 前の点 (`previous_anchor`) から 20 秒以上空いていれば、2 点の間隔から速さを出す。
-/// 出した速さが 0.8〜1.25 から外れたら打ち間違いとみて、速さは前のまま。
+/// 前の点 (`previous_anchor`) から 20 秒以上空いていて、タップが今の時計の予測と 1.5 秒以内で
+/// 合っていれば、2 点の間隔から速さを出す。出した速さが 0.9〜1.1 から外れたら速さは前のまま。
+/// 呼ぶ側は、止めて再開したとき・耳で時計を動かしたときに前の点を捨てる (間の時間が速さに化けるので)。
 pub fn tap(previous: Option<KaraokeClock>, previous_anchor: Option<KaraokeAnchor>,
            line_start_ms: i64, now_ms: i64) -> KaraokeTapOutcome {
     let mut rate = previous.map_or(1.0, |c| c.rate);
     let mut rate_changed = false;
-    if let Some(a) = previous_anchor {
+    let agrees = previous.is_some_and(|c| (base_position(&c, now_ms) - line_start_ms).abs() <= RATE_TAP_AGREE_MS);
+    if let (Some(a), true) = (previous_anchor, agrees) {
         let mono_span = now_ms - a.mono_ms;
         let song_span = line_start_ms - a.song_ms;
         if mono_span >= RATE_MIN_SPAN_MS && song_span > 0 {
@@ -217,7 +222,7 @@ fn timed(starts: &[Option<i64>]) -> Vec<(i64, usize)> {
 }
 
 /// 次に自分が歌い出す行。いま自分の行を歌っていて、そのまま自分の行が続くあいだは数えない
-/// (次の「番」は、誰か別の人の行を挟んでから)。残りが 8 秒を超えるうちは出さない。
+/// (次の「番」は、誰か別の人の行か 10 秒以上の間を挟んでから)。残りが 8 秒を超えるうちは出さない。
 ///
 /// `starts` はメインの行だけ時刻を入れた並び (被せの行は None)、`singers` は各行を歌う人。
 pub fn next_turn(starts: &[Option<i64>], singers: &[Vec<String>], mine: &[String],
@@ -226,13 +231,18 @@ pub fn next_turn(starts: &[Option<i64>], singers: &[Vec<String>], mine: &[String
         return None;
     }
     let mine_at = |i: usize| singers.get(i).is_some_and(|s| is_mine(s, mine));
-    let mut prev_mine = lyric_sync::active_line(starts, position_ms).is_some_and(|i| mine_at(i as usize));
+    let current = lyric_sync::active_line(starts, position_ms);
+    let mut prev_mine = current.is_some_and(|i| mine_at(i as usize));
+    let mut prev_start = current.and_then(|i| starts[i as usize]);
     for (start, i) in timed(starts) {
         if start <= position_ms {
             continue;
         }
         let m = mine_at(i);
-        if m && !prev_mine {
+        // 間奏などで 10 秒以上空いたら、同じ人の続きでも新しい入りとして数える。
+        let after_gap = prev_start.is_some_and(|p| start - p >= LANE_LINE_CAP_MS);
+        prev_start = Some(start);
+        if m && (!prev_mine || after_gap) {
             let in_ms = start - position_ms;
             if in_ms > TURN_COUNTDOWN_MS {
                 return None;
@@ -278,10 +288,13 @@ pub fn lane(starts: &[Option<i64>], singers: &[Vec<String>], mine: &[String],
 
 /// 曲名の後ろに付く、カラオケ版・インスト版の札 (突き合わせ用に畳んだ形)。
 const KARAOKE_MARKS: [&str; 5] = ["からおけ", "karaoke", "instrumental", "offvocal", "おふぼーかる"];
+/// 札に添えて付く飾り (「オリジナル・カラオケ」「Instrumental Ver.」)。札を外した残りから一緒に外す。
+const KARAOKE_FILLERS: [&str; 4] = ["おりじなる", "original", "version", "ver"];
 
 /// 当たった曲名が、開いている曲そのものか、そのカラオケ版か。
 /// 鍵 (かな・大小・全角半角を畳み、空白と記号を落とす) は Spotify の突き合わせと同じもの。
-/// 後ろに付いた余りにカラオケの札が無ければ別の版 (Remix など、尺が違う) とみる。
+/// 後ろに付いた余りが札と飾りだけのときに限る。他の語が残れば別の曲・別の版
+/// (「Believe my change!」・REM@STER・M@STER VERSION など、尺が違う) とみる。
 fn same_or_karaoke_title(song_title: &str, heard_title: &str) -> bool {
     let song = crate::domain::spotify::match_key(song_title);
     let heard = crate::domain::spotify::match_key(heard_title);
@@ -290,7 +303,16 @@ fn same_or_karaoke_title(song_title: &str, heard_title: &str) -> bool {
     }
     match heard.strip_prefix(&song) {
         Some("") => true,
-        Some(rest) => KARAOKE_MARKS.iter().any(|m| rest.contains(m)),
+        Some(rest) => {
+            if !KARAOKE_MARKS.iter().any(|m| rest.contains(m)) {
+                return false;
+            }
+            let mut left = rest.to_string();
+            for w in KARAOKE_MARKS.iter().chain(KARAOKE_FILLERS.iter()) {
+                left = left.replace(w, "");
+            }
+            left.is_empty()
+        }
         None => false,
     }
 }
@@ -355,6 +377,27 @@ mod tests {
         let wild = tap(Some(first.clock), Some(first.anchor), 75_000, 130_000);
         assert_eq!(wild.clock.rate, 1.0);
         assert!(!wild.rate_changed);
+    }
+
+    #[test]
+    fn rate_needs_tap_close_to_prediction() {
+        // 4 秒先の行をうっかり叩き、25 秒後に正しい行で合わせ直した: 予測から 4 秒外れているので速さは出さない。
+        let wrong = tap(Some(clock(0, 0)), None, 4_000, 0);
+        let fix = tap(Some(wrong.clock), Some(wrong.anchor), 25_000, 25_000);
+        assert_eq!(fix.clock.rate, 1.0);
+        // 予測と合っているが速さが 1.1 を超える: 採らない。
+        let first = tap(None, None, 0, 0);
+        let fast = tap(Some(first.clock), Some(first.anchor), 30_000, 26_000);
+        assert_eq!(fast.clock.rate, 1.0);
+    }
+
+    #[test]
+    fn next_turn_counts_again_after_a_long_gap() {
+        // 1 番の最後と 2 番の頭を同じ人が歌い、間に 20 秒の間奏 (marker 行なし)。
+        let starts = vec![Some(0), Some(4_000), Some(24_000)];
+        let singers = vec![v(&["a"]), v(&["b"]), v(&["b"])];
+        let t = next_turn(&starts, &singers, &v(&["b"]), 18_000).unwrap();
+        assert_eq!(t.index, 2);
     }
 
     #[test]
@@ -465,6 +508,10 @@ mod tests {
         assert!(heard_same_song("ＲＥＡＤＹ！！", None, None, Some("Ready!! -off vocal-"), None, None));
         assert!(!heard_same_song("Ready!!", Some("1"), None, Some("Ready!! (Remix)"), Some("2"), None));
         assert!(!heard_same_song("Ready!!", Some("1"), None, Some("ほかの曲"), Some("2"), None));
+        assert!(!heard_same_song("Believe", None, None, Some("Believe my change! (オリジナル・カラオケ)"), None, None));
+        assert!(!heard_same_song("蒼い鳥", None, None, Some("蒼い鳥(REM@STER-A) (Instrumental)"), None, None));
+        assert!(!heard_same_song("蒼い鳥", None, None, Some("蒼い鳥 (M@STER VERSION) -off vocal-"), None, None));
+        assert!(heard_same_song("Ready!!", None, None, Some("Ready!! (Instrumental Ver.)"), None, None));
         assert!(!heard_same_song("Ready!!", None, None, None, None, None));
         assert!(heard_same_song("M@STERPIECE", None, None, Some("M@STERPIECE"), None, None));
     }

@@ -42,8 +42,10 @@ final class KaraokeListener {
     /// 続けて失敗したらあきらめる回数 (ShazamKit が使えない設定のときに回し続けない)。
     private static let maxErrors = 3
 
-    /// 聞き始める。`onHeard(曲の位置 ms, そのときの単調時計 ms)` は開いている曲として当たったときだけ呼ぶ。
-    func start(song: Song, onHeard: @escaping @MainActor (Int64, Int64) -> Void) {
+    /// 聞き始める (聞いている最中なら張り直して、すぐ聞く)。
+    /// `onHeard(曲の位置 ms, そのときの単調時計 ms)` は開いている曲として当たったときだけ呼ぶ。
+    /// true を返したら (外れ値を保留した) 30 秒待たずにすぐ聞き直して確かめる。
+    func start(song: Song, onHeard: @escaping @MainActor (Int64, Int64) -> Bool) {
         stop()
         task = Task { [weak self] in
             guard await Self.requestMicrophone() else {
@@ -67,9 +69,9 @@ final class KaraokeListener {
                     if let item, karaokeHeardSameSong(
                         songTitle: song.title, songAppleMusicId: song.appleMusicId, songIsrc: song.isrc,
                         heardTitle: item.title, heardAppleMusicId: item.appleMusicID, heardIsrc: item.isrc) {
-                        onHeard(Int64((item.predictedCurrentMatchOffset * 1000).rounded()), now)
+                        let confirm = onHeard(Int64((item.predictedCurrentMatchOffset * 1000).rounded()), now)
                         self?.state = .matched
-                        wait = Self.recheck
+                        wait = confirm ? Self.retry : Self.recheck
                     } else {
                         self?.state = .otherSong
                     }

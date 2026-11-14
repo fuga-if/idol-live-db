@@ -41,21 +41,31 @@ final class KaraokeClockModel {
     }
 
     /// 耳で聞いた位置。止めている間は採らない。
-    func heard(songMs: Int64, at now: Int64) {
-        guard pausedAtMs == nil else { return }
+    /// - Returns: 大きく外れた値を保留した (すぐ聞き直して確かめたい) とき true。
+    @discardableResult
+    func heard(songMs: Int64, at now: Int64) -> Bool {
+        guard pausedAtMs == nil else { return false }
         let outcome = karaokeHeard(clock: clock, pending: pending, heardSongMs: songMs, nowMs: now)
         clock = outcome.clock
         pending = outcome.pending
         switch outcome.change {
-        case .adopted, .eased, .jumped: lastChange = .heard
-        case .kept, .held: break
+        case .adopted, .eased, .jumped:
+            lastChange = .heard
+            // 時計を耳で動かしたら、速さを出す前の点はこの聞いた点に置き換える
+            // (古い点との間には耳の補正が挟まっていて、速さの材料にならない)。
+            anchor = KaraokeAnchor(songMs: songMs, monoMs: now)
+        case .kept: break
+        case .held: return true
         }
+        return false
     }
 
     func nudge(_ deltaMs: Int) {
         guard let clock else { return }
-        self.clock = karaokeNudge(clock: clock, deltaMs: Int64(deltaMs))
-        if let pausedAtMs { self.pausedAtMs = pausedAtMs + Int64(deltaMs) }
+        let nudged = karaokeNudge(clock: clock, deltaMs: Int64(deltaMs))
+        self.clock = nudged
+        // 止めている位置も、実際に動いたずらしの分だけ動かす (上限で止まったら動かさない)。
+        if let pausedAtMs { self.pausedAtMs = pausedAtMs + nudged.nudgeMs - clock.nudgeMs }
         lastChange = .nudged
     }
 
@@ -69,6 +79,8 @@ final class KaraokeClockModel {
         // 止めた位置から続ける (ずらしは位置に入っているので、合わせ直す位置からは引く)。
         self.clock = karaokeRebase(clock: clock, songMs: pausedAtMs - clock.nudgeMs, nowMs: now)
         self.pausedAtMs = nil
+        // 止めていた時間が速さに化けないよう、前の点は捨てる。
+        anchor = nil
     }
 
     /// 合わせる前に戻す (同じ曲をもう一度歌う)。
