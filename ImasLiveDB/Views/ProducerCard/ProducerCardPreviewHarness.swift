@@ -593,7 +593,6 @@ struct ProducerCardPreviewHarness: View {
         }
     }
 }
-#endif
 
 /// P 活動報告の見本: 2025 年の公演 (セトリのあるもの) に参加の印を足して開く。4 つに 1 つは配信。
 private struct YearReportHarness: View {
@@ -624,3 +623,4 @@ private struct YearReportHarness: View {
         }
     }
 }
+#endif
