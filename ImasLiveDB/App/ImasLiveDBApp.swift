@@ -172,11 +172,12 @@ struct ImasLiveDBApp: App {
                 // フォアグラウンド復帰で同期を再開/継続する。フルsyncが途中で中断されて
                 // いれば残りステップ/チャンクから再開、そうでなければ差分syncで最新化。
                 // (再入は SyncEngine 側でガード済みなので二重には走らない)
+                // 直近に取り切っていれば走らせない (変更 0 件でも型の数だけ往復するため)。
                 guard phase == .active, !ProcessInfo.processInfo.isRunningTests else { return }
                 // すれちがいの自動オフを確かめ、名乗る名刺を作り直す。
                 StreetPassService.shared.sceneBecameActive()
                 Task.detached(priority: .utility) {
-                    await syncEngine.performStartupSync(database: appDatabase)
+                    await syncEngine.performForegroundSync(database: appDatabase)
                 }
                 // アプリを開かない日が続いた後でも、開いた時点で当日の内容に戻す。
                 Task.detached(priority: .utility) { await InfoWidgetBridge.sync() }

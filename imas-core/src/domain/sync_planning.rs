@@ -201,6 +201,38 @@ pub fn startup_plan(state: &SyncStartupState) -> SyncStartupPlan {
     }
 }
 
+/// 前面に戻ったときの同期を間引く間隔 (5 分)。
+///
+/// 差分同期は「変更が 0 件」でもレコードタイプの数だけ往復する (24 型 = 24 往復 + アカウント確認)。
+/// 前面に戻るたびに走らせると、アプリを行き来するだけで 1 日に数百往復になる。
+/// 直近に取り切っていれば、その間に入る変更は次の復帰か手動更新で拾えば足りる。
+pub const FOREGROUND_RESYNC_MIN_INTERVAL_SECONDS: f64 = 5.0 * 60.0;
+
+/// 前面に戻ったときに同期を走らせるか。
+///
+/// - 中断されたフル同期が残っていれば必ず走らせる (続きを取り切るのが先)。
+/// - このプロセスで一度も取り切っていなければ走らせる。
+/// - 時計が巻き戻っていたら (経過が負) 走らせる。間引きは「確かに最近取った」ときだけ効かせる。
+/// - それ以外は、前回取り切ってから [`FOREGROUND_RESYNC_MIN_INTERVAL_SECONDS`] 以上経ったときだけ。
+///
+/// 手動更新 (引っ張って更新・設定の同期ボタン) はこれを通さない。
+pub fn foreground_resync_due(
+    has_pending_full_sync: bool,
+    last_completed_epoch: Option<f64>,
+    now_epoch: f64,
+) -> bool {
+    if has_pending_full_sync {
+        return true;
+    }
+    match last_completed_epoch {
+        None => true,
+        Some(last) => {
+            let elapsed = now_epoch - last;
+            elapsed < 0.0 || elapsed >= FOREGROUND_RESYNC_MIN_INTERVAL_SECONDS
+        }
+    }
+}
+
 // ---------------------------------------------------------------------------
 // 2. 取り込み順序 (FK 依存)
 // ---------------------------------------------------------------------------
@@ -883,6 +915,23 @@ fn intersect_preserving_order(driving: &[String], other: &[String]) -> Vec<Strin
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn foreground_resync_is_skipped_only_when_recently_completed() {
+        use super::{foreground_resync_due as due, FOREGROUND_RESYNC_MIN_INTERVAL_SECONDS as MIN};
+        let now = 1_000_000.0;
+        // 一度も取り切っていない → 走らせる。
+        assert!(due(false, None, now));
+        // 直近に取り切った → 間引く。
+        assert!(!due(false, Some(now - 1.0), now));
+        assert!(!due(false, Some(now - (MIN - 0.001)), now));
+        // 間隔ちょうどで走らせる。
+        assert!(due(false, Some(now - MIN), now));
+        // 中断されたフル同期があれば、直近でも走らせる。
+        assert!(due(true, Some(now - 1.0), now));
+        // 時計が巻き戻っていたら走らせる。
+        assert!(due(false, Some(now + 60.0), now));
+    }
+
     use super::*;
 
     fn strings(values: &[&str]) -> Vec<String> {

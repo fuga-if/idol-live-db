@@ -150,6 +150,29 @@ final class CloudKitSyncEngine: @unchecked Sendable {
         }
     }
 
+    /// このプロセスで最後に同期を取り切った時刻 (前面復帰の間引き用)。
+    /// 起動直後は nil なので、起動時の同期は必ず走る。
+    private let lastCompletedLock = OSAllocatedUnfairLock<Date?>(initialState: nil)
+
+    /// 前面に戻ったときの Sync。直近に取り切っていれば何もしない。
+    ///
+    /// 差分同期は変更が 0 件でもレコードタイプの数だけ CloudKit に問い合わせるので、
+    /// 復帰のたびに走らせない。走らせるかどうかの規則はコア (`sync_planning::foreground_resync_due`)。
+    /// 手動更新 (`performIncrementalSync` / `performFullSync`) はここを通らない。
+    func performForegroundSync(database: AppDatabase) async {
+        let last = lastCompletedLock.withLock { $0 }
+        let due = syncForegroundResyncDue(
+            hasPendingFullSync: hasPendingFullSync,
+            lastCompletedEpoch: last?.timeIntervalSince1970,
+            nowEpoch: Date().timeIntervalSince1970
+        )
+        guard due else {
+            logger.info("[Sync] foreground → skip (recently completed)")
+            return
+        }
+        await performStartupSync(database: database)
+    }
+
     /// アプリ起動時 Sync。 lastFullSyncDate が 24 時間以上前 (or 未設定) なら fullSync、
     /// それ以外は incremental。 差分が大きいテーブル (SongArtist ~20k) で incremental の取りこぼし
     /// が起きないよう、 1 日 1 回は必ず全件取り直す。
@@ -392,6 +415,8 @@ final class CloudKitSyncEngine: @unchecked Sendable {
             ud.removeObject(forKey: pendingFullStartKey)
             ud.removeObject(forKey: pendingFullDoneKey)
         }
+
+        lastCompletedLock.withLock { $0 = Date() }
 
         logger.info("[Sync] complete: total fetched=\(totalFetched), lastSync→\(lastSyncToSave.ISO8601Format())")
 

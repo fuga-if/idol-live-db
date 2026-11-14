@@ -31,6 +31,17 @@ pub fn sync_default_full_sync_interval_seconds() -> f64 {
     sync_planning::DEFAULT_FULL_SYNC_INTERVAL_SECONDS
 }
 
+/// 前面に戻ったときに同期を走らせるか (直近に取り切っていれば間引く)。
+/// 手動更新はこれを通さない。
+#[uniffi::export]
+pub fn sync_foreground_resync_due(
+    has_pending_full_sync: bool,
+    last_completed_epoch: Option<f64>,
+    now_epoch: f64,
+) -> bool {
+    sync_planning::foreground_resync_due(has_pending_full_sync, last_completed_epoch, now_epoch)
+}
+
 // --- 取り込み順序 ---
 
 /// 対応しているレコードタイプだけを FK 依存順に並べて返す。空を渡すと全ステップ。
