@@ -41,6 +41,7 @@ struct LyricsPlayerView: View {
     @State private var startFailed = false
     @State private var showsAddToPlaylist = false
     @State private var showsQueue = false
+    @State private var showsKaraoke = false
     /// 下へ引いている量 (畳む手前で画面ごと付いてくる)。
     @State private var pullOffset: CGFloat = 0
 
@@ -90,6 +91,10 @@ struct LyricsPlayerView: View {
         .imasTheme(seed: seed)
         .sheet(isPresented: $showsAddToPlaylist) { AddToPlaylistSheet(song: song) }
         .sheet(isPresented: $showsQueue) { PlayQueueSheet() }
+        .fullScreenCover(isPresented: $showsKaraoke) {
+            KaraokeModeView(song: song, seed: seed, artistLine: artistLine, artworkURL: artworkURL,
+                            lyrics: lyrics, cast: cast)
+        }
     }
 
     // MARK: - 頭
@@ -120,6 +125,12 @@ struct LyricsPlayerView: View {
                                label: pip.isActive ? "ピクチャ・イン・ピクチャを終える" : "ピクチャ・イン・ピクチャで歌詞を出す",
                                size: .small, style: .glass) {
                     pip.toggle()
+                }
+            }
+            if hasTiming {
+                ImasIconButton(systemImage: "music.mic", label: "カラオケモード", size: .small, style: .glass) {
+                    AppAnalytics.tap("karaoke.open_from_player")
+                    showsKaraoke = true
                 }
             }
             ImasIconButton(systemImage: "text.badge.plus", label: "プレイリストに追加", size: .small, style: .glass) {

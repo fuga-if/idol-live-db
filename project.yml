@@ -88,7 +88,7 @@ targets:
         INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription: "P名刺のすれちがいモードで、近くでオンにしている人と名刺を交換するために使用します"
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "セットリストの写真を選択してOCRで曲名を認識します"
         INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: "ティアー表の画像を写真に保存します"
-        INFOPLIST_KEY_NSMicrophoneUsageDescription: "イントロドンで曲名を音声で答えるために使用します"
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "イントロドンで曲名を音声で答えるときと、カラオケモードで鳴っている曲のどこを歌っているかを聞き取るときに使用します"
         INFOPLIST_KEY_NSCalendarsWriteOnlyAccessUsageDescription: "ライブの予定をカレンダーに追加するために使用します"
         INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription: "お手持ちのカレンダーの予定をアプリ内のスケジュールに重ねて表示するために使用します"
         INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: "発声した曲名をテキスト化してクイズに回答するために使用します"

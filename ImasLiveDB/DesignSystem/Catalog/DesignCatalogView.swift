@@ -10,7 +10,7 @@ import SwiftUI
 
 enum DesignCatalogPage: String, CaseIterable, Identifiable {
     case venue, venueRows, application, buttons, chips, rows, rows2, sections, heroSong, heroIdol, heroIdolColor, idolProfile, hub, hubColor,
-         feedback, setlist, list, form, setup, community, stage
+         feedback, setlist, list, form, setup, community, stage, karaoke
 
     var id: String { rawValue }
 
@@ -37,6 +37,7 @@ enum DesignCatalogPage: String, CaseIterable, Identifiable {
         case .setup: return "ゲームの設定・読みもの"
         case .community: return "コミュニティ (タグ・記録)"
         case .stage: return "あそぶ (ステージ)"
+        case .karaoke: return "カラオケモード"
         }
     }
 }
@@ -78,6 +79,7 @@ struct DesignCatalogPageView: View {
             case .setup: SetupPage()
             case .community: CommunityPage()
             case .stage: StagePage()
+            case .karaoke: KaraokePage()
             }
         }
         .navigationTitle(page.title)
@@ -1088,6 +1090,60 @@ private struct FeedbackPage: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - カラオケモード
+
+/// カラオケモードの部品。画面はいつも暗い地なので、見本も暗い地で並べる。
+private struct KaraokePage: View {
+    @State private var tapped = 0
+
+    var body: some View {
+        ImasPage {
+            ImasSection("この先 20 秒の帯", style: .small, footer: "ImasKaraokeLane。2 人以上は縦縞、自分のパートは墨の枠。") {
+                ImasKaraokeLane(spans: [
+                    .init(id: 0, from: 0, to: 0.25, colors: [Sample.haruka], isMine: false),
+                    .init(id: 1, from: 0.25, to: 0.5, colors: [Sample.chihaya], isMine: true),
+                    .init(id: 2, from: 0.5, to: 0.66, colors: [Sample.miki], isMine: false),
+                    .init(id: 3, from: 0.7, to: 1, colors: [Sample.haruka, Sample.chihaya, Sample.miki], isMine: true),
+                ])
+            }
+            ImasSection("行", style: .small, footer: "ImasKaraokeRow + ImasKaraokeSingerLabel。選んだ行 (合わせる行) は面を敷く。") {
+                VStack(alignment: .leading, spacing: DS.sp4) {
+                    ImasKaraokeRow(colors: [Sample.haruka], isHighlighted: true) {
+                        ImasKaraokeSingerLabel(names: ["春香"], colors: [Sample.haruka], pin: "この行で合わせる")
+                        ImasPlayerLyricLine(text: "見本の行です 1", isCurrent: true, seed: Sample.haruka)
+                    }
+                    ImasKaraokeRow(colors: [Sample.chihaya]) {
+                        ImasKaraokeSingerLabel(names: ["千早"], colors: [Sample.chihaya], clap: "★", isMine: true)
+                        ImasPlayerLyricLine(text: "見本の行です 2", isCurrent: false, seed: Sample.chihaya)
+                    }
+                }
+            }
+            ImasSection("コール", style: .small, footer: "ImasKaraokeCallTag。強調度の色の枠。今のコールは大きく。") {
+                FlowLayout(spacing: DS.sp2) {
+                    ImasKaraokeCallTag(text: "Hi!", color: DS.ink, isActive: true)
+                    ImasKaraokeCallTag(text: "Oi!", color: DS.danger, isActive: true)
+                    ImasKaraokeCallTag(text: "ハイ!", color: DS.success, isActive: false)
+                }
+            }
+            ImasSection("自分の番の数え", style: .small, footer: "ImasKaraokeCountdown。") {
+                ImasKaraokeCountdown(remainingMs: 2_400, lit: 3, seed: Sample.chihaya)
+            }
+            ImasSection("合わせる", style: .small, footer: "ImasKaraokeTapPad・ImasKaraokeOffsetBadge・ImasKaraokeStatus。") {
+                VStack(alignment: .leading, spacing: DS.sp3) {
+                    ImasKaraokeTapPad(title: "歌い出しでタップ", subtitle: "選んだ行が始まった瞬間に") { tapped += 1 }
+                    HStack(spacing: DS.sp3) {
+                        ImasKaraokeOffsetBadge(ms: 300)
+                        ImasKaraokeOffsetBadge(ms: -200)
+                        ImasKaraokeStatus(systemImage: "mic", text: "耳で合わせています")
+                    }
+                }
+            }
+        }
+        .environment(\.colorScheme, .dark)
+        .background(DS.bg)
     }
 }
 
