@@ -13,6 +13,21 @@ final class UpdateCheckService {
     private(set) var storeURL: URL?
     private let dismissedKey = "updateNoticeDismissedVersion"
 
+    // App Store の版は 1 日に何度も変わらない。前回の結果を覚えておき、起動のたびには
+    // 問い合わせない (お知らせ自体は、覚えている結果から毎起動出せる)。
+    private let checkedAtKey = "updateCheckLastCheckedAt"
+    private let knownVersionKey = "updateCheckKnownVersion"
+    private let knownURLKey = "updateCheckKnownURL"
+    private static let checkInterval: TimeInterval = 24 * 60 * 60
+
+    /// App Store にある版がインストール版より新しければ、お知らせの対象にする。
+    private func adopt(version: String, url: String) {
+        let installed = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0"
+        guard Self.isNewer(version, than: installed) else { return }
+        availableVersion = version
+        storeURL = URL(string: url)
+    }
+
     /// 新版があり、かつそのバージョンをまだ「後で」していない時だけ true。
     var shouldNotify: Bool {
         guard let v = availableVersion else { return false }
@@ -26,6 +41,16 @@ final class UpdateCheckService {
     }
 
     func check() async {
+        let defaults = UserDefaults.standard
+        let elapsed = Date().timeIntervalSince1970 - defaults.double(forKey: checkedAtKey)
+        // 時計が巻き戻っていたら (経過が負) 問い合わせ直す。
+        if elapsed >= 0, elapsed < Self.checkInterval {
+            if let version = defaults.string(forKey: knownVersionKey),
+               let url = defaults.string(forKey: knownURLKey) {
+                adopt(version: version, url: url)
+            }
+            return
+        }
         let bundleId = Bundle.main.bundleIdentifier ?? "com.fugaif.ImasLiveDB"
         let region = Locale.current.region?.identifier.lowercased() ?? "jp"
         guard let url = URL(string:
@@ -37,11 +62,10 @@ final class UpdateCheckService {
                 let results: [Result]
             }
             guard let r = try JSONDecoder().decode(Lookup.self, from: data).results.first else { return }
-            let installed = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0"
-            if Self.isNewer(r.version, than: installed) {
-                availableVersion = r.version
-                storeURL = URL(string: r.trackViewUrl)
-            }
+            defaults.set(Date().timeIntervalSince1970, forKey: checkedAtKey)
+            defaults.set(r.version, forKey: knownVersionKey)
+            defaults.set(r.trackViewUrl, forKey: knownURLKey)
+            adopt(version: r.version, url: r.trackViewUrl)
         } catch {
             // ネットワーク不通等は黙って無視 (お知らせは次回起動で再試行)
         }

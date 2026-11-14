@@ -25,6 +25,40 @@ actor AppAttestService {
     private var cachedToken: String?
     private var cachedExpiry: Date = .distantPast
     private var refreshing = false
+    /// 保存しておいた token を、このプロセスでもう読んだか。
+    private var restored = false
+
+    // token は 24 時間有効なのに、メモリにしか持たないと起動のたびに取り直すことになる
+    // (challenge + assert の 2 往復。しかも最初の API 呼び出しがその完了を待つ)。
+    // 期限と一緒に Keychain へ置き、次の起動でも期限までは使い回す。
+    private let tokenKeychainKey = "appAttestToken"
+    private let expiryDefaultsKey = "appAttestTokenExpiry"
+
+    private func restoreIfNeeded() {
+        guard !restored else { return }
+        restored = true
+        let expiry = UserDefaults.standard.double(forKey: expiryDefaultsKey)
+        guard expiry > 0, let token = KeychainStore.get(tokenKeychainKey) else { return }
+        cachedToken = token
+        cachedExpiry = Date(timeIntervalSince1970: expiry)
+    }
+
+    private func store(_ token: String) {
+        cachedToken = token
+        cachedExpiry = Date().addingTimeInterval(60 * 60 * 24)
+        KeychainStore.set(token, forKey: tokenKeychainKey)
+        UserDefaults.standard.set(cachedExpiry.timeIntervalSince1970, forKey: expiryDefaultsKey)
+    }
+
+    /// 持っている token を捨てる。サーバに断られた (401) ときに呼ぶ。
+    /// 保存した token が何かの理由で無効になっていても、期限まで使い続けて締め出されないように。
+    func invalidate() {
+        restored = true
+        cachedToken = nil
+        cachedExpiry = .distantPast
+        KeychainStore.delete(key: tokenKeychainKey)
+        UserDefaults.standard.removeObject(forKey: expiryDefaultsKey)
+    }
 
     private var keyId: String? {
         get { UserDefaults.standard.string(forKey: keyIdDefaultsKey) }
@@ -33,6 +67,7 @@ actor AppAttestService {
 
     /// 現在有効な app token。無ければ取得を試みる (失敗時 nil)。
     func token() async -> String? {
+        restoreIfNeeded()
         if let t = cachedToken, cachedExpiry > Date().addingTimeInterval(60 * 60) {
             return t
         }
@@ -58,8 +93,7 @@ actor AppAttestService {
         if let existingKeyId = keyId {
             do {
                 let assertion = try await service.generateAssertion(existingKeyId, clientDataHash: clientDataHash)
-                cachedToken = try await postAssert(keyId: existingKeyId, assertion: assertion, challenge: challenge)
-                cachedExpiry = Date().addingTimeInterval(60 * 60 * 24)
+                store(try await postAssert(keyId: existingKeyId, assertion: assertion, challenge: challenge))
                 return
             } catch {
                 // 鍵が無効化された等 → 作り直しにフォールバック
@@ -68,8 +102,7 @@ actor AppAttestService {
         }
         let newKeyId = try await service.generateKey()
         let attestation = try await service.attestKey(newKeyId, clientDataHash: clientDataHash)
-        cachedToken = try await postAttest(keyId: newKeyId, attestation: attestation, challenge: challenge)
-        cachedExpiry = Date().addingTimeInterval(60 * 60 * 24)
+        store(try await postAttest(keyId: newKeyId, attestation: attestation, challenge: challenge))
         keyId = newKeyId
     }
 

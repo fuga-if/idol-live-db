@@ -279,6 +279,9 @@ actor APIClient {
             logger.warning("HTTP \(status) \(method) \(path)")
             switch status {
             case 401, 403:
+                // 401 は「アプリ実体トークンが通らなかった」場合もある (保存しておいた token が
+                // 無効になっていた等)。捨てておけば、次のリクエストで取り直す。
+                if status == 401 { await AppAttestService.shared.invalidate() }
                 // 401 (期限切れ等) は Apple 再認証なしの sliding refresh を 1 回試み、
                 // 成功したら同じリクエストをリトライする (自動再ログイン)。
                 // 403 (BAN) や refresh 経路自身 (bearerOverride) は対象外。
