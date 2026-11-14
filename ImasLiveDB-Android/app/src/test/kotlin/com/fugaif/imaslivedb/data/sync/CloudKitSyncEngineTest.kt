@@ -59,8 +59,13 @@ class CloudKitSyncEngineTest {
         db.close()
     }
 
-    private fun engine(manifest: suspend () -> String? = { null }, source: CloudKitRecordSource) =
-        CloudKitSyncEngine(context, db, source, scope, dao, isConfigured = { true }, manifestSource = manifest)
+    private fun engine(
+        manifest: suspend () -> String? = { null },
+        digests: suspend () -> String? = { null },
+        source: CloudKitRecordSource,
+    ) = CloudKitSyncEngine(
+        context, db, source, scope, dao, isConfigured = { true }, manifestSource = manifest, digestSource = digests
+    )
 
     /** 同時に 2 回頼まれても、取得は 1 回。2 回目は実行中の同期を共有する。 */
     @Test
@@ -254,8 +259,41 @@ class CloudKitSyncEngineTest {
         assertEquals(0L, since["IdolBrand"]?.last())
     }
 
-    private fun brandRecord(id: String) =
-        """{"recordName":"$id","recordType":"Brand","fields":{"name":{"value":"ブランド","type":"STRING"},"shortName":{"value":"B","type":"STRING"}}}"""
+    /**
+     * 単一 PK の型は、手元の ID 一覧がサーバのダイジェストと一致したときだけ全件取得を省き、
+     * 続き位置から取る。食い違えば (サーバで行が消えた等) 全件を取り直して孤児を消す。
+     */
+    @Test
+    fun fullSyncSkipsSinglePkTypesWhoseIdsMatchTheServerDigest() = runBlocking {
+        db.syncDao().upsertBrands(listOf(Brand("b0", "ブランド", "B", null, 0), Brand("b1", "ブランド", "B", null, 1)))
+        val prefs = context.getSharedPreferences("imas_sync", Context.MODE_PRIVATE)
+        val modifiedAt = System.currentTimeMillis() - 86_400_000L
+        val brandSince = java.util.Collections.synchronizedList(mutableListOf<Long>())
+        var serverIds = listOf("b0", "b1")
+        val engine = engine(
+            digests = { """{"generated_at":"x","digests":{"Brand":"${uniffi.imas_core.syncIdsDigest(serverIds)}"}}""" }
+        ) { recordType, sinceMs ->
+            if (recordType != "Brand") return@engine emptyList()
+            brandSince += sinceMs
+            if (sinceMs == 0L) serverIds.map { brandRecord(it, modifiedAt) } else emptyList()
+        }
+        suspend fun fullRun() = withTimeout(30_000) {
+            prefs.edit().remove("last_full_sync_ms").commit()
+            engine.requestSync(automatic = true).await()
+        }
+
+        fullRun()   // 1 回目: 続き位置が無い → epoch から
+        fullRun()   // 2 回目: ID が一致 → 続き位置の 10 分手前から
+        assertEquals(listOf(0L, modifiedAt - 600_000L), brandSince.toList())
+
+        serverIds = listOf("b0")   // サーバで b1 が物理削除された
+        fullRun()   // 食い違い → epoch から取り直し、孤児を消す
+        assertEquals(0L, brandSince.last())
+        assertEquals(listOf("b0"), db.syncDao().brandIds())
+    }
+
+    private fun brandRecord(id: String, modifiedAt: Long? = null) =
+        """{"recordName":"$id","recordType":"Brand","fields":{"name":{"value":"ブランド","type":"STRING"},"shortName":{"value":"B","type":"STRING"}${modifiedAt?.let { ""","modifiedAt":{"value":$it,"type":"TIMESTAMP"}""" } ?: ""}}}"""
 
     /** ブランドの DELETE に渡された ID の数の最大を記録する。 */
     class RecordingSyncDao(private val real: SyncDao) : SyncDao by real {

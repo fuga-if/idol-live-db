@@ -307,12 +307,21 @@ final class CloudKitSyncEngine: @unchecked Sendable {
             if !forceEpoch {
                 typeCursors = (try? database.syncTypeCursors(recordTypes: recordTypes)) ?? [:]
             }
-            // 目録を読むのは、続き位置から取れる型があるときだけ (無ければ省ける型も無い)。
-            let manifestJson = typeCursors.values.contains { $0.cursorEpoch != nil }
-                ? await fetchSyncManifest() : nil
+            // 目録とダイジェストを読むのは、続き位置から取れる型があるときだけ
+            // (無ければ省ける型も無い)。
+            let hasCursor = typeCursors.values.contains { $0.cursorEpoch != nil }
+            let manifestJson = hasCursor ? await fetchSyncManifest() : nil
+            // 単一 PK の型は、手元の ID 一覧がサーバ (日次の CloudKit 書き出し) の ID 一覧と
+            // 一致したものだけ、全件取得 (孤児掃除) を省く。一致の判定はコア。
+            var verified: [String] = []
+            if hasCursor, let digestsJson = await fetchText(from: syncDigestUrl()),
+               let local = try? database.syncLocalDigests() {
+                verified = syncVerifiedTypes(digestsJson: digestsJson, local: local)
+            }
             let plans = syncFullStepPlans(
                 recordTypes: recordTypes,
                 cursors: Array(typeCursors.values),
+                verifiedRecordTypes: verified,
                 manifestJson: manifestJson,
                 nowEpoch: syncStartDate.timeIntervalSince1970
             )
@@ -537,14 +546,21 @@ final class CloudKitSyncEngine: @unchecked Sendable {
     /// 誰が呼んでも同じ値なので、ログインの有無に関わらず認証ヘッダを付けない。
     /// 待つのは短く切る: 目録は往復を省くためのもので、遅いなら無いものとして進めた方が速い。
     private func fetchSyncManifest() async -> String? {
-        var request = URLRequest(url: APIEndpoints.baseURL.appendingPathComponent("sync/manifest"))
+        await fetchText(from: APIEndpoints.baseURL.appendingPathComponent("sync/manifest").absoluteString)
+    }
+
+    /// 同期の補助情報 (目録・ダイジェスト) の本文を取る。取れなければ nil。
+    /// 認証ヘッダは付けない。待つのは短く切る (無ければ従来どおり全部取りに行くだけ)。
+    private func fetchText(from urlString: String) async -> String? {
+        guard let url = URL(string: urlString) else { return nil }
+        var request = URLRequest(url: url)
         request.timeoutInterval = 4
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
             guard (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
             return String(data: data, encoding: .utf8)
         } catch {
-            logger.info("[Sync] manifest unavailable: \(error.localizedDescription)")
+            logger.info("[Sync] \(url.lastPathComponent) unavailable: \(error.localizedDescription)")
             return nil
         }
     }

@@ -170,7 +170,8 @@ pub fn run(args: &Args) -> Result<Stats> {
             Some(p) => crate::web_export::data_api::load_facet_tags(p)?,
             None => Default::default(),
         };
-        let sql = crate::web_export::data_api::render_sql_with_tags(&snap, &today, content_hash.as_deref(), &tags)?;
+        let mut sql = crate::web_export::data_api::render_sql_with_tags(&snap, &today, content_hash.as_deref(), &tags)?;
+        crate::web_export::data_api::append_sync_digests(&mut sql, db_path_str)?;
         if let Some(dir) = path.parent() {
             std::fs::create_dir_all(dir)?;
         }

@@ -34,6 +34,33 @@ function setup() {
 
 beforeEach(() => resetMemo());
 
+describe("同期のダイジェスト", () => {
+  it("/v1/sync-digest は型ごとの値を返し、/v1/meta には混ぜない", async () => {
+    const { get } = setup();
+    const empty = await get("/v1/sync-digest");
+    expect(empty.status).toBe(200);
+    expect(await empty.json()).toEqual({ generated_at: "2026-10-01T00:00:00Z", digests: {} });
+  });
+
+  it("meta に入った sync_digest:* だけを拾う", async () => {
+    const db = emptyDb();
+    db.exec(`INSERT INTO meta VALUES ('version','v-d'),('generated_at','2026-11-14T00:00:00Z'),
+      ('sync_digest:Song','2-aaaa'),('sync_digest:Show','1-bbbb'),('song_count','2');`);
+    const e: Env = { DB: d1(db).db, RATE_LIMITER: { limit: async () => ({ success: true }) } };
+    const deps: Deps = { fold, cache: memoryCache() };
+    const get = (path: string) => handle(new Request(`https://x.test${path}`), e, ctx, deps);
+
+    const r = await get("/v1/sync-digest");
+    expect(r.headers.get("Cache-Control")).toBe("public, max-age=3600");
+    expect(await r.json()).toEqual({
+      generated_at: "2026-11-14T00:00:00Z",
+      digests: { Song: "2-aaaa", Show: "1-bbbb" },
+    });
+    const meta = (await (await get("/v1/meta")).json()) as J;
+    expect(Object.keys(meta).sort()).toEqual(["generated_at", "song_count", "version"]);
+  });
+});
+
 describe("ルーティング", () => {
   it("詳細は文書をそのまま返し、CORS とキャッシュ指示が付く", async () => {
     const { get } = setup();

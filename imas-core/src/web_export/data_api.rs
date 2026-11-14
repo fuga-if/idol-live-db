@@ -69,6 +69,40 @@ pub fn load_facet_tags(path: &std::path::Path) -> Result<FacetTags> {
         .map_err(|e| WebExportError::Invariant(format!("タグの票の写しが読めない {}: {e}", path.display())))
 }
 
+/// 同期の ID ダイジェストを meta に足す文を `sql` の末尾に付ける。
+///
+/// アプリのフル同期は、手元の ID 一覧がここの値と一致した型の全件取得を省く
+/// (`domain::sync_planning::verified_types`)。値は `db_path` (CloudKit の書き出しから
+/// 復元した DB) の各表の `id` から作る。表が無い型は載せない (載っていない型は、
+/// アプリがこれまでどおり全件を取り直す)。
+///
+/// 版 (`meta.version`) には混ぜない: 文書の中身が同じなら、エッジのキャッシュを捨てない。
+pub fn append_sync_digests(sql: &mut String, db_path: &str) -> Result<()> {
+    use crate::domain::sync_planning::{digest_targets, ids_digest, SYNC_DIGEST_META_PREFIX};
+    let conn = rusqlite::Connection::open_with_flags(db_path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
+        .map_err(|e| WebExportError::Db(e.to_string()))?;
+    let mut lines: Vec<String> = Vec::new();
+    for target in digest_targets() {
+        // 表名はコアの台帳 (table_info) の固定値で、外から来た文字列ではない。
+        let Ok(mut stmt) = conn.prepare(&format!("SELECT id FROM \"{}\"", target.table)) else {
+            continue; // この DB にその表が無い
+        };
+        let ids: Vec<String> = stmt
+            .query_map([], |r| r.get::<_, String>(0))
+            .and_then(|rows| rows.collect())
+            .map_err(|e| WebExportError::Db(e.to_string()))?;
+        lines.push(format!(
+            "({}, {})",
+            lit(&format!("{SYNC_DIGEST_META_PREFIX}{}", target.record_type)),
+            lit(&ids_digest(&ids))
+        ));
+    }
+    if !lines.is_empty() {
+        let _ = writeln!(sql, "INSERT INTO meta (key, value) VALUES\n{};", lines.join(",\n"));
+    }
+    Ok(())
+}
+
 /// 全置き換えの SQL を組む (タグの票なし)。`today` は `YYYY-MM-DD` (JST)。
 pub fn render_sql(snap: &Snapshot, today: &str, source_hash: Option<&str>) -> Result<String> {
     render_sql_with_tags(snap, today, source_hash, &FacetTags::new())
@@ -279,6 +313,38 @@ mod tests {
         let version: String =
             conn.query_row("SELECT value FROM meta WHERE key='version'", [], |r| r.get(0)).unwrap();
         assert!(version.starts_with("2026-10-01-"));
+    }
+
+    /// 同期の ID ダイジェストは、表の id から作った値が meta に載り、流せる。
+    #[test]
+    fn 同期のダイジェストが_meta_に載る() {
+        use crate::domain::sync_planning::ids_digest;
+        let dir = std::env::temp_dir().join(format!("imas-digest-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let db = dir.join("m.sqlite");
+        let _ = std::fs::remove_file(&db);
+        {
+            let c = Connection::open(&db).unwrap();
+            c.execute_batch(
+                "CREATE TABLE songs (id TEXT PRIMARY KEY); INSERT INTO songs VALUES ('s2'), ('s1');
+                 CREATE TABLE song_artists (song_id TEXT, idol_id TEXT, role TEXT);",
+            )
+            .unwrap();
+        }
+        let mut sql = String::from("CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);\n");
+        append_sync_digests(&mut sql, db.to_str().unwrap()).unwrap();
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(&sql).expect("足した文がそのまま流せる");
+        let rows: Vec<(String, String)> = conn
+            .prepare("SELECT key, value FROM meta ORDER BY key")
+            .unwrap()
+            .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))
+            .unwrap()
+            .map(|r| r.unwrap())
+            .collect();
+        // この DB にある単一 PK の表は songs だけ。無い表・複合 PK の表は載らない。
+        assert_eq!(rows, vec![("sync_digest:Song".to_string(), ids_digest(&["s1".into(), "s2".into()]))]);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

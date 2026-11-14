@@ -6,6 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
+import uniffi.imas_core.syncDigestUrl
 
 /**
  * 同期の目録 (Worker `GET /sync/manifest` = レコードタイプごとの最新 modifiedAt) を取る。
@@ -22,9 +23,17 @@ object SyncManifestClient {
     private const val TIMEOUT_MS = 4_000
 
     /** 目録の本文。取れなければ null (同期は従来どおり全部の型を問い合わせる)。 */
-    suspend fun fetch(): String? = withContext(Dispatchers.IO) {
+    suspend fun fetch(): String? = get("${WorkerHttpClient.BASE_URL}/sync/manifest")
+
+    /**
+     * ID 一覧のダイジェスト (公開データ API) の本文。取れなければ null
+     * (フル同期は従来どおり単一 PK の型を全件取り直す)。URL はコアが持つ。
+     */
+    suspend fun fetchDigests(): String? = get(syncDigestUrl())
+
+    private suspend fun get(url: String): String? = withContext(Dispatchers.IO) {
         try {
-            val conn = URL("${WorkerHttpClient.BASE_URL}/sync/manifest").openConnection() as HttpURLConnection
+            val conn = URL(url).openConnection() as HttpURLConnection
             try {
                 conn.connectTimeout = TIMEOUT_MS
                 conn.readTimeout = TIMEOUT_MS
@@ -34,7 +43,7 @@ object SyncManifestClient {
                 conn.disconnect()
             }
         } catch (e: Exception) {
-            Log.i(TAG, "manifest unavailable: ${e.message}")
+            Log.i(TAG, "$url unavailable: ${e.message}")
             null
         }
     }

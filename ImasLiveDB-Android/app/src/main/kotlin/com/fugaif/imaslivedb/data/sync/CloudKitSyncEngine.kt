@@ -28,6 +28,9 @@ import uniffi.imas_core.SyncStep
 import uniffi.imas_core.syncCompletionPlan
 import uniffi.imas_core.syncDefaultFullSyncIntervalSeconds
 import uniffi.imas_core.syncFullStepPlans
+import uniffi.imas_core.syncIdsDigest
+import uniffi.imas_core.syncVerifiedTypes
+import uniffi.imas_core.SyncLocalDigest
 import uniffi.imas_core.syncManifestPlan
 import uniffi.imas_core.syncNextTypeCursor
 import uniffi.imas_core.syncOrphanIds
@@ -72,6 +75,8 @@ class CloudKitSyncEngine(
     private val isConfigured: () -> Boolean = { CloudKitConfig.isConfigured },
     /** 同期の目録の本文を取る口 (取れなければ null)。テストではフェイクに差し替える。 */
     private val manifestSource: suspend () -> String? = { SyncManifestClient.fetch() },
+    /** 同期の ID ダイジェスト (公開データ API) の本文を取る口 (取れなければ null)。 */
+    private val digestSource: suspend () -> String? = { SyncManifestClient.fetchDigests() },
 ) {
 
     private val appContext = context.applicationContext
@@ -470,9 +475,21 @@ class CloudKitSyncEngine(
                 if (isFullSync && plan.reason != SyncModeReason.LOCAL_DATA_EMPTY) loadTypeCursors(steps.map { it.recordType })
                 else emptyMap()
             val fullPlans = if (!isFullSync) emptyMap() else {
-                // 目録を読むのは、続き位置から取れる型があるときだけ (無ければ省ける型も無い)。
-                val json = if (typeCursors.values.any { it.cursorEpoch != null }) runCatching { manifestSource() }.getOrNull() else null
-                syncFullStepPlans(steps.map { it.recordType }, typeCursors.values.toList(), json, startMs.toEpochSeconds())
+                // 目録とダイジェストを読むのは、続き位置から取れる型があるときだけ
+                // (無ければ省ける型も無い)。
+                val hasCursor = typeCursors.values.any { it.cursorEpoch != null }
+                val json = if (hasCursor) runCatching { manifestSource() }.getOrNull() else null
+                // 単一 PK の型は、手元の ID 一覧がサーバ (日次の CloudKit 書き出し) の ID 一覧と
+                // 一致したものだけ、全件取得 (孤児掃除) を省く。一致の判定はコア。
+                val digestsJson = if (hasCursor) runCatching { digestSource() }.getOrNull() else null
+                val verified = if (digestsJson == null) emptyList() else syncVerifiedTypes(
+                    digestsJson,
+                    steps.mapNotNull { step ->
+                        val localIds = stepIo.getValue(step.recordType).localIds ?: return@mapNotNull null
+                        SyncLocalDigest(step.recordType, syncIdsDigest(localIds(dao)))
+                    }
+                )
+                syncFullStepPlans(steps.map { it.recordType }, typeCursors.values.toList(), verified, json, startMs.toEpochSeconds())
                     .associateBy { it.recordType }
             }
 

@@ -284,6 +284,17 @@ extension AppDatabase {
         }
     }
 
+    /// 単一 PK の表ごとの、手元の ID 一覧のダイジェスト。対象の表とハッシュの作り方はコア。
+    func syncLocalDigests() throws -> [SyncLocalDigest] {
+        try dbQueue.read { db in
+            try syncDigestTargets().compactMap { target in
+                guard try db.tableExists(target.table) else { return nil }
+                let ids = try String.fetchAll(db, sql: "SELECT id FROM \"\(target.table)\"")
+                return SyncLocalDigest(recordType: target.recordType, digest: syncIdsDigest(ids: ids))
+            }
+        }
+    }
+
     func saveSyncTypeCursor(recordType: String, cursorEpoch: Double?, lastEpochPassEpoch: Double?) throws {
         try dbQueue.write { db in
             if let cursorEpoch {

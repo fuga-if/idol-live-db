@@ -35,6 +35,9 @@ const OK_CACHE = "public, max-age=3600";
 const MISS_CACHE = "public, max-age=60";
 const VERSION_TTL_MS = 60_000;
 
+/** meta のキーの接頭辞。正は imas-core `sync_planning::SYNC_DIGEST_META_PREFIX`。 */
+const SYNC_DIGEST_PREFIX = "sync_digest:";
+
 const KINDS: Record<string, ListKind> = { idols: "idol", songs: "song", units: "unit" };
 
 let versionMemo: { value: string; at: number } | undefined;
@@ -117,6 +120,7 @@ type Route =
   | { type: "none" }
   | { type: "bad"; message: string }
   | { type: "meta"; key: string }
+  | { type: "sync-digest"; key: string }
   | { type: "brands"; key: string }
   | { type: "doc"; kind: ListKind; id: string; key: string }
   | { type: "facts"; id: string; key: string }
@@ -129,6 +133,7 @@ function parseRoute(url: URL): Route {
   const parts = url.pathname.split("/").filter((p) => p !== "");
   if (parts[0] !== "v1") return { type: "none" };
   if (parts.length === 2 && parts[1] === "meta") return { type: "meta", key: "/v1/meta" };
+  if (parts.length === 2 && parts[1] === "sync-digest") return { type: "sync-digest", key: "/v1/sync-digest" };
   if (parts.length === 2 && parts[1] === "brands") return { type: "brands", key: "/v1/brands" };
   const kind = KINDS[parts[1] ?? ""];
   if (!kind) return { type: "none" };
@@ -193,7 +198,22 @@ async function run(route: Exclude<Route, { type: "none" } | { type: "bad" }>, en
   switch (route.type) {
     case "meta": {
       const { results } = await env.DB.prepare(SQL_META).all<{ key: string; value: string }>();
-      return json(200, Object.fromEntries(results.map((r) => [r.key, r.value])), OK_CACHE);
+      // 同期のダイジェストはアプリの内部用なので、外向けの meta には混ぜない。
+      const visible = results.filter((r) => !r.key.startsWith(SYNC_DIGEST_PREFIX));
+      return json(200, Object.fromEntries(visible.map((r) => [r.key, r.value])), OK_CACHE);
+    }
+    case "sync-digest": {
+      // アプリのフル同期用。レコードタイプごとの ID 一覧のダイジェスト (imas-core の
+      // sync_planning::ids_digest が作った値。書き出し時に meta に入る)。アプリは手元の
+      // ID 一覧から同じ関数で作った値と突き合わせ、一致した型の全件取得を省く。
+      const { results } = await env.DB.prepare(SQL_META).all<{ key: string; value: string }>();
+      const digests: Record<string, string> = {};
+      let generatedAt: string | null = null;
+      for (const r of results) {
+        if (r.key.startsWith(SYNC_DIGEST_PREFIX)) digests[r.key.slice(SYNC_DIGEST_PREFIX.length)] = r.value;
+        else if (r.key === "generated_at") generatedAt = r.value;
+      }
+      return json(200, { generated_at: generatedAt, digests }, OK_CACHE);
     }
     case "brands":
       return docResponse(env, "brands", "all");

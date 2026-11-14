@@ -397,11 +397,16 @@ pub struct SyncFullStepPlan {
 /// - 続き位置から取る型は、目録が使えて、その型の最新 modifiedAt が続き位置以下なら
 ///   問い合わせを省く。目録が無い・読めない・古いときは省かない。
 ///
+/// - 単一 PK の型でも、`verified_record_types` に入っていれば複合 PK の型と同じに扱う。
+///   入っているのは「手元の ID 一覧がサーバの ID 一覧と一致した」型 ([`verified_types`]) で、
+///   消すべき孤児が無いと分かっているので、全件を取り直す理由が無い。
+///
 /// `cursors` に載っていない型は続き位置なしとして扱う。全件を強制したいとき
 /// (手動の全データ同期・ローカルが空・入れ直しの直後) は `cursors` を空で渡す。
 pub fn full_step_plans(
     record_types: &[String],
     cursors: &[SyncTypeCursor],
+    verified_record_types: &[String],
     manifest_json: Option<&str>,
     now_epoch: f64,
 ) -> Vec<SyncFullStepPlan> {
@@ -415,7 +420,7 @@ pub fn full_step_plans(
                 start_epoch: 0.0,
                 started_from_epoch: true,
             };
-            if supports_orphan_cleanup(record_type) {
+            if supports_orphan_cleanup(record_type) && !verified_record_types.contains(record_type) {
                 return from_epoch;
             }
             let Some(state) = cursors.iter().find(|c| &c.record_type == record_type) else {
@@ -442,6 +447,84 @@ pub fn full_step_plans(
                 start_epoch: (cursor - TYPE_CURSOR_REWIND_SECONDS).max(0.0),
                 started_from_epoch: false,
             }
+        })
+        .collect()
+}
+
+/// ID 一覧のダイジェスト。同じ集合なら並びに依らず同じ文字列になる。
+///
+/// 形は `<件数>-<32 桁の 16 進>`。サーバ側 (公開データ API の書き出し) と端末側が
+/// **この 1 つの関数**で作るので、突き合わせは文字列の一致だけでよい。
+/// 中身は、ID を並べ替えて改行で区切ったものに FNV-1a 64bit を初期値違いで 2 本掛けたもの
+/// (暗号学的な強さは要らない。偶然の衝突で孤児掃除を 1 回飛ばさないだけの幅があればよい)。
+pub fn ids_digest(ids: &[String]) -> String {
+    let mut sorted: Vec<&str> = ids.iter().map(String::as_str).collect();
+    sorted.sort_unstable();
+    sorted.dedup();
+    const PRIME: u64 = 0x0000_0100_0000_01b3;
+    let (mut a, mut b): (u64, u64) = (0xcbf2_9ce4_8422_2325, 0x84222325_cbf29ce4);
+    for id in &sorted {
+        for byte in id.as_bytes().iter().chain(std::iter::once(&b'\n')) {
+            a = (a ^ *byte as u64).wrapping_mul(PRIME);
+            b = (b ^ *byte as u64).wrapping_mul(PRIME).rotate_left(5);
+        }
+    }
+    format!("{}-{a:016x}{b:016x}", sorted.len())
+}
+
+/// ID 一覧のダイジェストを返す口 (公開データ API)。iOS / Android が同じ所を読む。
+pub const SYNC_DIGEST_URL: &str = "https://idollivedb-api.fugaapp.site/v1/sync-digest";
+
+/// 公開データ API の meta に載せるときのキーの接頭辞 (`sync_digest:<レコードタイプ>`)。
+pub const SYNC_DIGEST_META_PREFIX: &str = "sync_digest:";
+
+/// ある型について、端末が手元の表から作った ID 一覧のダイジェスト。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct SyncLocalDigest {
+    pub record_type: String,
+    /// [`ids_digest`] の値。
+    pub digest: String,
+}
+
+/// 手元の ID 一覧がサーバの ID 一覧と一致した型を返す。
+///
+/// `digests_json` は公開データ API `GET /v1/sync-digest` の応答本文
+/// (`{"digests": {"Song": "3103-…", …}}`)。サーバ側の値は日次の CloudKit 書き出しから作る。
+///
+/// 一致 = 手元に余計な行 (孤児) も足りない行も無い。食い違う理由は、書き出しの後に
+/// レコードが増減した・手元に取り込めなかった行がある、など何であれ「一致しない」に倒れ、
+/// その型はこれまでどおり全件を取り直す。本文が読めないときは空を返す。
+pub fn verified_types(digests_json: &str, local: &[SyncLocalDigest]) -> Vec<String> {
+    #[derive(serde::Deserialize)]
+    struct Body {
+        digests: std::collections::HashMap<String, String>,
+    }
+    let Ok(body) = serde_json::from_str::<Body>(digests_json) else {
+        return Vec::new();
+    };
+    local
+        .iter()
+        .filter(|l| body.digests.get(&l.record_type).is_some_and(|server| server == &l.digest))
+        .map(|l| l.record_type.clone())
+        .collect()
+}
+
+/// ID 一覧のダイジェストを作る対象の 1 つ。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct SyncDigestTarget {
+    pub record_type: String,
+    /// ID を読む表。PK は `id` の 1 列。
+    pub table: String,
+}
+
+/// ID 一覧のダイジェストを作る対象 (単一 PK の型)。FK 依存順。
+pub fn digest_targets() -> Vec<SyncDigestTarget> {
+    all_steps()
+        .into_iter()
+        .filter(|step| supports_orphan_cleanup(&step.record_type))
+        .filter_map(|step| {
+            let table = table_info(&step.record_type)?.table;
+            Some(SyncDigestTarget { record_type: step.record_type, table })
         })
         .collect()
 }
@@ -1175,7 +1258,7 @@ mod tests {
             cursor("UnitMember", Some(1_900_000.0), Some(now + 60.0)), // 時計が巻き戻った → epoch
             // IdolBrand は cursors に無い → epoch
         ];
-        let plans = full_step_plans(&all, &cursors, None, now);
+        let plans = full_step_plans(&all, &cursors, &[], None, now);
         let by = |name: &str| plans.iter().find(|p| p.record_type == name).unwrap();
         assert_eq!(plans.len(), all.len());
         assert!(by("Song").started_from_epoch && by("Song").start_epoch == 0.0);
@@ -1186,7 +1269,7 @@ mod tests {
             assert!(by(name).started_from_epoch && !by(name).skip, "{name}");
         }
         // 続き位置を渡さなければ (手動の全データ同期・入れ直しの直後) 全部 epoch から。
-        assert!(full_step_plans(&all, &[], None, now).iter().all(|p| p.started_from_epoch));
+        assert!(full_step_plans(&all, &[], &[], None, now).iter().all(|p| p.started_from_epoch));
     }
 
     #[test]
@@ -1209,7 +1292,7 @@ mod tests {
             ("Song", Some(at)),           // 単一 PK → 動いていなくても全件 (孤児掃除)
         ];
         let skipped = |json: &str| -> Vec<String> {
-            full_step_plans(&all, &cursors, Some(json), now)
+            full_step_plans(&all, &cursors, &[], Some(json), now)
                 .into_iter()
                 .filter(|p| p.skip)
                 .map(|p| p.record_type)
@@ -1220,6 +1303,63 @@ mod tests {
         // 古い目録・読めない目録では何も省かない。
         assert!(skipped(&manifest(now - MAX_AGE - 1.0, &entries)).is_empty());
         assert!(skipped("<html>").is_empty());
+    }
+
+    #[test]
+    fn ids_digest_depends_on_the_set_only() {
+        use super::ids_digest;
+        let a = ids_digest(&types(&["s1", "s2", "s3"]));
+        assert_eq!(a, ids_digest(&types(&["s3", "s1", "s2", "s1"])), "並びと重複で変わった");
+        assert!(a.starts_with("3-") && a.len() == 2 + 32);
+        assert_ne!(a, ids_digest(&types(&["s1", "s2"])));
+        assert_ne!(a, ids_digest(&types(&["s1", "s2", "s4"])));
+        // 区切りがあるので、ID の切れ目が違えば別の値になる。
+        assert_ne!(ids_digest(&types(&["ab", "c"])), ids_digest(&types(&["a", "bc"])));
+        assert_eq!(ids_digest(&[]), "0-cbf29ce48422232584222325cbf29ce4");
+    }
+
+    #[test]
+    fn single_pk_type_resumes_only_when_its_ids_are_verified() {
+        use super::{full_step_plans, verified_types, ids_digest, SyncLocalDigest, SyncTypeCursor};
+        let now = 2_000_000.0;
+        let local_song = ids_digest(&types(&["s1", "s2"]));
+        let local_show = ids_digest(&types(&["sh1"]));
+        let server = format!(
+            "{{\"generatedAt\":\"2026-11-14\",\"digests\":{{\"Song\":\"{}\",\"Show\":\"{}\"}}}}",
+            local_song,
+            ids_digest(&types(&["sh1", "sh2"])) // サーバには 1 件多い
+        );
+        let local = vec![
+            SyncLocalDigest { record_type: "Song".into(), digest: local_song },
+            SyncLocalDigest { record_type: "Show".into(), digest: local_show },
+            SyncLocalDigest { record_type: "Event".into(), digest: "0-x".into() }, // サーバに無い
+        ];
+        let verified = verified_types(&server, &local);
+        assert_eq!(verified, types(&["Song"]));
+        assert!(verified_types("<html>", &local).is_empty());
+
+        let cursors: Vec<SyncTypeCursor> = ["Song", "Show"]
+            .iter()
+            .map(|name| SyncTypeCursor {
+                record_type: name.to_string(),
+                cursor_epoch: Some(1_900_000.0),
+                last_epoch_pass_epoch: Some(now - 3600.0),
+            })
+            .collect();
+        let plans = full_step_plans(&types(&["Song", "Show"]), &cursors, &verified, None, now);
+        assert!(!plans[0].started_from_epoch, "ID が一致した Song を全件取り直した");
+        assert!(plans[1].started_from_epoch, "ID が食い違う Show の孤児掃除を飛ばした");
+        // 一致していても、続き位置が無ければ全件から。
+        let plans = full_step_plans(&types(&["Song"]), &[], &verified, None, now);
+        assert!(plans[0].started_from_epoch);
+    }
+
+    #[test]
+    fn digest_targets_are_exactly_the_single_pk_types() {
+        let targets = super::digest_targets();
+        assert!(targets.iter().any(|t| t.record_type == "Song" && t.table == "songs"));
+        assert!(targets.iter().all(|t| super::supports_orphan_cleanup(&t.record_type)));
+        assert!(!targets.iter().any(|t| t.table == "song_artists"));
     }
 
     #[test]

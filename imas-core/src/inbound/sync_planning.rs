@@ -13,8 +13,9 @@
 //! 巻き戻しが 1000 倍ずれて境界レコードを取りこぼす。
 
 use crate::domain::sync_planning::{
-    self, SyncChunkAction, SyncCompletion, SyncCompletionState, SyncFullStepPlan, SyncManifestPlan,
-    SyncRecordPartition, SyncRunStart, SyncTypeCursor,
+    self, SyncChunkAction, SyncCompletion, SyncCompletionState, SyncDigestTarget, SyncFullStepPlan,
+    SyncLocalDigest,
+    SyncManifestPlan, SyncRecordPartition, SyncRunStart, SyncTypeCursor,
     SyncStartupPlan, SyncStartupState, SyncStep, SyncStepStart, SyncTableInfo,
 };
 
@@ -68,10 +69,41 @@ pub fn sync_manifest_plan(
 pub fn sync_full_step_plans(
     record_types: Vec<String>,
     cursors: Vec<SyncTypeCursor>,
+    verified_record_types: Vec<String>,
     manifest_json: Option<String>,
     now_epoch: f64,
 ) -> Vec<SyncFullStepPlan> {
-    sync_planning::full_step_plans(&record_types, &cursors, manifest_json.as_deref(), now_epoch)
+    sync_planning::full_step_plans(
+        &record_types,
+        &cursors,
+        &verified_record_types,
+        manifest_json.as_deref(),
+        now_epoch,
+    )
+}
+
+/// ID 一覧のダイジェスト (同じ集合なら並びに依らず同じ文字列)。
+#[uniffi::export]
+pub fn sync_ids_digest(ids: Vec<String>) -> String {
+    sync_planning::ids_digest(&ids)
+}
+
+/// 手元の ID 一覧がサーバの ID 一覧 (公開データ API `GET /v1/sync-digest`) と一致した型。
+#[uniffi::export]
+pub fn sync_verified_types(digests_json: String, local: Vec<SyncLocalDigest>) -> Vec<String> {
+    sync_planning::verified_types(&digests_json, &local)
+}
+
+/// ID 一覧のダイジェストを返す口の URL (公開データ API)。
+#[uniffi::export]
+pub fn sync_digest_url() -> String {
+    sync_planning::SYNC_DIGEST_URL.to_string()
+}
+
+/// ID 一覧のダイジェストを作る対象 (単一 PK の型) と、その表の名前。
+#[uniffi::export]
+pub fn sync_digest_targets() -> Vec<SyncDigestTarget> {
+    sync_planning::digest_targets()
 }
 
 /// フル同期で 1 つの型を取り切った後の、新しい続き位置 (後ろへは戻さない)。

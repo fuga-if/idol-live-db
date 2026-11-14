@@ -66,6 +66,7 @@ Rust のテスト (`web_export::data_api` / `agent::tools::publish`) が、SQL �
 | パス | 内容 |
 |---|---|
 | `/v1/meta` | `version` (同期の版)・`generated_at`・`idol_count` / `song_count` / `unit_count`・`schema_version`・`credits` |
+| `/v1/sync-digest` | アプリのフル同期用。レコードタイプごとの ID 一覧のダイジェスト (`digests`) と `generated_at`。アプリは手元の ID 一覧と一致した型の全件取得を省く。値は書き出し時に imas-core が作って `meta` (`sync_digest:<型>`) に入れる。`/v1/meta` には出さない |
 | `/v1/brands` | ブランド一覧 (id・名前・短縮名・色) |
 | `/v1/idols/:id` | アイドルの文書 (下) |
 | `/v1/idols/:id/facts` | アイドルの**項目の束** (年齢帯・髪型・一人称・代表曲など。値ごとに出どころ)。[`ARCHITECTURE-facets.md`](ARCHITECTURE-facets.md) |
