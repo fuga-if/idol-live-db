@@ -186,7 +186,7 @@ pub fn build(raw: RawTables) -> Snapshot {
         // 披露履歴の表示順: 日付 DESC → 同日は sort_order ASC → position ASC → 添字。
         let item = &setlist_items[i as usize];
         let show = &shows[item.show as usize];
-        (std::cmp::Reverse(show.date.clone()), show.sort_order, item.position, i)
+        (std::cmp::Reverse(&show.date), show.sort_order, item.position, i)
     };
     for list in setlist_items_by_song.iter_mut().chain(all_setlist_items_by_song.iter_mut()) {
         list.sort_by_key(|&i| history_key(i));
@@ -304,7 +304,7 @@ pub fn build(raw: RawTables) -> Snapshot {
     for list in &mut cast_shows_by_idol {
         list.sort_by_key(|&i| {
             let show = &shows[i as usize];
-            (std::cmp::Reverse(show.date.clone()), show.sort_order, i)
+            (std::cmp::Reverse(&show.date), show.sort_order, i)
         });
     }
 
@@ -390,7 +390,7 @@ pub fn build(raw: RawTables) -> Snapshot {
         // IFNULL(valid_from,'') DESC (NULL='' は DESC で末尾)。同値は添字で決定的に。
         list.sort_by_key(|&i| {
             let va = &idol_voice_actors[i as usize];
-            (std::cmp::Reverse(va.valid_from.clone().unwrap_or_default()), i)
+            (std::cmp::Reverse(va.valid_from.as_deref().unwrap_or_default()), i)
         });
     }
     let mut idols_by_voice_actor_name: HashMap<String, Vec<u32>> = HashMap::new();
@@ -417,7 +417,7 @@ pub fn build(raw: RawTables) -> Snapshot {
     // ID 未付与の過去公演を「ID 一致 or 生文字列一致」の OR で拾う後方互換のため。
     let show_date_desc_key = |i: u32| {
         let s = &shows[i as usize];
-        (std::cmp::Reverse(s.date.clone()), s.sort_order, i)
+        (std::cmp::Reverse(&s.date), s.sort_order, i)
     };
     let mut shows_by_venue_id: HashMap<String, Vec<u32>> = HashMap::new();
     let mut shows_by_venue_label: HashMap<String, Vec<u32>> = HashMap::new();
@@ -714,7 +714,7 @@ fn idol_sort_key(idols: &[Idol], idol: u32) -> (i64, u32) {
 }
 
 /// release_date DESC のキー。NULL は末尾 (SQLite の DESC は NULL を最後に置く)。
-fn release_desc_key(songs: &[Song], song: u32) -> std::cmp::Reverse<Option<String>> {
+fn release_desc_key(songs: &[Song], song: u32) -> std::cmp::Reverse<Option<&str>> {
     // Option の Ord は None < Some なので、Reverse すると None (=NULL) が末尾に落ちる。
-    std::cmp::Reverse(songs[song as usize].release_date.clone())
+    std::cmp::Reverse(songs[song as usize].release_date.as_deref())
 }
