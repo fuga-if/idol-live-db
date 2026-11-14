@@ -5,6 +5,7 @@ import SiteFooter from "../components/SiteFooter.astro";
 import SiteTabBar from "../components/SiteTabBar.astro";
 import JsonLd from "../components/JsonLd.astro";
 import { meta } from "../lib/data";
+import { versionedUrl } from "../../scripts/data-root.mjs";
 import type { SeoBlock } from "../lib/schema/SeoBlock";
 import "../styles/fonts.css";
 import "../styles/tokens.css";
@@ -29,12 +30,14 @@ interface Props {
   isCharacterLive?: boolean;
 }
 const { seo, themeKey = "neutral", wide = false, isCharacterLive } = Astro.props;
+// 中身から作った版を付ける。名前が固定のままだと毎訪問で再検証になる (全ページが読む 290KB)。
+const THEMES_URL = versionedUrl("/themes.css", "themes.css");
 ---
 
 <html lang="ja" prefix="og: https://ogp.me/ns#">
   <head>
     <Head seo={seo} siteName={meta().siteName} />
-    <link rel="stylesheet" href="/themes.css" />
+    <link rel="stylesheet" href={THEMES_URL} />
     <JsonLd data={seo.jsonLd} />
   </head>
   <body data-theme={themeKey} data-character-live={isCharacterLive ? "true" : undefined}>

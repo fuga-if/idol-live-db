@@ -45,6 +45,7 @@ export function buildHeaders(meta) {
   X-Robots-Tag: noindex
 /snapshot/*
   X-Robots-Tag: noindex
+  Cache-Control: public, max-age=2592000
 
 # P名刺 (/p/) の台帳も記事ではない (id → 名前・色・URL の突き合わせ用)。
 /p/catalog.json
@@ -64,6 +65,12 @@ export function buildHeaders(meta) {
 # HTML (/*) は日次再ビルドで内容が変わるので既定のまま。
 /_astro/*
   Cache-Control: public, max-age=31536000, immutable
+
+# /themes.css と /snapshot/* は名前が固定だが、ページは中身から作った版を ?v= に付けて参照する
+# (scripts/data-root.mjs の versionedUrl)。中身が変われば URL が変わるので長く持たせてよい。
+# 版なしで直接開かれた場合に古い中身が 1 年残らないよう、fonts と同じ 30 日に留める。
+/themes.css
+  Cache-Control: public, max-age=2592000
 
 # /fonts/* はファイル名が固定 (中身を差し替えても名前が変わらない) なので immutable にしない。
 # 差し替えたときに古いキャッシュが 1 年残らないよう、30 日 (2,592,000 秒) に留める。

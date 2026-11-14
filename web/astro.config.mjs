@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { defineConfig } from "astro/config";
 import sitemap from "@astrojs/sitemap";
-import { dataRoot } from "./scripts/data-root.mjs";
+import { assetVersion, dataRoot } from "./scripts/data-root.mjs";
 import { buildHeaders } from "./scripts/headers.mjs";
 
 /**
@@ -183,5 +183,9 @@ export default defineConfig({
       },
     }),
   ],
-  vite: { build: { assetsInlineLimit: 0 } },
+  vite: {
+    build: { assetsInlineLimit: 0 },
+    // 生テーブルの URL に付ける版 (src/lib/listfilter/query.ts が読む)。
+    define: { __SNAPSHOT_TABLES_V__: JSON.stringify(assetVersion("snapshot/tables.json")) },
+  },
 });
