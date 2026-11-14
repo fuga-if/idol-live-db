@@ -1,5 +1,6 @@
 package com.fugaif.imaslivedb.ui.songs
 
+import com.fugaif.imaslivedb.ui.designsystem.rememberProgressiveCount
 import com.fugaif.imaslivedb.data.lyrics.LyricsFeature
 import com.fugaif.imaslivedb.ui.components.singerLine
 import com.fugaif.imaslivedb.ui.designsystem.ImasFullScreenDialog
@@ -1037,7 +1038,7 @@ private fun HistoryTab(
         modifier = Modifier.padding(horizontal = DS.sp5, vertical = DS.sp4),
         verticalArrangement = Arrangement.spacedBy(DS.sp5)
     ) {
-        val sortedByDateAsc = history.sortedBy { it.date }
+        val sortedByDateAsc = remember(history) { history.sortedBy { it.date } }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DS.sp3)) {
             ImasStatTile(Icons.Filled.Mic, "${history.size}", "総披露", unit = "回", seed = seed, brand = brand, modifier = Modifier.weight(1f))
             ImasStatTile(Icons.Filled.CalendarMonth, shortYearMonth(date = sortedByDateAsc.first().date), "初披露", seed = seed, brand = brand, modifier = Modifier.weight(1f))
@@ -1045,8 +1046,11 @@ private fun HistoryTab(
         }
         Column(verticalArrangement = Arrangement.spacedBy(DS.sp3)) {
             ImasSectionHeader("ライブ披露履歴", count = "${history.size}回", tight = true)
+            // 人気曲は百行を超える。開いた最初のフレームで全部は組まない (行は減らさない)。
+            val shownHistory = rememberProgressiveCount(history.size)
             ImasCardList {
-                history.forEachIndexed { idx, row ->
+                for (idx in 0 until shownHistory) {
+                    val row = history[idx]
                     if (idx > 0) ImasRowDivider(inset = DS.sp4)
                     ImasRow(
                         title = AppPreferences.eventDisplayName(row.eventName),

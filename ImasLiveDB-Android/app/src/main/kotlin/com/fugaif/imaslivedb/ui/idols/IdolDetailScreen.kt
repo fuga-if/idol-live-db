@@ -1,5 +1,6 @@
 package com.fugaif.imaslivedb.ui.idols
 
+import com.fugaif.imaslivedb.ui.designsystem.rememberProgressiveCount
 import com.fugaif.imaslivedb.ui.designsystem.ImasFullScreenDialog
 import com.fugaif.imaslivedb.ui.components.singerLine
 import com.fugaif.imaslivedb.ui.designsystem.imasResetScrollOnTabChange
@@ -521,10 +522,17 @@ private fun LiveBody(
                 ImasSectionHeader("出演履歴", count = "${state.castShows.size}", tight = true)
                 // 年ごとに区切る (行の日付の札は月日だけなので、年は見出しで示す)。区切り方はコア。
                 val yearGroups = remember(state.castShows) { groupIndicesByYearDesc(state.castShows.map { it.date }) }
+                // 出演の多いアイドルは数百行。年の区切りをまたいで、開いた最初のフレームでは
+                // 先頭の数行ぶんの年だけ組み、残りの年は後続のフレームで足す (行は減らさない)。
+                val shownShows = rememberProgressiveCount(state.castShows.size)
+                var before = 0
                 yearGroups.forEach { group ->
+                val startsAt = before
+                before += group.indices.size
+                if (startsAt < shownShows) {
                 ImasDateHeader(big = group.label, modifier = Modifier.padding(horizontal = DS.Space.screen))
                 ImasCardList(
-                    items = group.indices.map { state.castShows[it.toInt()] },
+                    items = group.indices.take(shownShows - startsAt).map { state.castShows[it.toInt()] },
                     modifier = Modifier.padding(horizontal = DS.Space.screen),
                     key = { it.showId }
                 ) { row ->
@@ -539,6 +547,7 @@ private fun LiveBody(
                             else emptyList(),
                         modifier = Modifier.imasRowPress(onClick = { onShow(row.showId) })
                     )
+                }
                 }
                 }
             }

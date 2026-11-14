@@ -1,5 +1,11 @@
 package com.fugaif.imaslivedb.ui.designsystem
 
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -413,8 +419,10 @@ fun <T> ImasCardList(
     key: ((T) -> Any)? = null,
     row: @Composable (T) -> Unit
 ) {
+    val shown = rememberProgressiveCount(items.size)
     ImasCardList(modifier, style) {
-        items.forEachIndexed { index, item ->
+        for (index in 0 until shown) {
+            val item = items[index]
             key(key?.invoke(item) ?: index) {
                 CompositionLocalProvider(
                     LocalImasRowPosition provides if (index == 0) ImasRowPosition.FIRST else ImasRowPosition.FOLLOWING
@@ -422,6 +430,36 @@ fun <T> ImasCardList(
             }
         }
     }
+}
+
+// MARK: - 長い並びを分けて組む
+
+/** 最初のフレームで組む行数。画面 1 枚ぶんを超える程度。 */
+private const val PROGRESSIVE_INITIAL = 16
+
+/** 後続の 1 フレームごとに足す行数。 */
+private const val PROGRESSIVE_STEP = 24
+
+/**
+ * 縦スクロールの `Column` に並べる長い並び (披露履歴・歌唱曲・出演履歴) で、いま組んでよい行数。
+ *
+ * 遅延リストでない並びは、画面を開いた最初のフレームで全行 (多いものは数百行と、その画像の要求)
+ * を組むので、開いた瞬間に引っかかる。最初は画面に入るぶんだけ組み、残りは後続のフレームで
+ * 少しずつ足す。**行は減らさない** — 数フレーム後には全行が並ぶ。
+ *
+ * 戻ってきたとき (状態の復元) は、前に並べ終えた行数から始める。途中から足し直すと、
+ * 復元したスクロール位置が短い中身に合わせて詰められてしまう。
+ */
+@Composable
+fun rememberProgressiveCount(total: Int): Int {
+    var shown by rememberSaveable { mutableIntStateOf(PROGRESSIVE_INITIAL) }
+    LaunchedEffect(total) {
+        while (shown < total) {
+            withFrameNanos { }
+            shown = minOf(total, shown + PROGRESSIVE_STEP)
+        }
+    }
+    return minOf(shown, total)
 }
 
 // MARK: - 補足文

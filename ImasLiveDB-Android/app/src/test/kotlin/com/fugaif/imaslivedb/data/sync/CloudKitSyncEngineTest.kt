@@ -215,6 +215,31 @@ class CloudKitSyncEngineTest {
     }
 
     /**
+     * 何も取り込まなかった同期は「マスタは動いていない」と言う (スナップショットを全部読み直さない)。
+     * 1 件でも取り込めば動いたと言う。
+     */
+    @Test
+    fun completedSaysWhetherTheMasterChanged() = runBlocking {
+        db.syncDao().upsertBrands(listOf(Brand("b0", "ブランド", "B", null, 0)))
+        val prefs = context.getSharedPreferences("imas_sync", Context.MODE_PRIVATE)
+        val now = System.currentTimeMillis()
+        prefs.edit().putLong("last_sync_ms", now - 3_600_000L).putLong("last_full_sync_ms", now).commit()
+
+        val quiet = engine(source = { _, _ -> emptyList() })
+        withTimeout(30_000) { quiet.requestSync().await() }
+        val idle = quiet.state.value as CloudKitSyncEngine.SyncState.Completed
+        assertEquals(0, idle.fetched)
+        assertTrue("何も取り込んでいないのに動いたと言った", !idle.masterChanged)
+
+        val busy = engine(source = { recordType, _ ->
+            if (recordType == "Brand") listOf(brandRecord("b1")) else emptyList()
+        })
+        withTimeout(30_000) { busy.requestSync().await() }
+        val changed = busy.state.value as CloudKitSyncEngine.SyncState.Completed
+        assertTrue("取り込んだのに動いていないと言った", changed.masterChanged)
+    }
+
+    /**
      * フル同期は、単一 PK の型 (孤児掃除が要る) を毎回 epoch から取り直す。複合 PK の型は
      * 一度 epoch から取り切ったら、次からは取り込んだ最大の modifiedAt の少し手前から取り、
      * 目録で動いていないと分かれば問い合わせない。全データ同期は続き位置を捨てて全部 epoch から。

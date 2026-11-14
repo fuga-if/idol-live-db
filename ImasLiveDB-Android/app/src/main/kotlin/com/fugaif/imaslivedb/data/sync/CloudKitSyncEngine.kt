@@ -99,7 +99,11 @@ class CloudKitSyncEngine(
     sealed class SyncState {
         data object Idle : SyncState()
         data class Syncing(val step: Int, val total: Int, val label: String) : SyncState()
-        data class Completed(val fetched: Int) : SyncState()
+        /**
+         * [masterChanged] は手元のマスタが実際に動いたか (取り込んだ行がある・孤児を消した)。
+         * 何も動いていない同期のたびにスナップショットを全部読み直さないための印。
+         */
+        data class Completed(val fetched: Int, val masterChanged: Boolean = fetched > 0) : SyncState()
         data class Error(val message: String) : SyncState()
     }
 
@@ -428,6 +432,7 @@ class CloudKitSyncEngine(
         }
         val startMs = System.currentTimeMillis()
         var total = 0
+        var orphansDeleted = 0
         try {
             // DB が空 (初回 or スキーマ更新による破棄) なら lastSync を無視して全件取得する。
             // fallbackToDestructiveMigration で DB が消えても SharedPreferences の lastSync は
@@ -577,6 +582,7 @@ class CloudKitSyncEngine(
                     if (orphanIds.isNotEmpty()) {
                         // ここに来るのは単一 PK テーブルだけなので id 1 要素の並びで渡す。
                         io.delete(dao, orphanIds.map { listOf(it) })
+                        orphansDeleted += orphanIds.size
                         Log.i(TAG, "${step.recordType}: orphan_deleted count=${orphanIds.size}")
                     }
                 }
@@ -601,9 +607,11 @@ class CloudKitSyncEngine(
             completion.lastFullSyncEpochToSave?.takeIf { completion.shouldUpdateLastFullSync }?.let {
                 prefs.edit().putLong(KEY_LAST_FULL_SYNC, it.toEpochMillis()).apply()
             }
-            // shouldNotifyMasterChanged は使わない: Android は Completed を購読して
-            // スナップショットを再ロードしており、0 件同期でも state は必ず進める必要がある。
-            _state.value = SyncState.Completed(total)
+            // 0 件同期でも state は必ず進める (画面の「同期中」を終わらせる)。スナップショットの
+            // 読み直しは masterChanged のときだけ (購読側が見る)。孤児の削除は取り込み件数に
+            // 入らないので、コアの shouldNotifyMasterChanged (取り込み件数だけを見る) に足して判断する。
+            _state.value = SyncState.Completed(
+                total, masterChanged = completion.shouldNotifyMasterChanged || orphansDeleted > 0)
             Log.i(TAG, "sync complete: total=$total, lastSync→${completion.lastSyncEpochToSave}")
         } catch (e: CancellationException) {
             // 取り消しは失敗ではない。Error にすると、別の実行が出した結果を上書きしてしまう。

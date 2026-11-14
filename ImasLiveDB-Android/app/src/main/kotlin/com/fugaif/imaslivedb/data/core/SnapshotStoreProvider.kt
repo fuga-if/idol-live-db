@@ -6,12 +6,14 @@ import com.fugaif.imaslivedb.data.sync.CloudKitSyncEngine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 import uniffi.imas_core.SnapshotException
 import uniffi.imas_core.SnapshotStore
 
@@ -67,6 +69,8 @@ class SnapshotStoreProvider(
             // エンジンに手を入れず購読で「sync 完了 → スナップショット再構築」を接続する。
             syncEngine.state
                 .filterIsInstance<CloudKitSyncEngine.SyncState.Completed>()
+                // 何も動いていない同期では読み直さない (DB 全読みで数百 ms、起動のたびに走っていた)。
+                .filter { it.masterChanged }
                 .collect { reload() }
         }
         // seed の初回投入・アプリ更新時の入れ直しでも作り直す (同期の完了を待たない)。
@@ -94,8 +98,22 @@ class SnapshotStoreProvider(
      * (あれば) が維持される。
      */
     suspend fun reload() {
-        reloadMutex.withLock { loadLocked() }
+        // 呼ばれた時点の番号。待っている間に、これより後に始まった読み込みが成功していれば、
+        // その読み込みは既にこの呼び出しが見せたかったデータを読んでいるので、もう一度は読まない
+        // (seed の入れ直しの通知と起動時の読み直しが重なって、全読みが 2 回走っていた)。
+        val requested = reloadClock.incrementAndGet()
+        reloadMutex.withLock {
+            if (lastSuccessfulLoadStart > requested) return
+            val startedAt = reloadClock.incrementAndGet()
+            val before = generation
+            loadLocked()
+            if (generation != before) lastSuccessfulLoadStart = startedAt
+        }
     }
+
+    private val reloadClock = AtomicLong(0)
+    /** 直近に成功した読み込みが始まった番号 ([reloadClock])。[reloadMutex] の中でだけ触る。 */
+    private var lastSuccessfulLoadStart = 0L
 
     private suspend fun loadLocked() {
         // Room は初回アクセスまでファイルを作らない。
