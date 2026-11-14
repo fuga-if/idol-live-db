@@ -506,6 +506,7 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_sync_run_start_plan,
     uniffi_imas_core_checksum_func_sync_should_delete_orphans,
     uniffi_imas_core_checksum_func_sync_foreground_resync_due,
+    uniffi_imas_core_checksum_func_sync_manifest_plan,
     uniffi_imas_core_checksum_func_sync_startup_plan,
     uniffi_imas_core_checksum_func_sync_step_failure_plan,
     uniffi_imas_core_checksum_func_sync_step_finish_plan,

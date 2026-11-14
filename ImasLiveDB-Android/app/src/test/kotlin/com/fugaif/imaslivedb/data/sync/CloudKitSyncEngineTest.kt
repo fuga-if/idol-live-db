@@ -59,8 +59,8 @@ class CloudKitSyncEngineTest {
         db.close()
     }
 
-    private fun engine(source: CloudKitRecordSource) =
-        CloudKitSyncEngine(context, db, source, scope, dao, isConfigured = { true })
+    private fun engine(manifest: suspend () -> String? = { null }, source: CloudKitRecordSource) =
+        CloudKitSyncEngine(context, db, source, scope, dao, isConfigured = { true }, manifestSource = manifest)
 
     /** 同時に 2 回頼まれても、取得は 1 回。2 回目は実行中の同期を共有する。 */
     @Test
@@ -168,6 +168,45 @@ class CloudKitSyncEngineTest {
         prefs.edit().remove("last_full_sync_ms").commit()
         run(full = true)
         assertTrue("全データ同期が 24h のタイマーを進めた", !prefs.contains("last_full_sync_ms"))
+    }
+
+    /**
+     * 起動時の差分は目録を先に読み、動いていない型は問い合わせない。保存する同期の起点は
+     * 端末の今ではなく、目録が見ていた時点より手前 (目録にまだ載っていない変更を飛び越えない)。
+     * 人が頼んだ差分は目録を読まず、全部の型を問い合わせる。
+     */
+    @Test
+    fun automaticSyncSkipsTypesTheManifestSaysAreUnchanged() = runBlocking {
+        db.syncDao().upsertBrands(listOf(Brand("b0", "ブランド", "B", null, 0)))
+        val prefs = context.getSharedPreferences("imas_sync", Context.MODE_PRIVATE)
+        val now = System.currentTimeMillis()
+        val since = now - 3_600_000L
+        prefs.edit().putLong("last_sync_ms", since).putLong("last_full_sync_ms", now).commit()
+        val asked = java.util.Collections.synchronizedList(mutableListOf<String>())
+        var manifestReads = 0
+        val generatedAt = System.currentTimeMillis()
+        val engine = engine(
+            source = { recordType, _ -> asked += recordType; emptyList() },
+            manifest = {
+                manifestReads++
+                // Song だけが前回の同期より後に動いた。Brand は古い。ほかは目録に載っていない。
+                """{"generatedAt":$generatedAt,"types":{"Brand":${since - 1000},"Song":${since + 1000}}}"""
+            }
+        )
+
+        withTimeout(30_000) { engine.requestSync(automatic = true).await() }
+        assertEquals(1, manifestReads)
+        assertTrue("動いていない Brand を問い合わせた: $asked", "Brand" !in asked)
+        assertTrue("動いた Song を問い合わせていない: $asked", "Song" in asked)
+        assertTrue("目録に無い型を省いた: $asked", "Idol" in asked)
+        val saved = prefs.getLong("last_sync_ms", 0L)
+        assertTrue("同期の起点が目録の時刻より先に進んだ: $saved", saved < generatedAt)
+        assertTrue("同期の起点が進んでいない: $saved", saved > since)
+
+        asked.clear()
+        withTimeout(30_000) { engine.requestSync().await() }
+        assertEquals("人が頼んだ差分で目録を読んだ", 1, manifestReads)
+        assertTrue("人が頼んだ差分で Brand を省いた: $asked", "Brand" in asked)
     }
 
     private fun brandRecord(id: String) =

@@ -153,7 +153,7 @@ class MainActivity : ComponentActivity() {
                 return@LaunchedEffect
             }
             // データありなら即UI表示してバックグラウンド差分同期 (アプリのスコープで走る)。
-            sync.requestSync()
+            sync.requestSync(automatic = true)
             if (prepared) {
                 // ローカル通知を毎回まるごと組み直す (iOS ImasLiveDBApp と同じ起動時フック)。
                 // AlarmManager の予約はアプリ更新や端末再起動で消えるうえ、担当/お気に入りの

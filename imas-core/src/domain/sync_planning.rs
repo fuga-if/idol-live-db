@@ -234,6 +234,106 @@ pub fn foreground_resync_due(
 }
 
 // ---------------------------------------------------------------------------
+// 1.5 目録 (型ごとの最新 modifiedAt) で、動いていない型の問い合わせを省く
+// ---------------------------------------------------------------------------
+
+/// 目録の時刻から差し引く余白 (2 分)。
+///
+/// 目録は「CloudKit に問い合わせた時点」の最新 modifiedAt を載せているが、書き込み側の
+/// 時計のずれと CloudKit の索引の遅れで、その時点より少し前の modifiedAt を持つレコードが
+/// まだ見えていないことがある。次回の差分の起点をこの余白ぶん手前に置けば、後から見えた
+/// レコードも次の目録で「起点より新しい」と判定されて取りに行ける。
+pub const MANIFEST_SAFETY_MARGIN_SECONDS: f64 = 120.0;
+
+/// これより古い (または未来の) 目録は使わない (10 分)。
+///
+/// エッジの共有は 60 秒なので、正常ならここまで古くならない。超えていたら端末の時計が
+/// ずれているか、途中の何かが古い応答を返している。どちらでも目録を信じず、従来どおり
+/// 全部の型を問い合わせる。
+pub const MANIFEST_MAX_AGE_SECONDS: f64 = 600.0;
+
+/// 目録を見て決めた、この同期の進め方。
+#[derive(uniffi::Record, Clone, Debug, PartialEq)]
+pub struct SyncManifestPlan {
+    /// 目録を使えたか。false なら `skip_record_types` は空で、従来どおり全部問い合わせる。
+    pub usable: bool,
+    /// 問い合わせなくてよいレコードタイプ (前回の同期以降、何も動いていない)。
+    pub skip_record_types: Vec<String>,
+    /// 完了時に last_sync として保存する時刻。None なら従来どおり (同期の開始時刻)。
+    ///
+    /// 目録を使ったときは「目録が確かに見ていた時点」より先に進めない。端末の今を
+    /// 保存すると、目録にまだ載っていなかった変更を飛び越えてしまい、次のフル同期まで
+    /// 取りに行かなくなる。
+    pub last_sync_epoch_to_save: Option<f64>,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ManifestBody {
+    /// 目録を作り始めた時刻 (epoch ミリ秒)。
+    generated_at: f64,
+    /// レコードタイプ → 最新 modifiedAt (epoch ミリ秒)。レコードが無い型は null。
+    types: std::collections::HashMap<String, Option<f64>>,
+}
+
+/// 目録 (Worker `GET /sync/manifest` の応答本文) から、問い合わせを省ける型を決める。
+///
+/// 省いてよいのは「差分クエリ `modifiedAt > since` が 0 件になると分かっている型」だけ:
+///
+/// - 目録に載っていて、最新 modifiedAt が起点以下 (またはレコードが 1 件も無い)。
+/// - 途中チェックポイントが無い (あるなら前回の取り込みが途中で切れているので、続きを取る)。
+///
+/// 次のどれかなら目録を使わない (`usable = false`、全部問い合わせる):
+///
+/// - フル同期 (`modified_since_epoch` が None)。全件を取り直して孤児を掃除するのが目的。
+/// - 本文が読めない。
+/// - 目録の時刻が今から [`MANIFEST_MAX_AGE_SECONDS`] より離れている。
+///
+/// 目録に載っていない型 (サーバが引けなかった・サーバが知らない型) は省かない。
+///
+/// - `record_types`: この端末が同期する型 (FK 依存順のステップ)。
+/// - `checkpointed_record_types`: 途中チェックポイントが残っている型。
+pub fn manifest_plan(
+    manifest_json: &str,
+    record_types: &[String],
+    checkpointed_record_types: &[String],
+    modified_since_epoch: Option<f64>,
+    now_epoch: f64,
+) -> SyncManifestPlan {
+    let unusable = SyncManifestPlan {
+        usable: false,
+        skip_record_types: Vec::new(),
+        last_sync_epoch_to_save: None,
+    };
+    let Some(since) = modified_since_epoch else {
+        return unusable;
+    };
+    let Ok(body) = serde_json::from_str::<ManifestBody>(manifest_json) else {
+        return unusable;
+    };
+    let generated = body.generated_at / 1000.0;
+    if !generated.is_finite() || (now_epoch - generated).abs() > MANIFEST_MAX_AGE_SECONDS {
+        return unusable;
+    }
+    let checkpointed: HashSet<&str> = checkpointed_record_types.iter().map(String::as_str).collect();
+    let skip_record_types = record_types
+        .iter()
+        .filter(|record_type| !checkpointed.contains(record_type.as_str()))
+        .filter(|record_type| match body.types.get(record_type.as_str()) {
+            None => false,
+            Some(None) => true,
+            Some(Some(latest_ms)) => latest_ms.is_finite() && latest_ms / 1000.0 <= since,
+        })
+        .cloned()
+        .collect();
+    SyncManifestPlan {
+        usable: true,
+        skip_record_types,
+        last_sync_epoch_to_save: Some(now_epoch.min(generated - MANIFEST_SAFETY_MARGIN_SECONDS)),
+    }
+}
+
+// ---------------------------------------------------------------------------
 // 2. 取り込み順序 (FK 依存)
 // ---------------------------------------------------------------------------
 
@@ -915,6 +1015,100 @@ fn intersect_preserving_order(driving: &[String], other: &[String]) -> Vec<Strin
 
 #[cfg(test)]
 mod tests {
+    fn types(names: &[&str]) -> Vec<String> {
+        names.iter().map(|s| s.to_string()).collect()
+    }
+
+    /// 目録の本文。`generated` は epoch 秒、`entries` は (型, 最新 modifiedAt の epoch 秒)。
+    fn manifest(generated: f64, entries: &[(&str, Option<f64>)]) -> String {
+        let types: Vec<String> = entries
+            .iter()
+            .map(|(name, latest)| match latest {
+                Some(sec) => format!("\"{name}\":{}", sec * 1000.0),
+                None => format!("\"{name}\":null"),
+            })
+            .collect();
+        format!("{{\"generatedAt\":{},\"types\":{{{}}}}}", generated * 1000.0, types.join(","))
+    }
+
+    #[test]
+    fn manifest_skips_only_types_known_to_be_unchanged() {
+        use super::manifest_plan;
+        let now = 2_000_000.0;
+        let since = now - 3600.0;
+        let body = manifest(
+            now - 30.0,
+            &[
+                ("Brand", Some(since - 100.0)), // 起点より古い → 省く
+                ("Idol", Some(since)),          // 起点ちょうど (クエリは厳密な >) → 省く
+                ("Song", Some(since + 0.5)),    // 起点より新しい → 問い合わせる
+                ("Costume", None),              // レコードが無い → 省く
+                ("Show", Some(since - 100.0)),  // 古いがチェックポイントあり → 問い合わせる
+            ],
+        );
+        let all = types(&["Brand", "Idol", "Song", "Costume", "Show", "Venue"]);
+        let plan = manifest_plan(&body, &all, &types(&["Show"]), Some(since), now);
+        assert!(plan.usable);
+        // Venue は目録に載っていない → 省かない。
+        assert_eq!(plan.skip_record_types, types(&["Brand", "Idol", "Costume"]));
+    }
+
+    #[test]
+    fn manifest_caps_last_sync_at_what_the_manifest_has_seen() {
+        use super::{manifest_plan, MANIFEST_SAFETY_MARGIN_SECONDS as MARGIN};
+        let now = 2_000_000.0;
+        let body = manifest(now - 30.0, &[("Brand", Some(1.0))]);
+        let plan = manifest_plan(&body, &types(&["Brand"]), &[], Some(now - 3600.0), now);
+        // 端末の今ではなく、目録の時刻から余白を引いた所まで。
+        assert_eq!(plan.last_sync_epoch_to_save, Some(now - 30.0 - MARGIN));
+        // 端末の時計が遅れていても、端末の今より先には進めない。
+        let ahead = manifest(now + 300.0, &[("Brand", Some(1.0))]);
+        let plan = manifest_plan(&ahead, &types(&["Brand"]), &[], Some(now - 3600.0), now);
+        assert_eq!(plan.last_sync_epoch_to_save, Some(now));
+    }
+
+    #[test]
+    fn manifest_is_ignored_when_it_cannot_be_trusted() {
+        use super::{manifest_plan, MANIFEST_MAX_AGE_SECONDS as MAX_AGE};
+        let now = 2_000_000.0;
+        let since = Some(now - 3600.0);
+        let all = types(&["Brand"]);
+        let fresh = manifest(now - 30.0, &[("Brand", Some(1.0))]);
+        let ignored = |plan: super::SyncManifestPlan| {
+            !plan.usable && plan.skip_record_types.is_empty() && plan.last_sync_epoch_to_save.is_none()
+        };
+        // フル同期は全件を取り直すのが目的なので、目録で省かない。
+        assert!(ignored(manifest_plan(&fresh, &all, &[], None, now)));
+        // 本文が読めない。
+        assert!(ignored(manifest_plan("", &all, &[], since, now)));
+        assert!(ignored(manifest_plan("{\"types\":{}}", &all, &[], since, now)));
+        assert!(ignored(manifest_plan("<html>", &all, &[], since, now)));
+        // 古すぎる・未来すぎる。
+        let stale = manifest(now - MAX_AGE - 1.0, &[("Brand", Some(1.0))]);
+        assert!(ignored(manifest_plan(&stale, &all, &[], since, now)));
+        let future = manifest(now + MAX_AGE + 1.0, &[("Brand", Some(1.0))]);
+        assert!(ignored(manifest_plan(&future, &all, &[], since, now)));
+        // 境界ちょうどは使う。
+        let edge = manifest(now - MAX_AGE, &[("Brand", Some(1.0))]);
+        assert!(manifest_plan(&edge, &all, &[], since, now).usable);
+    }
+
+    /// Worker の目録の口が、同期する全ステップを問い合わせていること。
+    /// 載っていない型は端末が従来どおり問い合わせるので壊れはしないが、省けなくなる。
+    #[test]
+    fn manifest_route_lists_every_sync_step() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../imas-live-api/src/routes/sync_manifest.ts");
+        let source = std::fs::read_to_string(&path).expect("sync_manifest.ts が読めない");
+        for step in super::all_steps() {
+            assert!(
+                source.contains(&format!("\"{}\"", step.record_type)),
+                "{} が imas-live-api の SYNC_RECORD_TYPES に無い",
+                step.record_type
+            );
+        }
+    }
+
     #[test]
     fn foreground_resync_is_skipped_only_when_recently_completed() {
         use super::{foreground_resync_due as due, FOREGROUND_RESYNC_MIN_INTERVAL_SECONDS as MIN};

@@ -200,7 +200,7 @@ final class CloudKitSyncEngine: @unchecked Sendable {
             logger.info("[Sync] startup → incremental")
             do {
                 let lastSync = try database.lastSyncDate()
-                await performSync(database: database, modifiedSince: lastSync)
+                await performSync(database: database, modifiedSince: lastSync, useManifest: true)
             } catch {
                 logger.error("lastSyncDate取得失敗: \(error.localizedDescription)")
                 await MainActor.run { state = .requiresFullResync }
@@ -211,7 +211,11 @@ final class CloudKitSyncEngine: @unchecked Sendable {
 
     // MARK: - Private
 
-    private func performSync(database: AppDatabase, modifiedSince: Date?) async {
+    /// - Parameter useManifest: 目録 (Worker `GET /sync/manifest`) を先に読み、動いていない型の
+    ///   問い合わせを省くか。自動の同期 (起動時・前面復帰) だけ true にする。目録はエッジで
+    ///   60 秒共有されるので、手動更新や自分の編集の直後に使うと「今入れた変更」がまだ
+    ///   載っておらず、取りに行かないことがある。そちらは従来どおり全部の型を問い合わせる。
+    private func performSync(database: AppDatabase, modifiedSince: Date?, useManifest: Bool = false) async {
         // 再入防止 (atomic): MainActor で check-and-set し、既に走っていればスキップ。
         // 重い DB 書き込み (GRDB DatabaseQueue の blocking write) を MainActor に載せないため、
         // ガードだけ MainActor に隔離し、本体は非隔離のまま実行する。
@@ -219,13 +223,13 @@ final class CloudKitSyncEngine: @unchecked Sendable {
             logger.info("[Sync] skip: already running")
             return
         }
-        await performSyncBody(database: database, modifiedSince: modifiedSince)
+        await performSyncBody(database: database, modifiedSince: modifiedSince, useManifest: useManifest)
         endRunning()
     }
 
     /// performSync の本体。再入ガード取得後にのみ呼ばれる。内部の早期 return はここから返り、
     /// 呼び出し元 performSync が確実に endRunning() を実行する (ガードのリークを防ぐ)。
-    private func performSyncBody(database: AppDatabase, modifiedSince: Date?) async {
+    private func performSyncBody(database: AppDatabase, modifiedSince: Date?, useManifest: Bool) async {
         // iCloudアカウント確認
         do {
             let status = try await CloudKitService.shared.accountStatus()
@@ -266,6 +270,25 @@ final class CloudKitSyncEngine: @unchecked Sendable {
             logger.info("[Sync] incremental start: modifiedSince=\(modifiedSince!.ISO8601Format())")
         }
 
+        // 目録で「前回の同期以降、何も動いていない」と分かった型は問い合わせない。
+        // 何を省くか・完了時に何を last_sync にするかはコア (`sync_planning::manifest_plan`)。
+        // 目録が取れない・読めない・古いときは何も省かず、従来どおり全部問い合わせる。
+        var skipTypes: Set<String> = []
+        var manifestLastSync: Date?
+        if useManifest, let since = modifiedSince, let manifestJson = await fetchSyncManifest() {
+            let recordTypes = syncSteps.map(\.recordType)
+            let plan = syncManifestPlan(
+                manifestJson: manifestJson,
+                recordTypes: recordTypes,
+                checkpointedRecordTypes: recordTypes.filter { ud.object(forKey: "sync_ckpt_\($0)") != nil },
+                modifiedSinceEpoch: since.timeIntervalSince1970,
+                nowEpoch: syncStartDate.timeIntervalSince1970
+            )
+            skipTypes = Set(plan.skipRecordTypes)
+            manifestLastSync = plan.lastSyncEpochToSave.map { Date(timeIntervalSince1970: $0) }
+            logger.info("[Sync] manifest usable=\(plan.usable), skip \(skipTypes.count)/\(recordTypes.count) types")
+        }
+
         var totalFetched = 0
         var fetchedByType: [String: Int] = [:]
         // 2026-09-06 に廃止した SongCall の途中再開キーが残っている端末がある。一度だけ捨てる。
@@ -273,6 +296,7 @@ final class CloudKitSyncEngine: @unchecked Sendable {
         for step in syncSteps {
             // フルsync再開: 完了済みステップはスキップ。
             if isFullSync && doneSteps.contains(step.recordType) { continue }
+            if skipTypes.contains(step.recordType) { continue }
             await MainActor.run {
                 state = .syncing(step.displayName)
             }
@@ -400,7 +424,8 @@ final class CloudKitSyncEngine: @unchecked Sendable {
 
         // メタデータ更新。フルsyncは「開始時刻 (再開なら元の開始時刻)」を lastSync にして、
         // 長時間同期の最中に変わったレコードを次回の差分syncで拾えるようにする。
-        let lastSyncToSave = isFullSync ? effectiveStart : syncStartDate
+        // 目録を使った差分は、目録が確かに見ていた時点までしか進めない (コアが決めた値)。
+        let lastSyncToSave = isFullSync ? effectiveStart : (manifestLastSync ?? syncStartDate)
         do {
             try database.updateLastSyncDate(lastSyncToSave)
         } catch {
@@ -436,6 +461,23 @@ final class CloudKitSyncEngine: @unchecked Sendable {
         // エラー中断時は発行しない: 取り込み済みの断片はあり得るが、次に成功した sync が拾い直す。
         if totalFetched > 0 {
             NotificationCenter.default.post(name: .masterDataDidSync, object: nil)
+        }
+    }
+
+    /// 同期の目録 (型ごとの最新 modifiedAt) の本文を取る。取れなければ nil。
+    ///
+    /// 誰が呼んでも同じ値なので、ログインの有無に関わらず認証ヘッダを付けない。
+    /// 待つのは短く切る: 目録は往復を省くためのもので、遅いなら無いものとして進めた方が速い。
+    private func fetchSyncManifest() async -> String? {
+        var request = URLRequest(url: APIEndpoints.baseURL.appendingPathComponent("sync/manifest"))
+        request.timeoutInterval = 4
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
+            return String(data: data, encoding: .utf8)
+        } catch {
+            logger.info("[Sync] manifest unavailable: \(error.localizedDescription)")
+            return nil
         }
     }
 

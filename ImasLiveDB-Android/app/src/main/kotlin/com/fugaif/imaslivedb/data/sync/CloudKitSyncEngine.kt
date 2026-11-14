@@ -27,6 +27,7 @@ import uniffi.imas_core.SyncStartupState
 import uniffi.imas_core.SyncStep
 import uniffi.imas_core.syncCompletionPlan
 import uniffi.imas_core.syncDefaultFullSyncIntervalSeconds
+import uniffi.imas_core.syncManifestPlan
 import uniffi.imas_core.syncOrphanIds
 import uniffi.imas_core.syncParseCompositeRecordName
 import uniffi.imas_core.syncRunStartPlan
@@ -49,6 +50,8 @@ import kotlin.math.roundToLong
  * Android は iOS 固有の機能の一部を持たないので、コアには「退化した入力」を渡す:
  *  - 中断されたフル同期の再開が無い → hasPendingFullSync=false / checkpointEpoch=null
  *  - cursor の概念が無い ([CloudKitClient] が continuationMarker を内部で使い切る)
+ * 自動の差分 (起動時) は、先に目録 ([SyncManifestClient]) を 1 回読んで、動いていない型の
+ * 問い合わせを省く。何を省くかはコアの `manifest_plan` が決める。
  * 定期フル再取得は iOS と同じ間隔 (コアの既定 24h) で行う。フルの実行は epoch から全件を
  * 取り直し、単一 PK の表の孤児 (CloudKit で物理削除された行) も掃除する。
  */
@@ -63,6 +66,8 @@ class CloudKitSyncEngine(
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
     private val dao: SyncDao = db.syncDao(),
     private val isConfigured: () -> Boolean = { CloudKitConfig.isConfigured },
+    /** 同期の目録の本文を取る口 (取れなければ null)。テストではフェイクに差し替える。 */
+    private val manifestSource: suspend () -> String? = { SyncManifestClient.fetch() },
 ) {
 
     private val appContext = context.applicationContext
@@ -361,8 +366,13 @@ class CloudKitSyncEngine(
      *
      * 実行中ならその実行をそのまま返す (取得を 2 回走らせない)。実行はアプリのスコープで
      * 行うので、呼んだ画面が消えても止まらない。終わりを待ちたい呼び出し側は await する。
+     *
+     * @param automatic 人が頼んでいない同期 (起動時) か。true のときだけ目録を先に読み、
+     *   動いていない型の問い合わせを省く。目録はエッジで 60 秒共有されるので、引っ張って
+     *   更新した直後や自分の編集の直後に使うと「今入った変更」がまだ載っておらず、
+     *   取りに行かないことがある。人が頼んだ同期は従来どおり全部の型を問い合わせる。
      */
-    fun requestSync(): Deferred<Unit> = start(full = false)
+    fun requestSync(automatic: Boolean = false): Deferred<Unit> = start(full = false, automatic = automatic)
 
     /**
      * 全データ同期を頼む。差分の起点を捨ててから走る (コアの startup_plan は
@@ -376,13 +386,13 @@ class CloudKitSyncEngine(
      */
     fun requestFullSync(): Deferred<Unit> = start(full = true)
 
-    private fun start(full: Boolean): Deferred<Unit> = synchronized(runningLock) {
+    private fun start(full: Boolean, automatic: Boolean = false): Deferred<Unit> = synchronized(runningLock) {
         val current = running?.takeIf { it.isActive }
         if (current != null && !full) return current
         scope.async {
             current?.join()
             if (full) prefs.edit().remove(KEY_LAST_SYNC).remove(KEY_BACKFILLED).apply()
-            runSync(manualFull = full)
+            runSync(manualFull = full, useManifest = automatic && !full)
         }.also { running = it }
     }
 
@@ -390,7 +400,7 @@ class CloudKitSyncEngine(
      * @param manualFull 設定画面からの全データ同期か。24h のフル再取得のタイマーは、起動や
      *   一覧の更新から走った実行 (iOS の起動時同期に当たる) だけが進める (コアの completion_plan)。
      */
-    private suspend fun runSync(manualFull: Boolean) {
+    private suspend fun runSync(manualFull: Boolean, useManifest: Boolean = false) {
         if (!isConfigured()) {
             // token 未設定でもエラーにしない: seed DB の実データで継続する (最新化だけ行わない)。
             // 主にコントリビューターのローカルビルド向け。リリース版は token を注入する。
@@ -424,8 +434,25 @@ class CloudKitSyncEngine(
             // getStringSet の戻りは変更禁止 (SharedPreferences の内部インスタンス) なので複製する。
             val backfilled = (prefs.getStringSet(KEY_BACKFILLED, emptySet()) ?: emptySet()).toMutableSet()
 
+            // 目録で「前回の同期以降、何も動いていない」と分かった型は問い合わせない。
+            // 埋め直しが要る型は起点が別 (epoch から) なので、コアには「自前の起点がある型」
+            // として渡して省かせない。目録が取れない・読めない・古いときは何も省かない。
+            val manifestPlan = plan.modifiedSinceEpoch?.takeIf { useManifest }?.let { since ->
+                val json = runCatching { manifestSource() }.getOrNull() ?: return@let null
+                val recordTypes = steps.map { it.recordType }
+                syncManifestPlan(
+                    manifestJson = json,
+                    recordTypes = recordTypes,
+                    checkpointedRecordTypes = recordTypes.filter { needsBackfill(it, dao, backfilled) },
+                    modifiedSinceEpoch = since,
+                    nowEpoch = startMs.toEpochSeconds()
+                ).also { Log.i(TAG, "manifest usable=${it.usable}, skip ${it.skipRecordTypes.size}/${recordTypes.size} types") }
+            }
+            val skipTypes = manifestPlan?.skipRecordTypes?.toSet() ?: emptySet()
+
             steps.forEachIndexed { i, step ->
                 coroutineContext.ensureActive()
+                if (step.recordType in skipTypes) return@forEachIndexed
                 _state.value = SyncState.Syncing(i + 1, steps.size, step.displayName)
                 val io = stepIo.getValue(step.recordType)
                 val isBackfill = needsBackfill(step.recordType, dao, backfilled)
@@ -508,7 +535,9 @@ class CloudKitSyncEngine(
                 )
             )
             if (completion.shouldSaveLastSync) {
-                prefs.edit().putLong(KEY_LAST_SYNC, completion.lastSyncEpochToSave.toEpochMillis()).apply()
+                // 目録を使った差分は、目録が確かに見ていた時点までしか進めない (コアが決めた値)。
+                val lastSync = manifestPlan?.lastSyncEpochToSave ?: completion.lastSyncEpochToSave
+                prefs.edit().putLong(KEY_LAST_SYNC, lastSync.toEpochMillis()).apply()
             }
             completion.lastFullSyncEpochToSave?.takeIf { completion.shouldUpdateLastFullSync }?.let {
                 prefs.edit().putLong(KEY_LAST_FULL_SYNC, it.toEpochMillis()).apply()

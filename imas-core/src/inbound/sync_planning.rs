@@ -13,7 +13,8 @@
 //! 巻き戻しが 1000 倍ずれて境界レコードを取りこぼす。
 
 use crate::domain::sync_planning::{
-    self, SyncChunkAction, SyncCompletion, SyncCompletionState, SyncRecordPartition, SyncRunStart,
+    self, SyncChunkAction, SyncCompletion, SyncCompletionState, SyncManifestPlan, SyncRecordPartition,
+    SyncRunStart,
     SyncStartupPlan, SyncStartupState, SyncStep, SyncStepStart, SyncTableInfo,
 };
 
@@ -40,6 +41,25 @@ pub fn sync_foreground_resync_due(
     now_epoch: f64,
 ) -> bool {
     sync_planning::foreground_resync_due(has_pending_full_sync, last_completed_epoch, now_epoch)
+}
+
+/// 目録 (Worker `GET /sync/manifest` の応答本文) から、問い合わせを省ける型と、
+/// 完了時に保存する last_sync を決める。本文が読めない・古いときは何も省かない。
+#[uniffi::export]
+pub fn sync_manifest_plan(
+    manifest_json: String,
+    record_types: Vec<String>,
+    checkpointed_record_types: Vec<String>,
+    modified_since_epoch: Option<f64>,
+    now_epoch: f64,
+) -> SyncManifestPlan {
+    sync_planning::manifest_plan(
+        &manifest_json,
+        &record_types,
+        &checkpointed_record_types,
+        modified_since_epoch,
+        now_epoch,
+    )
 }
 
 // --- 取り込み順序 ---
