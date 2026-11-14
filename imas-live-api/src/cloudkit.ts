@@ -348,7 +348,15 @@ export async function cloudKitLatestModifiedAt(
   privKeyPem: string
 ): Promise<CloudKitLatestResult> {
   const payload = {
-    query: { recordType, sortBy: [{ fieldName: "modifiedAt", ascending: false }] },
+    query: {
+      recordType,
+      // 絞り込みの無い query は recordName の QUERYABLE 索引を要求する (このコンテナには無い)。
+      // アプリの差分と同じ modifiedAt の索引に乗せるため、全件に当たる条件を付ける。
+      filterBy: [
+        { fieldName: "modifiedAt", comparator: "GREATER_THAN", fieldValue: { value: 0, type: "TIMESTAMP" } },
+      ],
+      sortBy: [{ fieldName: "modifiedAt", ascending: false }],
+    },
     resultsLimit: 1,
     desiredKeys: ["modifiedAt"],
   };

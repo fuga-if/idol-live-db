@@ -59,7 +59,11 @@ describe("GET /sync/manifest", () => {
     expect(asked[0]).toMatchObject({
       resultsLimit: 1,
       desiredKeys: ["modifiedAt"],
-      query: { sortBy: [{ fieldName: "modifiedAt", ascending: false }] },
+      query: {
+        // 絞り込み無しだと本番の CloudKit は「recordName が queryable でない」で断る。
+        filterBy: [{ fieldName: "modifiedAt", comparator: "GREATER_THAN", fieldValue: { value: 0, type: "TIMESTAMP" } }],
+        sortBy: [{ fieldName: "modifiedAt", ascending: false }],
+      },
     });
   });
 
