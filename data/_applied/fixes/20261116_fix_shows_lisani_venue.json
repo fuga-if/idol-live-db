@@ -1,0 +1,12 @@
+{
+ "title": "LISANI！TOKYO 2027 SUNDAY STAGE の会場を埋める",
+ "author": "claude (daily-data-crawl 2026-11-16)",
+ "source": "https://www.lisani.jp/live/ (会場: TOYOTA ARENA TOKYO / 2月21日 SUNDAY STAGE 開場15:00／開演16:00)",
+ "fixes": [
+  {
+   "table": "shows",
+   "id": "sh_lisani_tokyo_2027_sunday_stage_1",
+   "fields": {"venue_id": "venue_toyotaarenatokyo"}
+  }
+ ]
+}

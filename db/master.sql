@@ -86649,6 +86649,9 @@ INSERT INTO "show_cast" VALUES('sh_the_idolm@ster_sidem_×_shiny_colors_sparkle_
 INSERT INTO "show_cast" VALUES('sh_the_idolm@ster_sidem_×_shiny_colors_sparkle_showdown_2','sidem_舞田類','member');
 INSERT INTO "show_cast" VALUES('sh_the_idolm@ster_sidem_×_shiny_colors_sparkle_showdown_2','sidem_葛之葉雨彦','member');
 INSERT INTO "show_cast" VALUES('sh_the_idolm@ster_sidem_×_shiny_colors_sparkle_showdown_2','sidem_都築圭','member');
+INSERT INTO "show_cast" VALUES('sh_lisani_tokyo_2027_sunday_stage_1','sc_芹沢あさひ','member');
+INSERT INTO "show_cast" VALUES('sh_lisani_tokyo_2027_sunday_stage_1','sc_黛冬優子','member');
+INSERT INTO "show_cast" VALUES('sh_lisani_tokyo_2027_sunday_stage_1','sc_和泉愛依','member');
 CREATE TABLE show_cast_performers (
             show_id TEXT NOT NULL,
             idol_id TEXT NOT NULL,

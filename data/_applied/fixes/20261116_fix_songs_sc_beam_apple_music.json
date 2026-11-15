@@ -1,0 +1,23 @@
+{
+ "title": "アルストロメリア「BEAM」の配信開始に伴う apple_music_id / artwork_url / preview_url / streaming_date の補完",
+ "author": "claude (daily-data-crawl 2026-11-16)",
+ "_help": "sc_beam は登録済みだが apple_music_id が空で release_date も空のため fill_apple_music_ids (--since) の対象から漏れていた。iTunes アルバム横断スイープで発見。artistId 1436769131 は既存のアルストロメリア曲 (sc_anniversary 1734551903) と同じ",
+ "source": [
+  "https://itunes.apple.com/lookup?id=6818007053&country=jp (BEAM / アルストロメリア / BEAM - Single 6818007052 / ℗ 2026 Lantis / isStreamable=true / releaseDate 2026-10-30)"
+ ],
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "sc_beam",
+   "fields": {
+    "apple_music_id": "6818007053",
+    "apple_music_album_id": "6818007052",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/c5/43/d0/c543d02e-6a4c-4f94-5f4b-badc8b4c06fc/4540774750870.png/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/a2/42/c5/a242c515-2d6c-db8c-601c-554b13ea1db1/mzaf_11665050478063905060.plus.aac.p.m4a",
+    "streaming_date": "2026-10-30",
+    "duration_sec": 186
+   },
+   "note": "release_date (初出) は公式で確認できないため空のまま"
+  }
+ ]
+}
