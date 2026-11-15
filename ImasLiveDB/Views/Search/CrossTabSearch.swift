@@ -70,21 +70,32 @@ struct CrossTabCountChips: View {
     let from: RootTab
 
     @State private var counts = CrossTabSearchCounts()
+    @State private var naturalSearch: NaturalSearchQuery?
 
     var body: some View {
         // 器は常に置く (中身が無くても高さ 0)。`Group { if ... }` だと候補が空のとき
         // View ごと消えて `.task` が走らず、件数が 0 のままでまた消える、で永久に出なかった。
         VStack(spacing: 0) {
-            if !suggestions.isEmpty {
+            if !suggestions.isEmpty || offersNaturalSearch {
                 // 上のスコープ列 (「ほかに」) と同じ形の見出しを置く。
                 // 見出しが無いと、同じ見た目のチップ列が 2 段あるだけになり、
                 // 「絞り込む対象を変える」のか「別の画面へ移る」のかが読めない。
                 ImasChipRow {
-                    Text("別のタブ").imasText(.note)
-                    ForEach(suggestions, id: \.tab) { item in
-                        ImasFilterChip(text: "\(item.tab.label)に \(item.count)", isSelected: false) {
-                            AppAnalytics.tap("cross_tab_search.jump")
-                            CrossTabSearch.shared.hand(query, to: item.tab)
+                    if !suggestions.isEmpty {
+                        Text("別のタブ").imasText(.note)
+                        ForEach(suggestions, id: \.tab) { item in
+                            ImasFilterChip(text: "\(item.tab.label)に \(item.count)", isSelected: false) {
+                                AppAnalytics.tap("cross_tab_search.jump")
+                                CrossTabSearch.shared.hand(query, to: item.tab)
+                            }
+                        }
+                    }
+                    // 語の一致で届かないもの (「去年の合同ライブに出たアイドル」) の行き先。
+                    // ChatGPT とつないである人にだけ出す。
+                    if offersNaturalSearch {
+                        ImasFilterChip(text: "文で探す", systemImage: "text.magnifyingglass", isSelected: false) {
+                            AppAnalytics.tap("natural_search.open")
+                            naturalSearch = NaturalSearchQuery(text: query)
                         }
                     }
                 }
@@ -93,6 +104,12 @@ struct CrossTabCountChips: View {
         }
         // 打鍵ごとにコアへ 1 往復 (数えるだけなので実体は運ばない)。
         .task(id: query) { await reload() }
+        .sheet(item: $naturalSearch) { NaturalSearchSheet(initialQuery: $0.text) }
+    }
+
+    /// 「文で探す」を出すか。受ける長さかどうかはコアが決める。
+    private var offersNaturalSearch: Bool {
+        ChatGPTPlanSession.shared.canUsePlan && naturalSearchAccepts(query: query)
     }
 
     private var suggestions: [(tab: RootTab, count: Int)] {

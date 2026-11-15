@@ -18,6 +18,7 @@
 
 pub mod browse;
 pub mod lookup;
+pub mod natural_search;
 pub mod publish;
 pub mod predict;
 pub mod scope;

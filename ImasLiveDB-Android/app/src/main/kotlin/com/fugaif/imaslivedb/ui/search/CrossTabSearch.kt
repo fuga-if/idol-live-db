@@ -1,7 +1,12 @@
 package com.fugaif.imaslivedb.ui.search
 
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import com.fugaif.imaslivedb.ui.chatgpt.NaturalSearchSheet
+import uniffi.imas_core.naturalSearchAccepts
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -99,16 +104,28 @@ fun CrossTabCountChips(query: String, from: TopLevelTab) {
             TopLevelTab.Idols to c.idols
         ).filter { (tab, n) -> tab != from && n > 0 }
     }
-    if (suggestions.isEmpty()) return
+    // 語の一致で届かないもの (「去年の合同ライブに出たアイドル」) の行き先。ChatGPT とつないである人にだけ出す。
+    // 受ける長さかどうかはコアが決める。
+    val chatGpt by AppModule.from(context).chatGptPlanService.state.collectAsState()
+    val offersNaturalSearch = chatGpt.canUsePlan && naturalSearchAccepts(query)
+    var naturalSearch by remember { mutableStateOf<String?>(null) }
+    // シートは早期 return より前に置く (検索中に 401 でトークンが消えても、シートは黙って消えない)。
+    naturalSearch?.let { NaturalSearchSheet(initialQuery = it, onDismiss = { naturalSearch = null }) }
+    if (suggestions.isEmpty() && !offersNaturalSearch) return
 
     ImasChipRow(modifier = Modifier.padding(vertical = DS.Space.gapTight)) {
-        // 上のスコープ列と同じ形の見出し。見出しが無いと、同じ見た目のチップ列が
-        // 2 段あるだけになり、「絞り込む対象を変える」のか「別の画面へ移る」のかが読めない。
-        ImasText("別のタブ", role = ImasTextRole.NOTE)
-        suggestions.forEach { (tab, n) ->
-            ImasFilterChip(label = "${tab.label}に $n", selected = false, onClick = {
-                CrossTabSearch.hand(query, tab)
-            })
+        if (suggestions.isNotEmpty()) {
+            // 上のスコープ列と同じ形の見出し。見出しが無いと、同じ見た目のチップ列が
+            // 2 段あるだけになり、「絞り込む対象を変える」のか「別の画面へ移る」のかが読めない。
+            ImasText("別のタブ", role = ImasTextRole.NOTE)
+            suggestions.forEach { (tab, n) ->
+                ImasFilterChip(label = "${tab.label}に $n", selected = false, onClick = {
+                    CrossTabSearch.hand(query, tab)
+                })
+            }
+        }
+        if (offersNaturalSearch) {
+            ImasFilterChip(label = "文で探す", selected = false, icon = Icons.Filled.Search, onClick = { naturalSearch = query })
         }
     }
 }

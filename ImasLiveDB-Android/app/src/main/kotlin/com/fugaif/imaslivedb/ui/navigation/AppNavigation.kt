@@ -109,6 +109,8 @@ import com.fugaif.imaslivedb.ui.tags.TagListScreen
 import com.fugaif.imaslivedb.ui.tags.UnitTagDetailScreen
 import com.fugaif.imaslivedb.ui.units.UnitDetailScreen
 import com.fugaif.imaslivedb.ui.search.CrossTabSearch
+import com.fugaif.imaslivedb.ui.chatgpt.NaturalSearchKind
+import com.fugaif.imaslivedb.ui.chatgpt.NaturalSearchOpen
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material3.ScaffoldDefaults
 import dev.chrisbanes.haze.HazeState
@@ -185,6 +187,23 @@ fun AppNavigation() {
             }
         }
         PollLinkIncoming.consume()
+    }
+    // 「文で探す」の結果の行を押されたら、その詳細を開く。シートは本体のナビの外にあるので、依頼を
+    // ここで受けて、該当のタブ (タブバーに無ければ詳細の入口があるプロデュース) へ積む。
+    val naturalOpen = NaturalSearchOpen.pending
+    LaunchedEffect(naturalOpen) {
+        val req = naturalOpen ?: return@LaunchedEffect
+        val (tab, route) = when (req.kind) {
+            NaturalSearchKind.SONG -> TopLevelTab.Songs to NavRoutes.SongDetail.createRoute(req.id)
+            NaturalSearchKind.IDOL -> TopLevelTab.Idols to NavRoutes.IdolDetail.createRoute(req.id)
+            NaturalSearchKind.EVENT -> TopLevelTab.Events to NavRoutes.EventDetail.createRoute(req.id)
+        }
+        val target = if (wide || tabItems.any { it.destination == tab.destination }) tab.destination else AppDestination.PRODUCE
+        current = target
+        val nav = navControllers.getValue(target)
+        nav.currentBackStackEntryFlow.first()
+        nav.navigate(route) { launchSingleTop = true }
+        NaturalSearchOpen.consume()
     }
     // 今いるタブをもう一度押したら、そのタブの最初の画面まで戻る (iOS のタブと同じ)。
     // 押しても何も起きないと、戻る矢印の無い画面から抜ける手が「戻る」ジェスチャーしか無くなる。

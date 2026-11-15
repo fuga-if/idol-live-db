@@ -1,5 +1,7 @@
 package com.fugaif.imaslivedb.ui.settings
 
+import com.fugaif.imaslivedb.ui.chatgpt.ChatGptSettingsRow
+import com.fugaif.imaslivedb.ui.chatgpt.ChatGptSettingsScreen
 import com.fugaif.imaslivedb.ui.designsystem.ImasErrorAlert
 import android.Manifest
 import android.content.ClipData
@@ -117,7 +119,7 @@ import uniffi.imas_core.InputField
 import uniffi.imas_core.inputIsAcceptable
 import uniffi.imas_core.inputLimitMax
 
-private enum class SettingsInfoScreen { SPOTIFY, BRAND_ROLES, HELP, INBOX, PRIVACY, TERMS, SUPPORT, LICENSES }
+private enum class SettingsInfoScreen { SPOTIFY, CHATGPT, BRAND_ROLES, HELP, INBOX, PRIVACY, TERMS, SUPPORT, LICENSES }
 
 private const val GITHUB_ISSUE_URL = "https://github.com/fuga-if/imas-live-privacy/issues/new"
 
@@ -164,6 +166,9 @@ fun SettingsScreen(
 
                 // Spotify (自分の Spotify アプリの Client ID で連携する)
                 item { ImasListSection("Spotify") { SpotifySettingsRow { infoScreen = SettingsInfoScreen.SPOTIFY } } }
+
+                // ChatGPT (利用者の ChatGPT プランで「文で探す」を動かす)
+                item { ImasListSection("ChatGPT") { ChatGptSettingsRow { infoScreen = SettingsInfoScreen.CHATGPT } } }
 
                 // フィルタ設定
                 item {
@@ -319,6 +324,8 @@ fun SettingsScreen(
         SettingsInfoScreen.INBOX -> ImasFullScreenDialog(onDismissRequest = { infoScreen = null }) { InboxScreen(onBack = { infoScreen = null }) }
 
         SettingsInfoScreen.SPOTIFY -> ImasFullScreenDialog(onDismissRequest = { infoScreen = null }) { SpotifySettingsScreen(onBack = { infoScreen = null }) }
+
+        SettingsInfoScreen.CHATGPT -> ImasFullScreenDialog(onDismissRequest = { infoScreen = null }) { ChatGptSettingsScreen(onBack = { infoScreen = null }) }
 
         SettingsInfoScreen.BRAND_ROLES -> ImasFullScreenDialog(onDismissRequest = { infoScreen = null }) { BrandRoleSettingsScreen(onBack = { infoScreen = null }) }
 

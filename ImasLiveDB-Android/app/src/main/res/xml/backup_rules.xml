@@ -6,6 +6,7 @@
 -->
 <full-backup-content>
     <exclude domain="sharedpref" path="imas_auth_secure.xml" />
+    <exclude domain="sharedpref" path="imas_chatgpt_secure.xml" />
     <exclude domain="file" path="custom_images/" />
     <exclude domain="file" path="custom_images_units/" />
     <exclude domain="file" path="custom_images_brands/" />

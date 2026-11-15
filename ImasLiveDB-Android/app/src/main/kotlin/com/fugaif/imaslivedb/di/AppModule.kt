@@ -139,6 +139,13 @@ class AppModule private constructor(context: Context) {
     val showTicketRepository: ShowTicketRepository by lazy { ShowTicketRepository(database) }
     val authService: AuthService by lazy { AuthService(appContext) }
     val spotifyService: SpotifyService by lazy { SpotifyService(appContext, snapshotStoreProvider) }
+    /** ChatGPT のプランで「文で探す」を動かす連携 (サインイン状態・保存)。 */
+    val chatGptPlanService: com.fugaif.imaslivedb.data.chatgpt.ChatGptPlanService by lazy {
+        com.fugaif.imaslivedb.data.chatgpt.ChatGptPlanService(appContext)
+    }
+    val naturalSearchRunner: com.fugaif.imaslivedb.data.chatgpt.NaturalSearchRunner by lazy {
+        com.fugaif.imaslivedb.data.chatgpt.NaturalSearchRunner(chatGptPlanService, snapshotStoreProvider)
+    }
     /** Worker (imas-live-api) への HTTP。セッションはリクエストの時点の値を付ける。 */
     val workerHttpClient: WorkerHttpClient by lazy { WorkerHttpClient(appContext, { authService.sessionToken }, renewer = authService) }
     val communityApi: CommunityApi by lazy { CommunityApi(workerHttpClient) }

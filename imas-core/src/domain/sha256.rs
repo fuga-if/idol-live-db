@@ -29,6 +29,12 @@ pub fn sha256_hex(text: &str) -> String {
 
 /// バイト列の SHA-256 を小文字 16 進で返す。
 pub fn sha256_hex_bytes(bytes: &[u8]) -> String {
+    sha256_digest(bytes).iter().map(|byte| format!("{byte:02x}")).collect()
+}
+
+/// バイト列の SHA-256 (32 バイト)。PKCE の code_challenge のように、16 進ではなく
+/// 生のダイジェストを別の形に符号化するときに使う。
+pub fn sha256_digest(bytes: &[u8]) -> [u8; 32] {
     let mut state: [u32; 8] = [
         0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab,
         0x5be0cd19,
@@ -82,7 +88,11 @@ pub fn sha256_hex_bytes(bytes: &[u8]) -> String {
         }
     }
 
-    state.iter().map(|word| format!("{word:08x}")).collect()
+    let mut digest = [0u8; 32];
+    for (slot, word) in digest.chunks_exact_mut(4).zip(state) {
+        slot.copy_from_slice(&word.to_be_bytes());
+    }
+    digest
 }
 
 #[cfg(test)]

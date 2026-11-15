@@ -36,6 +36,20 @@
     2026-10-14 にオーナーの判断で削除した (iOS の画面・サービス、コアの `assistant` / `persona` /
     `personal` / `timeline` と FFI、行き先の「AIチャット」)。アプリで AI を使う機能を作り直すときも、
     ツールはこのツール面を使い、Swift / Kotlin で書き直さない。
+  - **文で探す** (2026-11-16)。会話の形ではない AI の使い方として、検索だけを作り直した。
+    利用者が自分の ChatGPT プラン (Plus / Pro) でつなぎ、各一覧の検索欄から文で探す。モデルは
+    このツール面 (読み取りツール) で DB を引き、**当たったレコードの id の列**を返す。アプリは
+    その id をいつもの行で出す。文章の答えは出さない。
+    - 推論は利用者のプランで回る (Sign in with ChatGPT のオープンソース向けフロー)。
+      このリポジトリが持つ経路からは呼ばないので、ランニングコスト 0 のまま。
+    - 規則の置き場: 指示文・渡すツール・答えの型・往復の進め方・答えの検証は
+      `agent::tools::natural_search`、OAuth の組み立てと応答の読み方は `domain::chatgpt_plan`。
+      FFI は `inbound::natural_search` / `inbound::chatgpt_plan`。各 OS は待ち受け・ブラウザ・
+      HTTP・保存・描画だけ (1 往復 = 1 FFI 呼び出し)。
+    - **DB に実在する id だけを通す** (`natural_search::resolve_answer`)。モデルが名前から
+      組み立てた id は画面に出る前に落ちる。出るものは全部 DB の事実なので、モデルの間違いは
+      「当たらない」で済み、「嘘が載る」にならない。
+    - ChatGPT で得た識別子 (sub / email) はアプリのアカウントと結ばず、サーバへ送らない。
 
 ## 2. 絶対制約
 
@@ -48,13 +62,15 @@
    返った JSON を書き出すだけ。**これを崩すと、アプリ・Web・LLM で「同じ質問に違う答え」が出る。**
 3. **照合規則はコア一本**。検索の畳み込みは `imas-text-fold` / `domain::text_search_index` /
    `fuzzy_search` が唯一の実体。ツール面で `contains` や `to_lowercase` を書かない。
-4. **アプリに出すものは無い**。`agent::tools` (読み取りツールと公開 API の文書) は常にコンパイルされるが
-   (`web_export::data_api` が使う)、FFI には出していない。入出力のアダプタ (`mcp` / `stdio` / `cli` / `proposal_io`)・
+4. **アプリに出すのは「文で探す」の 1 本だけ**。`agent::tools` (読み取りツールと公開 API の文書) は常にコンパイルされるが
+   (`web_export::data_api` が使う)、ツールを個別に FFI へ出してはいない。入出力のアダプタ (`mcp` / `stdio` / `cli` / `proposal_io`)・
    書き込み (`proposal`)・歌詞検索 (`lyrics_*`、HTTP を叩く) と bin は既定 off の `feature = "agent"` で、
    iOS/Android のビルドには入らない。
    - 2026-10-01〜10-14 はアプリ内 AI のためにツール面を `inbound::assistant_tools` で FFI に出していた
      (§1)。AI 会話の削除で外した。また出すときも、歌詞本文・`lyrics_url`・`preview_url` を返さない
      制約 (§1) は同じツール面を通るのでそのまま効く。
+   - 2026-11-16 から「文で探す」のために `inbound::natural_search` で読み取りツールを FFI に出している
+     (§1)。出しているのは「1 往復ぶんを進める」1 本で、ツールを個別には出していない。
 5. **出典なしの登録を構造で禁じる**。書き込みツールは `source` (一次ソースの URL) を必須引数にする。
 
 ## 3. 依存方向

@@ -117,6 +117,8 @@ struct MyPageView: View {
         // フル再生の許可。曲の行は鳴らせないと試聴に落ちるので、状態と入口をここに出す。
         ImasListSection("Apple Music") { AppleMusicSettingsRow() }
         ImasListSection("Spotify") { SpotifySettingsRow() }
+        // 利用者の ChatGPT プランで「文で探す」を動かす。
+        ImasListSection("ChatGPT") { ChatGPTSettingsRow() }
         settingsSection
         dataSyncSection
         dataBackupSection
