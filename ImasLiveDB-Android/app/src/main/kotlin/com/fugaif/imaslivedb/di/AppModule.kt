@@ -143,8 +143,15 @@ class AppModule private constructor(context: Context) {
     val chatGptPlanService: com.fugaif.imaslivedb.data.chatgpt.ChatGptPlanService by lazy {
         com.fugaif.imaslivedb.data.chatgpt.ChatGptPlanService(appContext)
     }
+    /** ChatGPT プランの仕事 (関数呼び出しの往復) の共通の実行役。 */
+    val chatGptPlanTaskRunner: com.fugaif.imaslivedb.data.chatgpt.ChatGptPlanTaskRunner by lazy {
+        com.fugaif.imaslivedb.data.chatgpt.ChatGptPlanTaskRunner(chatGptPlanService)
+    }
     val naturalSearchRunner: com.fugaif.imaslivedb.data.chatgpt.NaturalSearchRunner by lazy {
-        com.fugaif.imaslivedb.data.chatgpt.NaturalSearchRunner(chatGptPlanService, snapshotStoreProvider)
+        com.fugaif.imaslivedb.data.chatgpt.NaturalSearchRunner(chatGptPlanTaskRunner, snapshotStoreProvider)
+    }
+    val prepDjRunner: com.fugaif.imaslivedb.data.chatgpt.PrepDjRunner by lazy {
+        com.fugaif.imaslivedb.data.chatgpt.PrepDjRunner(chatGptPlanTaskRunner, snapshotStoreProvider)
     }
     /** Worker (imas-live-api) への HTTP。セッションはリクエストの時点の値を付ける。 */
     val workerHttpClient: WorkerHttpClient by lazy { WorkerHttpClient(appContext, { authService.sessionToken }, renewer = authService) }

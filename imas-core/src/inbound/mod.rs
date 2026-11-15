@@ -92,6 +92,7 @@ pub mod pending_favorites;
 pub mod performance_stats;
 pub mod play_counts;
 pub mod play_queue;
+pub mod prep_dj;
 pub mod recents;
 pub mod schema_apply;
 pub mod screen_composition;

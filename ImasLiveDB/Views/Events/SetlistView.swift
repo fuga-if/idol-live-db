@@ -84,6 +84,8 @@ struct SetlistView: View {
     @State private var showPlaylistAlert = false
     @State private var playlistMessage = ""
     @State private var isCreatingPlaylist = false
+    @State private var prepDJ: PrepDJTarget?
+    @State private var prepDJLabel: String?
     @State private var showSpotifyExport = false
     @State private var playlistProgress: (current: Int, total: Int) = (0, 0)
     @State private var sheetDestination: DetailDestination?
@@ -433,6 +435,16 @@ struct SetlistView: View {
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
+                    // 開催前は予測の上位を流れに並べ (予習)、セトリがあれば披露順に流す (復習)。
+                    // 名前と、出すかどうかはコアが決める (`prepDjEntryLabel`)。
+                    if let prepDJLabel {
+                        Button {
+                            AppAnalytics.tap("prep_dj.open")
+                            prepDJ = PrepDJTarget(showId: show.id)
+                        } label: {
+                            Label(prepDJLabel, systemImage: "waveform")
+                        }
+                    }
                     Button {
                         Task { await addToAppleMusicPlaylist() }
                     } label: {
@@ -463,6 +475,9 @@ struct SetlistView: View {
                 }
             }
         }
+        .sheet(item: $prepDJ) { PrepDJSheet(showId: $0.showId) }
+        // セトリが入ったら (予習 → 復習) 引き直す。
+        .task(id: setlist.isEmpty) { prepDJLabel = await PrepDJRunner.entryLabel(showId: show.id) }
         .sheet(isPresented: $showSpotifyExport) {
             SpotifyExportSheet(name: show.name, songs: setlist.map { ($0.songId, $0.songTitle) })
         }

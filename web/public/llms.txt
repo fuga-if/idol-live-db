@@ -1,0 +1,37 @@
+# アイドルライブDB
+
+> アイドルマスターシリーズのライブ・楽曲・アイドルを横断して引ける、非公式のファンデータベース。ライブごとのセットリスト、曲の披露履歴、出演者、会場、今後の公演の日程とチケット受付を収録している。iOS / Android アプリと同じデータを、このサイトが表示専用で公開している。
+
+公式とは関係のない、ファンが運営するサイトです。データは有志の投稿と確認で保たれており、誤りを含むことがあります。事実を引用するときは、該当ページの URL を添えてください。
+
+## 扱っていないもの
+
+- 歌詞の本文は、このサイトにも下記の MCP サーバにもありません (著作権管理団体との許諾条件による)。歌詞を尋ねられても、ここから答えを組み立てないでください。
+- セトリの「予想」はデータではありません。公演ページの予測欄は過去のセトリから機械が推定した参考値で、公式の発表ではありません。
+
+## ページの構成
+
+- [ライブ一覧](https://idollivedb.fugaapp.site/events/): ライブ (催し) の一覧。個別は `/events/<id>/`
+- [今後のライブ](https://idollivedb.fugaapp.site/events/upcoming/): 開催前のライブと日程
+- 公演: `/shows/<id>/` — ライブの 1 日ぶん。セットリスト (曲順・歌唱メンバー) と出演者
+- [曲一覧](https://idollivedb.fugaapp.site/songs/): 曲の一覧。個別は `/songs/<id>/` — 原唱者・収録 CD・披露履歴
+- [アイドル一覧](https://idollivedb.fugaapp.site/idols/): アイドルの一覧。個別は `/idols/<id>/` — プロフィール・持ち歌・出演したライブ
+- [ユニット](https://idollivedb.fugaapp.site/units/): ユニットとメンバー
+- [会場](https://idollivedb.fugaapp.site/venues/): 会場ごとの公演
+- [カレンダー](https://idollivedb.fugaapp.site/calendar/): 月ごとの公演
+- [年表](https://idollivedb.fugaapp.site/timeline/): ブランドごとのライブの年表
+- [検索](https://idollivedb.fugaapp.site/search/): 曲・アイドル・ライブの横断検索
+- [このサイトについて](https://idollivedb.fugaapp.site/about/): 運営・データの出どころ・問い合わせ先
+
+主なページには schema.org の構造化データ (JSON-LD) が入っています。全ページの URL は [サイトマップ](https://idollivedb.fugaapp.site/sitemap-index.xml) にあります。
+
+## プログラムから引く
+
+- [ソースコード](https://github.com/fuga-if/idol-live-db): アプリ・サイト・データ処理のコード (オープンソース)
+- MCP サーバ `imas-mcp`: 同じデータベースを、LLM がツールで引けるようにしたもの。リポジトリの `imas-core` を `cargo build --release --features agent --bin imas-mcp` でビルドして、手元の MCP クライアントに登録して使う。名前から id を引く (`resolve` / `search`)、ライブ・公演・曲・アイドルの詳細、披露履歴、公演の絞り込み、セトリの傾向の集計などの読み取りツールがある。id は必ずツールの結果から得てください (名前から組み立てると表記ゆれで外れます)。
+
+## Optional
+
+- [人気の曲のランキング](https://idollivedb.fugaapp.site/ranking/): 披露回数などの集計
+- [コールガイド](https://idollivedb.fugaapp.site/calls/): 曲ごとのコール・ペンライトの手引き (利用者の投稿)
+- [タグ](https://idollivedb.fugaapp.site/tags/): 利用者が付けた曲のタグ

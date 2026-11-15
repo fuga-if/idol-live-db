@@ -78,7 +78,7 @@ struct ChatGPTSettingsView: View {
             }
         }
         if session.canUsePlan {
-            ImasListSection("文で探す", footer: "曲・アイドル・ライブの一覧の検索欄に文を打つと、「文で探す」が出ます。出てくるのはデータベースにあるものだけです。") {
+            ImasListSection("文で探す", footer: "曲・アイドル・ライブの一覧の検索欄に文を打つと、「文で探す」が出ます。出てくるのはデータベースにあるものだけです。ライブのセトリ画面の ♪ メニューにある「予習 DJ」では、注文を聞いて曲を並べ、1 曲ごとの語りを付けます。") {
                 ForEach(naturalSearchExamples(), id: \.self) { example in
                     Button {
                         AppAnalytics.tap("natural_search.example")
@@ -90,7 +90,7 @@ struct ChatGPTSettingsView: View {
                 }
             }
         }
-        ImasListSection(footer: "探すたびに ChatGPT のプランの利用量を使います。このアプリからの請求はありません。") {
+        ImasListSection(footer: "探すたび・DJ に頼むたびに ChatGPT のプランの利用量を使います。このアプリからの請求はありません。") {
             Link(destination: Self.usageURL) {
                 ImasNavRow(title: "ChatGPT の設定を開く", systemImage: "arrow.up.right.square", showsChevron: false)
             }
@@ -130,6 +130,7 @@ struct ChatGPTSettingsView: View {
         }
         ImasListSection("つなぐ", footer: "ブラウザで ChatGPT にログインして許可すると、自動でアプリに戻ります。") {
             ImasPointList(points: [
+                .init("waveform", "ライブ前の「予習 DJ」で、注文どおりに曲を並べて語りを付けてもらえます。"),
                 .init("person.crop.circle.badge.checkmark", "ChatGPT Plus か Pro のアカウントが要ります。"),
                 .init("yensign.circle", "料金は ChatGPT のプランに含まれます。このアプリからの請求はありません。"),
                 .init("lock", "ログインの情報はこの端末の中にだけ保存します。"),

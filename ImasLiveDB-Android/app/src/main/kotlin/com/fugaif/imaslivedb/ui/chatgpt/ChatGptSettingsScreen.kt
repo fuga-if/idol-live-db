@@ -13,6 +13,7 @@ import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Memory
@@ -165,14 +166,14 @@ private fun ConnectedSections(onExample: (String) -> Unit) {
     if (state.canUsePlan) {
         ImasListSection(
             "文で探す",
-            footer = "曲・アイドル・ライブの一覧の検索欄に文を打つと、「文で探す」が出ます。出てくるのはデータベースにあるものだけです。",
+            footer = "曲・アイドル・ライブの一覧の検索欄に文を打つと、「文で探す」が出ます。出てくるのはデータベースにあるものだけです。ライブのセトリ画面の「その他」メニューにある「予習 DJ」では、注文を聞いて曲を並べ、1 曲ごとの語りを付けます。",
         ) {
             remember { naturalSearchExamples() }.forEach { example ->
                 ImasNavRow(title = example, icon = Icons.Filled.Search, iconTone = ImasIconTileTone.NEUTRAL, onClick = { onExample(example) })
             }
         }
     }
-    ImasListSection(footer = "探すたびに ChatGPT のプランの利用量を使います。このアプリからの請求はありません。") {
+    ImasListSection(footer = "探すたび・DJ に頼むたびに ChatGPT のプランの利用量を使います。このアプリからの請求はありません。") {
         ImasNavRow(
             title = "ChatGPT の設定を開く",
             icon = Icons.AutoMirrored.Filled.OpenInNew,
@@ -216,6 +217,7 @@ private fun SetupSections() {
     ImasListSection("つなぐ", footer = "ブラウザで ChatGPT にログインして許可すると、自動でアプリに戻ります。") {
         ImasPointList(
             points = listOf(
+                ImasPoint(Icons.Filled.GraphicEq, "ライブ前の「予習 DJ」で、注文どおりに曲を並べて語りを付けてもらえます。"),
                 ImasPoint(Icons.Filled.AccountCircle, "ChatGPT Plus か Pro のアカウントが要ります。"),
                 ImasPoint(Icons.Filled.Paid, "料金は ChatGPT のプランに含まれます。このアプリからの請求はありません。"),
                 ImasPoint(Icons.Filled.Lock, "ログインの情報はこの端末の中にだけ保存します。"),

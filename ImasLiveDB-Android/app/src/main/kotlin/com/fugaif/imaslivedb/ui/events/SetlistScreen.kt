@@ -36,6 +36,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.IosShare
 import androidx.compose.material.icons.filled.MoreVert
@@ -149,6 +150,7 @@ import com.fugaif.imaslivedb.ui.theme.displayName
 import com.fugaif.imaslivedb.ui.theme.imasRowPress
 import com.fugaif.imaslivedb.ui.theme.imasTheme
 import com.fugaif.imaslivedb.ui.theme.joined
+import com.fugaif.imaslivedb.ui.chatgpt.PrepDjSheet
 import com.fugaif.imaslivedb.ui.playlists.SpotifyExportSheet
 import com.fugaif.imaslivedb.ui.playlists.SpotifyExportSong
 
@@ -230,6 +232,12 @@ fun SetlistScreen(
     var showEditDialog by remember { mutableStateOf(false) }
     var showHistorySheet by remember { mutableStateOf(false) }
     var showSpotifyExport by remember { mutableStateOf(false) }
+    var showPrepDj by remember { mutableStateOf(false) }
+    // 入口の名前 (予習 / 復習) と、出すかどうかはコアが決める。セトリが入ったら引き直す。
+    val prepDjRunner = remember { AppModule.from(context).prepDjRunner }
+    val prepDjLabel by androidx.compose.runtime.produceState<String?>(null, showId, uiState.setlist.isEmpty()) {
+        value = runCatching { prepDjRunner.entryLabel(showId) }.getOrNull()
+    }
 
     /** 編集導線の共通ゲート。未ログインならログイン誘導、BAN は無反応 (導線自体を隠している)。 */
     fun startEdit() {
@@ -250,6 +258,14 @@ fun SetlistScreen(
                         Icon(Icons.Filled.MoreVert, contentDescription = "その他")
                     }
                     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        // 開催前は予測の上位を流れに並べ (予習)、セトリがあれば披露順に流す (復習)。
+                        prepDjLabel?.let { label ->
+                            DropdownMenuItem(
+                                text = { Text(label) },
+                                leadingIcon = { Icon(Icons.Filled.GraphicEq, null) },
+                                onClick = { menuOpen = false; showPrepDj = true }
+                            )
+                        }
                         // 3 値なのでトグルではなく選ぶ形にする。メニューの中なので
                         // 画面の行は 1 行も増えず、いま選んでいるものにチェックが付く。
                         // 並びも文言もコア (setlistDisplayModes) が持つ。
@@ -500,6 +516,9 @@ fun SetlistScreen(
         }
     }
 
+    if (showPrepDj) {
+        PrepDjSheet(showId = showId, onDismiss = { showPrepDj = false })
+    }
     if (showSpotifyExport) {
         SpotifyExportSheet(
             name = uiState.show?.name.orEmpty(),

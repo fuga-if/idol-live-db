@@ -19,6 +19,7 @@ struct NaturalSearchSheet: View {
     @State private var phase: Phase = .idle
     @State private var path: [DetailDestination] = []
     @State private var runTask: Task<Void, Never>?
+    @State private var playFailed = false
 
     private var session: ChatGPTPlanSession { .shared }
 
@@ -121,7 +122,13 @@ struct NaturalSearchSheet: View {
             )
         }
         if !results.songs.isEmpty {
-            ImasSection("曲", count: "\(results.songs.count)曲") {
+            // 当たった曲はそのまま続けて流せる (並びはコアが返した順)。
+            ImasSection("曲", count: "\(results.songs.count)曲",
+                        actionTitle: "続けて流す", actionSystemImage: "play.fill",
+                        onAction: { playAll(results.songs) }) {
+                if playFailed {
+                    ImasNote("続けて流すには Apple Music の契約か Spotify の連携が要ります。", systemImage: "music.note")
+                }
                 ImasCardList(results.songs, id: \.id) { song in
                     Button { path.append(.song(song)) } label: {
                         ImasSongRow(song: song, trailing: .chevron)
@@ -177,6 +184,11 @@ struct NaturalSearchSheet: View {
                 phase = .failed(error.localizedDescription)
             }
         }
+    }
+
+    private func playAll(_ songs: [Song]) {
+        AppAnalytics.tap("natural_search.play_all")
+        Task { playFailed = !(await PlaylistPlayback.play(songs)) }
     }
 
     private func cancel() {

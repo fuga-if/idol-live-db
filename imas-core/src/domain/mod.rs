@@ -80,6 +80,7 @@ pub mod performer_label;
 pub mod personas;
 pub mod play_counts;
 pub mod play_queue;
+pub mod prep_dj;
 pub mod poll_result_card;
 pub mod prng;
 pub mod card_meetings;

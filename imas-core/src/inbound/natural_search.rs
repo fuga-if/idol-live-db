@@ -4,11 +4,11 @@
 use super::snapshot_store::{SnapshotError, SnapshotStore};
 use crate::agent::tools::natural_search as ns;
 
-/// 1 回の検索でモデルに渡すもの一式。
+/// 利用者の ChatGPT プランで回す仕事 1 回ぶんの、モデルに渡すもの一式 (「文で探す」「予習 DJ」で共通)。
 #[derive(Debug, Clone, uniffi::Record)]
-pub struct NaturalSearchRequest {
+pub struct PlanTaskRequest {
     pub instructions: String,
-    /// 最初の input (利用者の発言 1 件)。各項目は JSON の文字列。
+    /// 最初の input (利用者の側の 1 件)。各項目は JSON の文字列。
     pub input: Vec<String>,
     /// Responses API の `tools` (JSON)。
     pub tools_json: String,
@@ -18,6 +18,19 @@ pub struct NaturalSearchRequest {
     pub max_rounds: u32,
     /// 往復の上限に達したときに出す文言。
     pub too_many_rounds_message: String,
+}
+
+impl From<crate::agent::tools::plan_loop::Request> for PlanTaskRequest {
+    fn from(r: crate::agent::tools::plan_loop::Request) -> Self {
+        Self {
+            instructions: r.instructions,
+            input: r.input,
+            tools_json: r.tools.to_string(),
+            text_format_json: r.text_format.to_string(),
+            max_rounds: crate::agent::tools::plan_loop::MAX_ROUNDS,
+            too_many_rounds_message: crate::agent::tools::plan_loop::TOO_MANY_ROUNDS_MESSAGE.into(),
+        }
+    }
 }
 
 /// 1 往復ぶんの結末。`answer` があれば終わり、無ければ `next_input` でもう 1 往復する。
@@ -49,14 +62,10 @@ pub fn natural_search_accepts(query: String) -> bool {
 
 /// 1 回の検索のリクエスト。語が受けられない長さなら None。
 #[uniffi::export]
-pub fn natural_search_request(query: String, today_key: String) -> Option<NaturalSearchRequest> {
-    ns::request(&query, &today_key).map(|r| NaturalSearchRequest {
-        instructions: r.instructions,
-        input: r.input,
-        tools_json: r.tools.to_string(),
-        text_format_json: r.text_format.to_string(),
-        max_rounds: ns::MAX_ROUNDS,
+pub fn natural_search_request(query: String, today_key: String) -> Option<PlanTaskRequest> {
+    ns::request(&query, &today_key).map(|r| PlanTaskRequest {
         too_many_rounds_message: "調べものが長くなりすぎたので止めました。文を短くして試してください".into(),
+        ..r.into()
     })
 }
 

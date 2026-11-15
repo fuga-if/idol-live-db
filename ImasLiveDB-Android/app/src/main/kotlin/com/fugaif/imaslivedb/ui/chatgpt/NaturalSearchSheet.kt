@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
@@ -29,6 +30,7 @@ import com.fugaif.imaslivedb.data.model.EventWithDateRange
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.player.PlaylistPlayback
 import com.fugaif.imaslivedb.ui.components.ImasSongRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasButton
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
@@ -123,6 +125,7 @@ fun NaturalSearchSheet(
     var text by remember { mutableStateOf(initialQuery) }
     var phase by remember { mutableStateOf<Phase>(Phase.Idle) }
     var runJob by remember { mutableStateOf<Job?>(null) }
+    var playFailed by remember { mutableStateOf(false) }
 
     fun run() {
         val query = text
@@ -178,6 +181,10 @@ fun NaturalSearchSheet(
                         onCancel = ::cancel,
                         onRetry = ::run,
                         onOpen = { kind, id -> close(); onOpen(kind, id) },
+                        playFailed = playFailed,
+                        onPlayAll = { songs ->
+                            scope.launch { playFailed = !PlaylistPlayback.play(module.lyricsPlayback, songs) }
+                        },
                     )
                 }
             }
@@ -193,6 +200,8 @@ private fun Content(
     onCancel: () -> Unit,
     onRetry: () -> Unit,
     onOpen: (NaturalSearchKind, String) -> Unit,
+    playFailed: Boolean,
+    onPlayAll: (List<Song>) -> Unit,
 ) {
     if (!canUsePlan) {
         ImasEmptyState(
@@ -213,7 +222,7 @@ private fun Content(
             ImasText(phase.label, role = ImasTextRole.NOTE)
             ImasButton(title = "やめる", onClick = onCancel, icon = Icons.Filled.Close, role = ImasButtonRole.SECONDARY, size = ImasButtonSize.SMALL)
         }
-        is Phase.Done -> ResultSections(phase.results, onOpen)
+        is Phase.Done -> ResultSections(phase.results, onOpen, playFailed, onPlayAll)
         is Phase.Failed -> ImasEmptyState(
             kind = ImasEmptyStateKind.FAILED,
             title = "探せませんでした",
@@ -237,7 +246,12 @@ private fun Examples(onExample: (String) -> Unit) {
 }
 
 @Composable
-private fun ResultSections(results: Results, onOpen: (NaturalSearchKind, String) -> Unit) {
+private fun ResultSections(
+    results: Results,
+    onOpen: (NaturalSearchKind, String) -> Unit,
+    playFailed: Boolean,
+    onPlayAll: (List<Song>) -> Unit,
+) {
     if (results.interpretation.isNotEmpty()) ImasNote(results.interpretation, icon = Icons.Filled.Search)
     if (results.isEmpty) {
         ImasEmptyState(
@@ -247,7 +261,17 @@ private fun ResultSections(results: Results, onOpen: (NaturalSearchKind, String)
         )
     }
     if (results.songs.isNotEmpty()) {
-        ImasSection("曲", count = "${results.songs.size}曲") {
+        // 当たった曲はそのまま続けて流せる (並びはコアが返した順)。
+        ImasSection(
+            "曲",
+            count = "${results.songs.size}曲",
+            actionTitle = "続けて流す",
+            actionIcon = Icons.Filled.PlayArrow,
+            onAction = { onPlayAll(results.songs) },
+        ) {
+            if (playFailed) {
+                ImasNote("プレイリストの再生には Apple Music の契約が要ります。", modifier = Modifier.padding(bottom = DS.Space.header))
+            }
             ImasCardList {
                 results.songs.forEach { song ->
                     ImasSongRow(song = song, trailing = ImasRowTrailing.Chevron, onClick = { onOpen(NaturalSearchKind.SONG, song.id) })

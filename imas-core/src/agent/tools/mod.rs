@@ -19,6 +19,8 @@
 pub mod browse;
 pub mod lookup;
 pub mod natural_search;
+pub mod plan_loop;
+pub mod prep_dj;
 pub mod publish;
 pub mod predict;
 pub mod scope;

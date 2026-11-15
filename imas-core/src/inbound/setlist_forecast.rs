@@ -79,12 +79,19 @@ impl SnapshotStore {
     pub fn setlist_forecast(&self, show_id: String, limit: u32) -> Result<Option<SetlistForecastRecord>, SnapshotError> {
         let snap = self.current()?;
         let Some(&show) = snap.show_index_by_id.get(&show_id) else { return Ok(None) };
-        let cached = self
+        Ok(self.forecast_for(&snap, show, limit))
+    }
+}
+
+impl SnapshotStore {
+    /// キャッシュした下ごしらえと重みで公演 1 つを予測する (予習 DJ も同じ口を使う)。
+    pub(crate) fn forecast_for(&self, snap: &Arc<Snapshot>, show: u32, limit: u32) -> Option<SetlistForecastRecord> {
+        let (prep, model) = self
             .forecast
             .lock()
             .expect("forecast cache lock poisoned")
-            .prep_and_model(&snap, |prep| prep.training_prefix(&snap, show));
-        Ok(cached.and_then(|(prep, model)| forecast_show(&snap, &prep, &model, show, limit)))
+            .prep_and_model(snap, |prep| prep.training_prefix(snap, show))?;
+        forecast_show(snap, &prep, &model, show, limit)
     }
 }
 
