@@ -6,7 +6,7 @@ import SwiftUI
 // ImasKaraokeLane        この先 20 秒に誰が歌うかの帯。担当色の区間、2 人以上は角のはっきりした縦縞。
 //                        自分のパートの区間は墨の枠で囲む。左端が今。
 // ImasKaraokeRow         1 行の入れ物。行頭に歌う人の帯 (ImasPartStripe)、選んだ行は面を敷く。
-// ImasKaraokeSingerLabel 行の上の「春香・千早」(担当色の字) と手拍子の記号、自分のパートなら「あなた」。
+// ImasKaraokeSingerLabel 行の上の「春香・千早」(担当色の字) と手拍子の記号、自分のパートなら小さく「あなた」。
 // ImasKaraokeCallTag     コール 1 つ。強調度の色の枠 (演者要望 = 朱、おこのみで = 緑)。今のコールは大きく。
 // ImasKaraokeCountdown   自分の番までの残り秒と 4 つの四角。
 // ImasKaraokeTapPad      歌い出しで叩く大きな面 (枠だけ)。
@@ -142,11 +142,9 @@ struct ImasKaraokeSingerLabel: View {
                 .imasText(.eyebrow)
                 .lineLimit(1)
             }
+            // 自分のパートの印は控えめに (塗りの札にしない。名前の横に小さな薄い字だけ)。
             if isMine {
-                Text("あなた")
-                    .imasText(.badge, color: DS.bg)
-                    .padding(.horizontal, DS.sp2)
-                    .background(DS.ink)
+                Text("あなた").imasText(.micro, color: DS.ink3)
             }
         }
         .accessibilityElement(children: .combine)
