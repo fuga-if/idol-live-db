@@ -14,6 +14,9 @@
   python3 tools/play_release.py upload app-release.aab --notes release_notes.txt \\
       --status inProgress --fraction 0.2
 
+  # 置いてある下書きを、そのまま全員向けに公開する (オーナーの go が出てから)
+  python3 tools/play_release.py promote
+
 リリースノートのファイルは Play Console と同じ形 (<ja-JP>...</ja-JP><en-US>...</en-US>)。
 """
 import argparse
@@ -90,6 +93,31 @@ def cmd_upload(api, args):
         raise
 
 
+def cmd_promote(api, args):
+    """トラックに置いてある下書きを、中身 (versionCodes・ノート) はそのままに公開へ進める。"""
+    if args.status == "inProgress" and not args.fraction:
+        sys.exit("--status inProgress には --fraction が要る")
+    edits = api.edits()
+    edit_id = edits.insert(packageName=PACKAGE, body={}).execute()["id"]
+    try:
+        track = edits.tracks().get(packageName=PACKAGE, editId=edit_id, track=args.track).execute()
+        drafts = [r for r in track.get("releases", []) if r.get("status") == "draft" and r.get("versionCodes")]
+        if len(drafts) != 1:
+            sys.exit(f"{args.track} の下書きが {len(drafts)} 件 (1 件のときだけ進める)")
+        release = dict(drafts[0], status=args.status)
+        if args.fraction:
+            release["userFraction"] = args.fraction
+        edits.tracks().update(
+            packageName=PACKAGE, editId=edit_id, track=args.track,
+            body={"track": args.track, "releases": [release]},
+        ).execute()
+        edits.commit(packageName=PACKAGE, editId=edit_id).execute()
+        print(f"committed: track={args.track} status={args.status} versionCodes={release['versionCodes']}")
+    except BaseException:
+        edits.delete(packageName=PACKAGE, editId=edit_id).execute()
+        raise
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--key", default=os.environ.get("PLAY_PUBLISHER_KEY", DEFAULT_KEY))
@@ -102,9 +130,13 @@ def main():
     up.add_argument("--track", default="production")
     up.add_argument("--status", default="draft", choices=["draft", "inProgress", "completed"])
     up.add_argument("--fraction", type=float, help="段階公開の割合 (0〜1)")
+    pr = sub.add_parser("promote", help="置いてある下書きを公開へ進める")
+    pr.add_argument("--track", default="production")
+    pr.add_argument("--status", default="completed", choices=["inProgress", "completed"])
+    pr.add_argument("--fraction", type=float, help="段階公開の割合 (0〜1)")
     args = p.parse_args()
     api = service(args.key)
-    {"status": cmd_status, "upload": cmd_upload}[args.cmd](api, args)
+    {"status": cmd_status, "upload": cmd_upload, "promote": cmd_promote}[args.cmd](api, args)
 
 
 if __name__ == "__main__":

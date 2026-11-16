@@ -47,6 +47,7 @@ Play への上げは `tools/play_release.py` (Android Publisher API v3) で行�
 7. オーナーが Play Console の本番 → 下書きのリリースを開き、確認してロールアウトする (審査に回る)。
    段階公開にするならそこで割合を決める。API で進めるなら
    `--status inProgress --fraction 0.2` (全員なら `--status completed`)。
+   下書きを置いたあとで進めるなら `python3 tools/play_release.py promote` (既定は全員向け)。
 
 ## 経緯
 
@@ -60,3 +61,8 @@ Play への上げは `tools/play_release.py` (Android Publisher API v3) で行�
 - Google Play の審査・ストアへの反映完了は別途確認が必要。
 - 署名、arm64-v8a / x86_64 のコア・デバッグシンボル表、JASRAC マークの同梱を検証。
 - R8 は Gradle の既定 2GB では GC thrashing で停止したため、`-Dorg.gradle.jvmargs='-Xmx4g -Dfile.encoding=UTF-8' --max-workers=2` を付けて成功。
+
+## 2026-11-17: 2.9.1 (versionCode 20)
+
+- 起動・同期・一覧の高速化。iOS の審査に出したのと同じコミット (d389dbbf) からビルド。
+- 本番に下書きで置き、オーナーの go のあと `promote` で completed にした。
