@@ -186,6 +186,17 @@ fun AppNavigation() {
         }
         PollLinkIncoming.consume()
     }
+    // 再生中バーから開く曲。楽曲タブをまだ一度も開いていないと NavHost が組まれておらずグラフが無いので、
+    // その場で navigate すると IllegalArgumentException で落ちる (Play の最多クラッシュだった)。
+    // お題の URL と同じく、楽曲タブへ切り替えてグラフができるのを待ってから積む。
+    var nowPlayingSongToOpen by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(nowPlayingSongToOpen) {
+        val songId = nowPlayingSongToOpen ?: return@LaunchedEffect
+        val nav = navControllers.getValue(AppDestination.SONGS)
+        nav.currentBackStackEntryFlow.first()
+        nav.navigate(NavRoutes.SongDetail.createRoute(songId))
+        nowPlayingSongToOpen = null
+    }
     // 今いるタブをもう一度押したら、そのタブの最初の画面まで戻る (iOS のタブと同じ)。
     // 押しても何も起きないと、戻る矢印の無い画面から抜ける手が「戻る」ジェスチャーしか無くなる。
     val selectDestination: (AppDestination) -> Unit = { destination ->
@@ -240,8 +251,7 @@ fun AppNavigation() {
                     NowPlayingBar(
                         onSongClick = { songId ->
                             current = AppDestination.SONGS
-                            navControllers.getValue(AppDestination.SONGS)
-                                .navigate(NavRoutes.SongDetail.createRoute(songId))
+                            nowPlayingSongToOpen = songId
                         },
                         modifier = Modifier.align(Alignment.BottomCenter)
                     )
