@@ -20,6 +20,12 @@ pub fn app_navigation_sections_with_tabs(
     app_navigation::app_navigation_with_tabs(lyrics_available, &tabs_from_keys(&tab_keys))
 }
 
+/// チャットの行き先。ChatGPT とつないでいなければ None。タブバーの上限には数えない別枠。
+#[uniffi::export]
+pub fn app_navigation_chat_item(chat_connected: bool) -> Option<NavItem> {
+    app_navigation::chat_item(chat_connected)
+}
+
 /// タブバーに選べる行き先 (このビルドで出せるものすべて)。
 #[uniffi::export]
 pub fn tab_bar_choices(lyrics_available: bool) -> Vec<NavItem> {

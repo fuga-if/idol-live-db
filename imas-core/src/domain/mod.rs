@@ -15,6 +15,7 @@ pub mod cast_song_matching;
 pub mod ck_record_mapping;
 pub mod collection_dashboard;
 pub mod collection_gap;
+pub mod chat_sessions;
 pub mod chatgpt_plan;
 pub mod color_engine;
 pub mod color_match;

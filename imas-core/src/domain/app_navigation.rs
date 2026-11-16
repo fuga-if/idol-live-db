@@ -31,6 +31,9 @@ pub enum AppDestination {
     CommunityActivity,
     TagActivity,
     Games,
+    /// チャット。ChatGPT とつないだ人にだけ出す。タブバーの 5 枠とは別の枠 ([`chat_item`]) なので、
+    /// 選べる並び ([`ALL`]) には入れない。
+    Chat,
 }
 
 impl AppDestination {
@@ -53,6 +56,7 @@ impl AppDestination {
             Self::CommunityActivity => "みんなの動き",
             Self::TagActivity => "タグの動き",
             Self::Games => "クイズ・ゲーム",
+            Self::Chat => "チャット",
         }
     }
 
@@ -71,6 +75,7 @@ impl AppDestination {
             Self::CommunityActivity => "community_activity",
             Self::TagActivity => "tag_activity",
             Self::Games => "games",
+            Self::Chat => "chat",
         }
     }
 }
@@ -139,6 +144,14 @@ const SECONDARY: [(&str, &[AppDestination]); 3] = [
     ),
     ("あそぶ", &[AppDestination::Games]),
 ];
+
+/// チャットの行き先。ChatGPT とつないでいなければ None (行き先ごと出さない)。
+///
+/// タブバーの 5 枠には数えない。iOS 26 はタブバーの右に離れた 1 枠、Android は並びの末尾、
+/// 広い画面はサイドバーの先頭の並びに出す (どう描くかは各 OS)。
+pub fn chat_item(chat_connected: bool) -> Option<NavItem> {
+    chat_connected.then(|| item(AppDestination::Chat, true, None))
+}
 
 /// 既定のタブバー。
 pub fn default_tab_bar() -> Vec<AppDestination> {

@@ -8,6 +8,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import com.fugaif.imaslivedb.data.chatgpt.AssistantExecutor
+import com.fugaif.imaslivedb.data.chatgpt.ChatSessionStore
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -73,6 +74,8 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasNavRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasNotice
 import com.fugaif.imaslivedb.ui.designsystem.ImasNoticeKind
 import com.fugaif.imaslivedb.ui.designsystem.ImasNote
+import com.fugaif.imaslivedb.ui.designsystem.ImasRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowDensity
 import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
 import com.fugaif.imaslivedb.ui.designsystem.ImasSection
 import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeaderStyle
@@ -84,11 +87,18 @@ import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasText
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.withContext
+import java.util.UUID
 import kotlinx.coroutines.launch
 import uniffi.imas_core.AiActionReach
 import uniffi.imas_core.AiPlannedAction
 import uniffi.imas_core.AssistantPlan
+import uniffi.imas_core.ChatSavedAction
+import uniffi.imas_core.ChatSavedTurn
+import uniffi.imas_core.ChatSession
+import uniffi.imas_core.chatSessionTitle
 import uniffi.imas_core.assistantAccepts
 import uniffi.imas_core.assistantAcceptsMessage
 import uniffi.imas_core.assistantMaxImages
@@ -114,7 +124,15 @@ private sealed interface TurnState {
     data class Running(val label: String) : TurnState
     data class Done(val review: Review) : TurnState
     data class Failed(val message: String) : TurnState
+    /** 履歴から読み直した番。操作は見るだけ (実行できる形では残していない)。 */
+    data class Restored(val reply: String, val actions: List<ChatSavedAction>) : TurnState
 }
+
+/**
+ * タブの中身として出したチャットが、タブを離れて戻ったときに続きを読み直す会話の id。
+ * タブは見えている 1 つだけ組む (離れると状態が消える) ので、返事まで終わった会話をここで覚える。
+ */
+private var tabResumeId: String? = null
 
 private data class Turn(val key: Int, val order: String, val images: List<Bitmap>, val state: TurnState)
 
@@ -136,6 +154,27 @@ fun AssistantSheet(
     onDismiss: () -> Unit,
     onOpen: (NaturalSearchKind, String) -> Unit = { kind, id -> NaturalSearchOpen.request(kind, id) },
 ) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = DS.bg,
+    ) {
+        AssistantScreen(initialOrder = initialOrder, isTab = false, onClose = onDismiss, onOpen = onOpen)
+    }
+}
+
+/**
+ * チャットの中身。シートの中 ([AssistantSheet]) でも、タブの中身 (`isTab`) でも同じものを出す。iOS の
+ * `AssistantSheet(isTab:)` と同じ 1 つの画面で、`isTab` のときは閉じるボタンを出さず、「開く」操作のあとも閉じない
+ * (タブは本体のナビに並んでいるので、行き先のタブへ移るだけでよい)。
+ */
+@Composable
+fun AssistantScreen(
+    initialOrder: String,
+    isTab: Boolean,
+    onClose: () -> Unit,
+    onOpen: (NaturalSearchKind, String) -> Unit = { kind, id -> NaturalSearchOpen.request(kind, id) },
+) {
     val context = LocalContext.current
     val module = remember { AppModule.from(context) }
     val session by module.chatGptPlanService.state.collectAsState()
@@ -148,9 +187,13 @@ fun AssistantSheet(
     var runJob by remember { mutableStateOf<Job?>(null) }
     /** 次の発言に添える画像。 */
     var attachments by remember { mutableStateOf<List<Bitmap>>(emptyList()) }
+    /** いまの会話の id (端末に残すときの鍵)。新しい会話のたびに振り直す。 */
+    var sessionId by remember { mutableStateOf(UUID.randomUUID().toString()) }
+    var showsHistory by remember { mutableStateOf(false) }
     val scroll = rememberScrollState()
 
     val isRunning = turns.lastOrNull()?.state is TurnState.Running
+    val isExecuting = turns.any { (it.state as? TurnState.Done)?.review?.isExecuting == true }
     val maxImages = remember { assistantMaxImages().toInt() }
 
     /** 写真・クリップボードの URI を開いて、上限までを添える。 */
@@ -177,6 +220,37 @@ fun AssistantSheet(
         attach(uris)
     }
 
+    /** いまの会話を端末に残す。返事まで終わった番だけ (途中・失敗の番は残さない)。 */
+    fun persist() {
+        val saved = turns.mapNotNull { turn ->
+            when (val state = turn.state) {
+                is TurnState.Done -> {
+                    val review = state.review
+                    ChatSavedTurn(
+                        order = turn.order,
+                        imageCount = turn.images.size.toUInt(),
+                        reply = review.plan.message,
+                        actions = review.plan.actions.mapIndexed { index, item ->
+                            ChatSavedAction(item.title, item.target, review.outcomes[index] == Outcome.Done)
+                        },
+                    )
+                }
+                is TurnState.Restored -> ChatSavedTurn(turn.order, 0u, state.reply, state.actions)
+                is TurnState.Running, is TurnState.Failed -> null
+            }
+        }
+        val first = saved.firstOrNull() ?: return
+        val session = ChatSession(
+            id = sessionId,
+            title = chatSessionTitle(first.order),
+            updatedAt = System.currentTimeMillis() / 1000,
+            history = history,
+            turns = saved,
+        )
+        if (isTab) tabResumeId = sessionId
+        scope.launch(Dispatchers.IO) { ChatSessionStore.save(context, session) }
+    }
+
     fun update(key: Int, change: (Turn) -> Turn) {
         turns = turns.map { if (it.key == key) change(it) else it }
     }
@@ -193,6 +267,7 @@ fun AssistantSheet(
                 // サーバに届く操作は、利用者が自分で選ぶまで外しておく。
                 val selected = plan.actions.indices.filter { plan.actions[it].preselected }.toSet()
                 update(turn.key) { it.copy(state = TurnState.Done(Review(plan, selected))) }
+                persist()
             } catch (e: CancellationException) {
                 // やめた。発言は cancel() が消している。
                 throw e
@@ -237,6 +312,23 @@ fun AssistantSheet(
         turns = emptyList()
         history = emptyList()
         attachments = emptyList()
+        sessionId = UUID.randomUUID().toString()
+        if (isTab) tabResumeId = null
+    }
+
+    /** 履歴の会話を開いて、続きから話せるようにする。 */
+    fun openSession(id: String) {
+        if (isRunning || isExecuting) return
+        scope.launch {
+            val saved = withContext(Dispatchers.IO) { ChatSessionStore.load(context, id) } ?: return@launch
+            runJob?.cancel()
+            runJob = null
+            sessionId = saved.id
+            history = saved.history
+            attachments = emptyList()
+            turns = saved.turns.map { Turn(nextKey++, it.order, emptyList(), TurnState.Restored(it.reply, it.actions)) }
+            if (isTab) tabResumeId = saved.id
+        }
     }
 
     fun toggle(key: Int, index: Int) {
@@ -248,7 +340,7 @@ fun AssistantSheet(
 
     fun close() {
         runJob?.cancel()
-        onDismiss()
+        onClose()
     }
 
     /** 選んだ操作を上から順に 1 件ずつ実行する。1 件の失敗で残りを止めない。 */
@@ -277,29 +369,36 @@ fun AssistantSheet(
             }
             review = review.copy(isExecuting = false)
             update(key) { it.copy(state = TurnState.Done(review)) }
+            persist()
             when (val result = opened) {
-                is AssistantExecutor.Opened.Detail -> { close(); onOpen(result.target.kind, result.target.id) }
+                // タブのときは閉じるものが無い。本体の側が行き先のタブへ移る。
+                is AssistantExecutor.Opened.Detail -> { if (!isTab) close(); onOpen(result.target.kind, result.target.id) }
                 // 一覧のタブへ移ったので、上に被さっているこのシートは閉じる。
-                AssistantExecutor.Opened.List -> close()
+                AssistantExecutor.Opened.List -> if (!isTab) close()
                 null -> Unit
             }
         }
     }
 
     LaunchedEffect(Unit) {
+        // タブに戻ってきたら、離れる前の会話の続きを読み直す。
+        if (isTab && turns.isEmpty()) tabResumeId?.let { openSession(it) }
         if (turns.isEmpty() && session.canUsePlan && assistantAccepts(initialOrder)) send(initialOrder)
     }
     LaunchedEffect(turns.size, isRunning) { scroll.animateScrollTo(scroll.maxValue) }
     DisposableEffect(Unit) { onDispose { runJob?.cancel() } }
 
-    ModalBottomSheet(
-        onDismissRequest = { close() },
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = DS.bg,
-    ) {
         ImasFormBackdrop(Modifier.fillMaxSize().imePadding()) {
             Column(Modifier.fillMaxSize()) {
-                ImasSheetToolbar(ImasSheetToolbarKind.Read(onClose = { close() }), title = "チャット")
+                ImasSheetToolbar(
+                    ImasSheetToolbarKind.Chat(
+                        onHistory = if (session.canUsePlan) ({ showsHistory = true }) else null,
+                        onNew = if (session.canUsePlan) ({ reset() }) else null,
+                        canStartNew = turns.isNotEmpty() && !isRunning && !isExecuting,
+                        onClose = if (isTab) null else ({ close() }),
+                    ),
+                    title = "チャット",
+                )
                 Column(
                     Modifier
                         .weight(1f)
@@ -323,15 +422,6 @@ fun AssistantSheet(
                                     onRetry = { retry(turn) },
                                     onToggle = { index -> toggle(turn.key, index) },
                                     onExecute = { execute(turn.key) },
-                                )
-                            }
-                            if (!isRunning) {
-                                ImasButton(
-                                    title = "新しい会話にする",
-                                    onClick = { reset() },
-                                    icon = Icons.Filled.Edit,
-                                    role = ImasButtonRole.PLAIN,
-                                    size = ImasButtonSize.SMALL,
                                 )
                             }
                         }
@@ -368,6 +458,13 @@ fun AssistantSheet(
                 }
             }
         }
+    if (showsHistory) {
+        ChatHistorySheet(
+            currentId = sessionId,
+            onDismiss = { showsHistory = false },
+            onOpen = { openSession(it) },
+            onDelete = { id -> if (id == sessionId) reset() },
+        )
     }
 }
 
@@ -406,6 +503,7 @@ private fun TurnView(
         when (val state = turn.state) {
             is TurnState.Running -> ImasChatThinking(state.label)
             is TurnState.Done -> ReviewView(state.review, onToggle, onExecute)
+            is TurnState.Restored -> RestoredView(state)
             is TurnState.Failed -> ImasNotice(
                 kind = ImasNoticeKind.ERROR,
                 title = "答えられませんでした",
@@ -464,6 +562,35 @@ private fun ReviewView(review: Review, onToggle: (Int) -> Unit, onExecute: () ->
     }
     if (plan.rejected > 0u) {
         ImasNote("${plan.rejected} 件の操作は、データベースで確かめられなかったので外しました。", icon = Icons.Filled.Warning)
+    }
+}
+
+/** 履歴から読み直した番。返事と、そのとき頼んだことの記録。 */
+@Composable
+private fun RestoredView(state: TurnState.Restored) {
+    if (state.reply.isNotEmpty()) {
+        ImasChatReply(state.reply, modifier = Modifier.fillMaxWidth())
+    }
+    if (state.actions.isNotEmpty()) {
+        ImasSection("頼んだこと", count = "${state.actions.size}件", style = ImasSectionHeaderStyle.SMALL) {
+            ImasCardList {
+                state.actions.forEach { action ->
+                    ImasRow(
+                        title = action.title,
+                        subtitle = action.target,
+                        trailing = ImasRowTrailing.Value(if (action.done) "済み" else "未実行"),
+                        density = ImasRowDensity.COMPACT,
+                    )
+                }
+            }
+            if (state.actions.any { !it.done }) {
+                ImasNote(
+                    "読み直した会話の操作は、ここからは実行できません。やるなら、もう一度頼んでください。",
+                    modifier = Modifier.padding(top = DS.Space.header),
+                    icon = Icons.Filled.Warning,
+                )
+            }
+        }
     }
 }
 

@@ -15,6 +15,8 @@ struct AssistantOrder: Identifiable {
 /// (`domain::ai_actions`) で、サーバに届く操作・外す操作・前の中身を置き換える操作は初めは選ばれていない。
 struct AssistantSheet: View {
     let initialOrder: String
+    /// タブバーの行き先として出しているか (閉じるボタンを出さない)。
+    var isTab = false
 
     @Environment(\.dismiss) private var dismiss
     @State private var text = ""
@@ -23,6 +25,9 @@ struct AssistantSheet: View {
     @State private var history: [String] = []
     @State private var path: [DetailDestination] = []
     @State private var runTask: Task<Void, Never>?
+    /// いまの会話の id (端末に残すときの鍵)。新しい会話のたびに振り直す。
+    @State private var sessionID = UUID().uuidString
+    @State private var showsHistory = false
     /// 次の発言に添える画像。
     @State private var attachments: [UIImage] = []
     @State private var showsPhotoPicker = false
@@ -40,6 +45,8 @@ struct AssistantSheet: View {
             case running(label: String)
             case done(Review)
             case failed(String)
+            /// 履歴から読み直した番。操作は見るだけ (実行できる形では残していない)。
+            case restored(reply: String, actions: [ChatSavedAction])
         }
     }
 
@@ -92,7 +99,42 @@ struct AssistantSheet: View {
             .onChange(of: pickedItems) { _, items in loadPicked(items) }
             .navigationTitle("チャット")
             .navigationBarTitleDisplayMode(.inline)
-            .imasSheetToolbar(.read(onClose: { dismiss() }))
+            .toolbar {
+                if session.canUsePlan {
+                    ToolbarItemGroup(placement: .topBarLeading) {
+                        Button {
+                            AppAnalytics.tap("assistant.history")
+                            showsHistory = true
+                        } label: {
+                            Image(systemName: "clock.arrow.circlepath")
+                        }
+                        .accessibilityLabel("会話の履歴")
+                        Button {
+                            AppAnalytics.tap("assistant.new")
+                            reset()
+                        } label: {
+                            Image(systemName: "square.and.pencil")
+                        }
+                        .accessibilityLabel("新しい会話")
+                        .disabled(turns.isEmpty || isRunning || isExecuting)
+                    }
+                }
+                if !isTab {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            dismiss()
+                        } label: {
+                            Image(systemName: "xmark")
+                        }
+                        .accessibilityLabel("閉じる")
+                    }
+                }
+            }
+            .sheet(isPresented: $showsHistory) {
+                ChatHistorySheet(currentID: sessionID, onOpen: { open($0) }, onDelete: { id in
+                    if id == sessionID { reset() }
+                })
+            }
             .navigationDestination(for: DetailDestination.self) { dest in
                 DetailContentView(destination: dest) { path.append($0) }
             }
@@ -129,11 +171,6 @@ struct AssistantSheet: View {
             ForEach(turns) { turn in
                 turnView(turn)
             }
-            if !isRunning, !isExecuting {
-                ImasButton(title: "新しい会話にする", systemImage: "square.and.pencil", role: .plain, size: .small) {
-                    reset()
-                }
-            }
         }
     }
 
@@ -162,6 +199,8 @@ struct AssistantSheet: View {
                 ImasChatThinking(label)
             case .done(let review):
                 reviewView(review, turnID: turn.id)
+            case .restored(let reply, let actions):
+                restoredView(reply: reply, actions: actions)
             case .failed(let message):
                 ImasNotice(kind: .error, title: "答えられませんでした", message: message,
                            actionTitle: "もう一度", action: { retry(turn) })
@@ -212,6 +251,29 @@ struct AssistantSheet: View {
         }
         if plan.rejected > 0 {
             ImasNote("\(plan.rejected) 件の操作は、データベースで確かめられなかったので外しました。", systemImage: "exclamationmark.circle")
+        }
+    }
+
+    /// 履歴から読み直した番。返事と、そのとき頼んだことの記録。
+    @ViewBuilder
+    private func restoredView(reply: String, actions: [ChatSavedAction]) -> some View {
+        if !reply.isEmpty {
+            Text(Self.linkified(reply))
+                .imasText(.body)
+                .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        if !actions.isEmpty {
+            ImasSection("頼んだこと", count: "\(actions.count)件", style: .small) {
+                ImasCardList(Array(actions.enumerated()), id: \.offset) { _, action in
+                    ImasRow(title: action.title, subtitle: action.target,
+                            trailing: .value(action.done ? "済み" : "未実行"), density: .compact)
+                }
+                if actions.contains(where: { !$0.done }) {
+                    ImasNote("読み直した会話の操作は、ここからは実行できません。やるなら、もう一度頼んでください。", systemImage: "hand.raised")
+                }
+            }
         }
     }
 
@@ -343,6 +405,7 @@ struct AssistantSheet: View {
                 // 初めから選んでおくかはコアが決める (サーバに届く・外す・置き換える操作は選ばない)。
                 let selected = Set(plan.actions.indices.filter { plan.actions[$0].preselected })
                 update(turn.id) { $0.state = .done(Review(plan: plan, selected: selected)) }
+                persist()
             } catch is CancellationError {
                 // やめた。発言は cancel() が消している。
             } catch {
@@ -368,6 +431,45 @@ struct AssistantSheet: View {
         turns = []
         history = []
         attachments = []
+        sessionID = UUID().uuidString
+    }
+
+    // MARK: - 履歴
+
+    /// いまの会話を端末に残す。返事まで終わった番だけ (途中・失敗の番は残さない)。
+    private func persist() {
+        let saved: [ChatSavedTurn] = turns.compactMap { turn in
+            switch turn.state {
+            case .done(let review):
+                let actions = review.plan.actions.enumerated().map { index, item in
+                    var done = false
+                    if case .done? = review.outcomes[index] { done = true }
+                    return ChatSavedAction(title: item.title, target: item.target, done: done)
+                }
+                return ChatSavedTurn(order: turn.order, imageCount: UInt32(turn.images.count),
+                                     reply: review.plan.message, actions: actions)
+            case .restored(let reply, let actions):
+                return ChatSavedTurn(order: turn.order, imageCount: 0, reply: reply, actions: actions)
+            case .running, .failed:
+                return nil
+            }
+        }
+        guard let first = saved.first else { return }
+        ChatSessionStore.save(ChatSession(
+            id: sessionID, title: chatSessionTitle(firstOrder: first.order),
+            updatedAt: Int64(Date().timeIntervalSince1970), history: history, turns: saved
+        ))
+    }
+
+    /// 履歴の会話を開いて、続きから話せるようにする。
+    private func open(_ id: String) {
+        guard !isRunning, !isExecuting, let saved = ChatSessionStore.load(id) else { return }
+        runTask?.cancel()
+        runTask = nil
+        sessionID = saved.id
+        history = saved.history
+        attachments = []
+        turns = saved.turns.map { Turn(order: $0.order, state: .restored(reply: $0.reply, actions: $0.actions)) }
     }
 
     private func update(_ id: UUID, _ change: (inout Turn) -> Void) {
@@ -413,6 +515,7 @@ struct AssistantSheet: View {
             }
             review.isExecuting = false
             update(turnID) { $0.state = .done(review) }
+            persist()
             switch opened {
             case .detail(let destination)?: path.append(destination)
             // 一覧のタブへ移ったので、上に被さっているこのシートは閉じる。

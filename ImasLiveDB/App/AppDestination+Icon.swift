@@ -17,13 +17,16 @@ extension AppDestination {
         case .communityActivity: return "person.2.fill"
         case .tagActivity: return "flame.fill"
         case .games: return "gamecontroller.fill"
+        case .chat: return "bubble.left.and.text.bubble.right"
         }
     }
 
     var label: String { AppDestination.labels[self] ?? "" }
     var analyticsKey: String { AppDestination.analyticsKeys[self] ?? "" }
 
+    // チャットはタブバーの 5 枠とは別枠なので、選べる並びには入っていない。名前だけここで足す。
     private static let items = tabBarChoices(lyricsAvailable: true)
+        + [appNavigationChatItem(chatConnected: true)].compactMap { $0 }
     private static let labels = Dictionary(uniqueKeysWithValues: items.map { ($0.destination, $0.label) })
     private static let analyticsKeys = Dictionary(uniqueKeysWithValues: items.map { ($0.destination, $0.analyticsKey) })
 }

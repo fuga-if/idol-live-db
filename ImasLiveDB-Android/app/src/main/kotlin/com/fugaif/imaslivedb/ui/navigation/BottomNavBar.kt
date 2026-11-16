@@ -8,6 +8,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Campaign
@@ -62,6 +63,7 @@ val AppDestination.icon: ImageVector
         AppDestination.COMMUNITY_ACTIVITY -> Icons.Filled.People
         AppDestination.TAG_ACTIVITY -> Icons.Filled.Whatshot
         AppDestination.GAMES -> Icons.Filled.SportsEsports
+        AppDestination.CHAT -> Icons.AutoMirrored.Filled.Chat
     }
 
 /**

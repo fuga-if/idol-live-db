@@ -28,6 +28,8 @@ import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -137,6 +139,17 @@ sealed interface ImasSheetToolbarKind {
     /** 読むだけ。右 = 閉じる。 */
     data class Read(val onClose: () -> Unit) : ImasSheetToolbarKind
 
+    /**
+     * チャット。左 = 会話の履歴・新しい会話 (null なら出さない)、右 = 閉じる。
+     * タブの中身として出すときは [onClose] を null にして閉じるを出さない。
+     */
+    data class Chat(
+        val onHistory: (() -> Unit)?,
+        val onNew: (() -> Unit)?,
+        val canStartNew: Boolean = true,
+        val onClose: (() -> Unit)?
+    ) : ImasSheetToolbarKind
+
     /** 後で答えてよい問いかけ (チケット代の記録など)。左 = あとで、右 = 記録する (§16)。 */
     data class Prompt(val canRecord: Boolean = true, val onLater: () -> Unit, val onRecord: () -> Unit) : ImasSheetToolbarKind
 }
@@ -207,6 +220,17 @@ fun ImasSheetToolbar(kind: ImasSheetToolbarKind, modifier: Modifier = Modifier, 
                 leading = null
                 trailing = { SheetButton("閉じる", SheetButtonRole.CLOSE, onClick = kind.onClose) }
             }
+            is ImasSheetToolbarKind.Chat -> {
+                leading = if (kind.onHistory == null && kind.onNew == null) null else ({
+                    Row {
+                        kind.onHistory?.let { SheetButton("会話の履歴", SheetButtonRole.CANCEL, icon = Icons.Filled.History, onClick = it) }
+                        kind.onNew?.let {
+                            SheetButton("新しい会話", SheetButtonRole.CANCEL, enabled = kind.canStartNew, icon = Icons.Filled.Edit, onClick = it)
+                        }
+                    }
+                })
+                trailing = { kind.onClose?.let { SheetButton("閉じる", SheetButtonRole.CLOSE, onClick = it) } }
+            }
             is ImasSheetToolbarKind.Prompt -> {
                 leading = { SheetButton("あとで", SheetButtonRole.CANCEL, onClick = kind.onLater) }
                 trailing = { SheetButton("記録する", SheetButtonRole.CONFIRM, enabled = kind.canRecord, onClick = kind.onRecord) }
@@ -224,6 +248,7 @@ private fun SheetButton(
     role: SheetButtonRole,
     enabled: Boolean = true,
     isLoading: Boolean = false,
+    icon: ImageVector? = null,
     onClick: () -> Unit
 ) {
     val confirm = role == SheetButtonRole.CONFIRM
@@ -258,7 +283,7 @@ private fun SheetButton(
                 CircularProgressIndicator(modifier = Modifier.size(16.dp), color = DS.ink2, strokeWidth = 2.dp)
             } else {
                 Icon(
-                    if (confirm) Icons.Filled.Check else Icons.Filled.Close,
+                    icon ?: if (confirm) Icons.Filled.Check else Icons.Filled.Close,
                     contentDescription = null,
                     tint = tint,
                     modifier = Modifier.size(with(LocalDensity.current) { 19.sp.toDp() })

@@ -8,6 +8,9 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalConfiguration
 import uniffi.imas_core.AppDestination
+import uniffi.imas_core.NavSection
+import uniffi.imas_core.appNavigationChatItem
+import com.fugaif.imaslivedb.ui.chatgpt.AssistantScreen
 import uniffi.imas_core.appNavigationSectionsWithTabs
 import com.fugaif.imaslivedb.ui.theme.AppPreferences
 import androidx.compose.foundation.layout.fillMaxSize
@@ -140,18 +143,28 @@ fun AppNavigation() {
         appNavigationSectionsWithTabs(lyricsAvailable = false, tabKeys = tabKeys)
     }
     val tabItems = remember(sections) { sections.flatMap { it.items }.filter { it.inTabBar } }
+    // チャットの行き先。ChatGPT とつないだ人にだけ出す (出すかどうかはコア)。タブバーの 5 枠 (並びの設定) とは別枠で、
+    // 並びの末尾に 6 つ目として足す。
+    val chatConnected by AppModule.from(LocalContext.current).chatGptPlanService.state
+        .collectAsState()
+    val chatItem = remember(chatConnected.canUsePlan) { appNavigationChatItem(chatConnected.canUsePlan) }
+    val barItems = remember(tabItems, chatItem) { tabItems + listOfNotNull(chatItem) }
     val wide = LocalConfiguration.current.screenWidthDp >= WIDE_SCREEN_MIN_DP
     // 最初の画面 (スケジュール) や今いる画面をタブから外したら、タブバーの先頭か、
     // 外した画面の入口があるプロデュースへ。
-    LaunchedEffect(tabItems) {
-        if (!wide && tabItems.none { it.destination == current }) {
+    LaunchedEffect(barItems) {
+        if (!wide && barItems.none { it.destination == current }) {
             current = if (current == AppDestination.SCHEDULE) tabItems.first().destination else AppDestination.PRODUCE
         }
     }
     // 狭くなったら (画面分割など) サイドバーだけの行き先から、同じ画面の入口がある
     // プロデュースへ戻す。iOS の AdaptiveRootTabs と同じ規則。
     LaunchedEffect(wide) {
-        if (!wide && tabItems.none { it.destination == current }) current = AppDestination.PRODUCE
+        if (!wide && barItems.none { it.destination == current }) current = AppDestination.PRODUCE
+    }
+    // 連携を解除したら、チャットに居たままにしない (広い画面ではサイドバーの項目も消える)。
+    LaunchedEffect(chatItem == null) {
+        if (chatItem == null && current == AppDestination.CHAT) current = AppDestination.PRODUCE
     }
     // 「他のタブに N 件」を押されたら、そのタブへ移る。語の受け渡しは移った先の
     // 一覧が `CrossTabSearch.take()` で拾う。generation を鍵にするのは、同じタブへ
@@ -231,7 +244,11 @@ fun AppNavigation() {
 
     Row {
         if (wide) {
-            AppSidebar(sections = sections, current = current, onSelect = selectDestination)
+            AppSidebar(
+                sections = sections + listOfNotNull(chatItem?.let { NavSection(title = null, items = listOf(it)) }),
+                current = current,
+                onSelect = selectDestination
+            )
         }
         // ステージ (タブバーを隠すゲームの画面) は会場の地を画面の端まで敷く。システムバーの分の
         // 余白は画面の側が取る (QuizStageScaffold・イントロドン)。それ以外は外枠が空ける。
@@ -242,7 +259,7 @@ fun AppNavigation() {
                 // ナビゲーションバー本体 (地は平らなまま)。再生中バーはここに相乗りせず、
                 // 中身の上に浮く枠として下で重ねる (ステージの間は出さない)。
                 if (!wide && !BottomBarVisibility.isHidden) {
-                    BottomNavBar(items = tabItems, current = current, onSelect = selectDestination)
+                    BottomNavBar(items = barItems, current = current, onSelect = selectDestination)
                 }
             }
         ) { innerPadding ->
@@ -250,7 +267,7 @@ fun AppNavigation() {
             // ステータスバーの高さをもう一度空け、題の上に空の帯ができる (二重の余白)。
             Box(modifier = Modifier.padding(innerPadding).consumeWindowInsets(innerPadding)) {
                 // タブから外した画面をプロデュースの「そのほか」から開いたとき、根で戻るとプロデュースへ帰る。
-                val offTab = !wide && tabItems.none { it.destination == current }
+                val offTab = !wide && barItems.none { it.destination == current }
                 BackHandler(enabled = offTab && navControllers.getValue(current).previousBackStackEntry == null) {
                     current = AppDestination.PRODUCE
                 }
@@ -301,6 +318,8 @@ private fun DestinationNavHost(destination: AppDestination, navController: NavHo
         AppDestination.COMMUNITY_ACTIVITY -> TabNavHost(navController, NavRoutes.EditHistory.route) { produceNavGraph(navController) }
         AppDestination.TAG_ACTIVITY -> TabNavHost(navController, NavRoutes.TagActivity.route) { produceNavGraph(navController) }
         AppDestination.GAMES -> TabNavHost(navController, NavRoutes.GamesHub.route) { produceNavGraph(navController) }
+        // チャットはシートでなくタブの中身として出す (閉じるボタンなし。「開く」は NaturalSearchOpen 経由で本体が開く)。
+        AppDestination.CHAT -> AssistantScreen(initialOrder = "", isTab = true, onClose = {})
         // Android には歌詞が無いのでコアがこの行き先を返さない。
         AppDestination.CALL_GUIDE -> Unit
     }
