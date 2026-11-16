@@ -11,10 +11,20 @@ enum PlaylistPlayback {
                                                    startAt: index)
     }
 
-    /// Apple Music で鳴らせない曲 (配信なし) の数。一覧で「n 曲は飛ばします」と出す。
+    /// フル尺で鳴らせず飛ばす曲の数 (Apple Music に無い曲と、聴き放題に無い版の曲)。一覧で「n 曲は飛ばします」と出す。
+    /// 聴き放題に無い版は `checkStreamable` で調べた分だけ数える。
     /// Spotify で鳴らすときは曲名で探すので、鳴らしてみるまで分からない (0 を返して出さない)。
     static func unplayableCount(_ songs: [Song]) -> Int {
-        guard MusicKitService.shared.fullPlaybackService != .spotify else { return 0 }
-        return songs.filter { ($0.appleMusicId ?? "").isEmpty }.count
+        MusicKitService.shared.fullPlaySkipCount(songs.map(\.appleMusicId))
+    }
+
+    /// この曲を飛ばすか (一覧の行を薄くして「聴けない」と出す)。
+    static func skips(_ song: Song) -> Bool {
+        MusicKitService.shared.fullPlaySkips(song.appleMusicId)
+    }
+
+    /// 並べた曲が聴き放題で鳴らせるかを調べる (画面を開いたときに 1 回。結果で `unplayableCount` が変わる)。
+    static func checkStreamable(_ songs: [Song]) async {
+        await MusicKitService.shared.checkStreamable(songs.map(\.appleMusicId))
     }
 }

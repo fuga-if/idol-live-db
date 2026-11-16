@@ -45,7 +45,8 @@ struct PlaylistDetailView: View {
                     }
                     ImasListSection("\(songs.count)曲") {
                         ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
-                            ImasSongRow(song: song, density: .compact)
+                            ImasSongRow(song: song, trailing: PlaylistPlayback.skips(song) ? .value("聴けない") : .none,
+                                        density: .compact, emphasis: PlaylistPlayback.skips(song) ? .dimmed : .normal)
                                 .contentShape(Rectangle())
                                 .onTapGesture { play(from: index) }
                                 .swipeActions(edge: .leading) {
@@ -118,6 +119,7 @@ struct PlaylistDetailView: View {
         }
         .sheet(item: $sheetDestination) { DetailSheetView(destination: $0) }
         .task { await load() }
+        .task(id: songs.map(\.id)) { await PlaylistPlayback.checkStreamable(songs) }
         .trackScreen("playlist_detail")
     }
 
@@ -132,7 +134,7 @@ struct PlaylistDetailView: View {
             }
             let unplayable = PlaylistPlayback.unplayableCount(songs)
             if unplayable > 0 {
-                ImasNote("Apple Music に無い \(unplayable) 曲は飛ばします。", systemImage: "forward.end")
+                ImasNote("Apple Music で聴けない \(unplayable) 曲は飛ばします。", systemImage: "forward.end")
             }
         }
     }

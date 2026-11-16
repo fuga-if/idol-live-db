@@ -150,6 +150,58 @@ class AppleMusicLyricsPlayback(
         }
     }
 
+    private val _unstreamable = MutableStateFlow<Set<String>>(emptySet())
+    override val unstreamableAppleMusicIds: StateFlow<Set<String>> = _unstreamable.asStateFlow()
+    /** 調べ終えた id (鳴らせるものも含む)。同じ id をカタログに聞き直さない。 */
+    private val checkedAppleMusicIds = mutableSetOf<String>()
+
+    /**
+     * カタログに聞いて、聴き放題に無い版 (playParams が無い) を [unstreamableAppleMusicIds] に入れる。
+     * 引けなかった id (通信失敗) は分からないままにする (飛ばすとは言わない)。
+     */
+    override suspend fun checkStreamable(appleMusicIds: List<String>) {
+        val unchecked = appleMusicIds.filter { it.isNotEmpty() }.distinct()
+            .filter { synchronized(checkedAppleMusicIds) { it !in checkedAppleMusicIds } }
+        if (unchecked.isEmpty()) return
+        val devToken = developerToken() ?: return
+        // 1 回の問い合わせに載せられる id の数には上限があるので分けて聞く。
+        for (chunk in unchecked.chunked(100)) {
+            val streamable = withContext(Dispatchers.IO) { fetchStreamable(devToken, chunk) } ?: continue
+            synchronized(checkedAppleMusicIds) { checkedAppleMusicIds.addAll(streamable.keys) }
+            _unstreamable.value = _unstreamable.value - streamable.filterValues { it }.keys +
+                streamable.filterValues { !it }.keys
+        }
+    }
+
+    /** @return Apple Music の id → 聴き放題で鳴らせるか。通信に失敗したら null。 */
+    private fun fetchStreamable(devToken: String, ids: List<String>): Map<String, Boolean>? = try {
+        val url = java.net.URL("https://api.music.apple.com/v1/catalog/$STOREFRONT/songs?ids=${ids.joinToString(",")}")
+        val conn = (url.openConnection() as java.net.HttpURLConnection).apply {
+            setRequestProperty("Authorization", "Bearer $devToken")
+            connectTimeout = 10_000
+            readTimeout = 10_000
+        }
+        try {
+            if (conn.responseCode != 200) {
+                null
+            } else {
+                val data = JSONObject(conn.inputStream.bufferedReader().use { it.readText() }).optJSONArray("data")
+                buildMap {
+                    for (i in 0 until (data?.length() ?: 0)) {
+                        val item = data!!.getJSONObject(i)
+                        put(item.getString("id"), item.optJSONObject("attributes")?.has("playParams") == true)
+                    }
+                }
+            }
+        } finally {
+            conn.disconnect()
+        }
+    } catch (e: IOException) {
+        null
+    } catch (e: org.json.JSONException) {
+        null
+    }
+
     private val _appleMusicState = MutableStateFlow(
         when {
             bridge == null -> AppleMusicState.UNAVAILABLE
@@ -232,8 +284,11 @@ class AppleMusicLyricsPlayback(
 
     override suspend fun startQueue(entries: List<Pair<String, String>>, startAt: Int): Boolean {
         val bridge = bridge ?: return false
-        // Apple Music に無い曲は飛ばす。押した曲がその中に無ければ、その後ろで最初に鳴らせる曲から。
-        val playable = entries.filter { it.second.isNotEmpty() }
+        // Apple Music に無い曲と、聴き放題に無い版 (購入専用) の曲は飛ばす。後者を積むと Apple Music が
+        // 黙って次へ送り、押した曲と違う曲から鳴り出す。押した曲が鳴らせなければ、その後ろで最初に鳴らせる曲から。
+        checkStreamable(entries.map { it.second })
+        val unstreamable = _unstreamable.value
+        val playable = entries.filter { it.second.isNotEmpty() && it.second !in unstreamable }
         if (playable.isEmpty()) return false
         val start = (startAt until entries.size)
             .firstNotNullOfOrNull { i -> playable.indexOfFirst { it.first == entries[i].first }.takeIf { it >= 0 } }
@@ -404,6 +459,8 @@ class AppleMusicLyricsPlayback(
         const val TAG = "AppleMusicPlayback"
         const val PREFS = "apple_music"
         const val KEY_USER_TOKEN = "musicUserToken"
+        /** カタログを引く店。このアプリの曲 (songs.apple_music_id) は日本の店の id。 */
+        const val STOREFRONT = "jp"
         /** 端末の設定。既定を切に変えたので鍵も替える (前の既定「入」で保存された値を引き継がない)。
          *  iOS `MusicKitService.autoplayKey` と同じキー名。 */
         const val KEY_AUTOPLAY = "music.autoplay_next.v2"
