@@ -54,6 +54,8 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasButton
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonSize
 import com.fugaif.imaslivedb.ui.designsystem.ImasCardList
+import com.fugaif.imaslivedb.ui.designsystem.ImasChatBubble
+import com.fugaif.imaslivedb.ui.designsystem.ImasChatComposer
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.designsystem.ImasFormBackdrop
 import com.fugaif.imaslivedb.ui.designsystem.ImasIconTileTone
@@ -294,7 +296,8 @@ fun AssistantSheet(
                     }
                 }
                 if (session.canUsePlan) {
-                    Composer(
+                    ImasChatComposer(
+                        prompt = "聞きたいこと・やってほしいこと",
                         text = text,
                         onTextChange = { new ->
                             val limit = assistantMaxOrderChars().toInt()
@@ -341,16 +344,7 @@ private fun TurnView(
     onExecute: () -> Unit,
 ) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
-        // 利用者の発言は右に寄せた紙片。
-        Box(Modifier.fillMaxWidth().padding(start = DS.Space.section), contentAlignment = Alignment.CenterEnd) {
-            ImasText(
-                turn.order,
-                role = ImasTextRole.BODY,
-                modifier = Modifier
-                    .background(DS.surface2, RoundedCornerShape(12.dp))
-                    .padding(horizontal = DS.Space.card, vertical = DS.Space.gap),
-            )
-        }
+        ImasChatBubble(turn.order)
         when (val state = turn.state) {
             is TurnState.Running -> Row(
                 Modifier.fillMaxWidth(),
@@ -445,44 +439,3 @@ private fun failures(review: Review): List<String> =
         "${review.plan.actions[index].title}: ${failed.message}"
     }
 
-@Composable
-private fun Composer(text: String, onTextChange: (String) -> Unit, canSend: Boolean, onSend: () -> Unit) {
-    Column(Modifier.fillMaxWidth().background(DS.paper)) {
-        Box(Modifier.fillMaxWidth().height(1.dp).background(DS.line))
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = DS.Space.screen, vertical = DS.Space.gap),
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.spacedBy(DS.Space.gap),
-        ) {
-            Box(
-                Modifier
-                    .weight(1f)
-                    .background(DS.surface, RoundedCornerShape(12.dp))
-                    .border(BorderStroke(1.dp, DS.line), RoundedCornerShape(12.dp))
-                    .padding(horizontal = DS.Space.card, vertical = DS.Space.gap),
-            ) {
-                if (text.isEmpty()) ImasText("聞きたいこと・やってほしいこと", role = ImasTextRole.NOTE)
-                BasicTextField(
-                    value = text,
-                    onValueChange = onTextChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    textStyle = ImasTextRole.BODY.style.copy(color = DS.ink),
-                    cursorBrush = SolidColor(DS.sys),
-                    maxLines = 5,
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = ImeAction.Default),
-                )
-            }
-            Box(
-                Modifier
-                    .size(40.dp)
-                    .alpha(if (canSend) 1f else 0.35f)
-                    .background(DS.sys, RoundedCornerShape(10.dp))
-                    .semantics { contentDescription = "送る" }
-                    .clickable(enabled = canSend, onClick = onSend),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(Icons.Filled.ArrowUpward, contentDescription = null, tint = DS.onSys)
-            }
-        }
-    }
-}

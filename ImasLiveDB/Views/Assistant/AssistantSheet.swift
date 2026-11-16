@@ -22,7 +22,6 @@ struct AssistantSheet: View {
     @State private var history: [String] = []
     @State private var path: [DetailDestination] = []
     @State private var runTask: Task<Void, Never>?
-    @FocusState private var composerFocused: Bool
 
     private var session: ChatGPTPlanSession { .shared }
 
@@ -147,14 +146,7 @@ struct AssistantSheet: View {
     @ViewBuilder
     private func turnView(_ turn: Turn) -> some View {
         VStack(alignment: .leading, spacing: DS.Space.gap) {
-            // 利用者の発言は右に寄せた紙片。
-            Text(turn.order)
-                .imasText(.body)
-                .padding(.horizontal, DS.Space.card)
-                .padding(.vertical, DS.Space.gap)
-                .background(DS.surface2, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .frame(maxWidth: .infinity, alignment: .trailing)
-                .padding(.leading, DS.Space.section)
+            ImasChatBubble(turn.order)
 
             switch turn.state {
             case .running(let label):
@@ -220,34 +212,7 @@ struct AssistantSheet: View {
     }
 
     private var composer: some View {
-        HStack(alignment: .bottom, spacing: DS.Space.gap) {
-            TextField("聞きたいこと・やってほしいこと", text: $text, axis: .vertical)
-                .font(.imasBody)
-                .lineLimit(1...5)
-                .focused($composerFocused)
-                .submitLabel(.send)
-                .padding(.horizontal, DS.Space.card)
-                .padding(.vertical, DS.Space.gap)
-                .background(DS.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(DS.line))
-            Button {
-                send(text)
-            } label: {
-                Image(systemName: "arrow.up")
-                    .font(.imasScaled(16, weight: .bold))
-                    .foregroundStyle(DS.onSys)
-                    .frame(width: 40, height: 40)
-                    .background(DS.sys, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-            }
-            .buttonStyle(.plain)
-            .disabled(!canSend)
-            .opacity(canSend ? 1 : 0.35)
-            .accessibilityLabel("送る")
-        }
-        .padding(.horizontal, DS.Space.screen)
-        .padding(.vertical, DS.Space.gap)
-        .background(DS.paper)
-        .overlay(alignment: .top) { Rectangle().fill(DS.line).frame(height: 1) }
+        ImasChatComposer(prompt: "聞きたいこと・やってほしいこと", text: $text, canSend: canSend) { send(text) }
     }
 
     private var canSend: Bool {
