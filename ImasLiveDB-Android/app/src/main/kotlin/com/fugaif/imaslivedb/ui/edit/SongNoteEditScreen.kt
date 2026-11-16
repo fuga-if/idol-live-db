@@ -86,7 +86,7 @@ fun SongNoteEditScreen(
         canSave = !isUnchanged && !isTooLong,
         isSaving = isSaving,
         onCancel = onDismiss,
-        onSave = ::submit
+        onSave = { submit() }
     ) {
         EditSection("補足", footer = "由来や位置づけを 1 文で。曲詳細の曲名の下に表示されます。") {
             EditTextField(

@@ -255,7 +255,7 @@ fun ImasSwipe(
                     stretches = fullLeading,
                     modifier = Modifier.align(Alignment.CenterStart),
                     onMeasured = { leadingWidth = it },
-                    onTap = ::perform
+                    onTap = { action -> perform(action) }
                 )
             }
             if (trailing.isNotEmpty()) {
@@ -266,7 +266,7 @@ fun ImasSwipe(
                     stretches = fullTrailing,
                     modifier = Modifier.align(Alignment.CenterEnd),
                     onMeasured = { trailingWidth = it },
-                    onTap = ::perform
+                    onTap = { action -> perform(action) }
                 )
             }
         }

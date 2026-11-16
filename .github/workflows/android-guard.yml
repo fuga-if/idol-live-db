@@ -17,6 +17,7 @@ on:
       - 'imas-core/**'
       - 'imas-text-fold/**'
       - '.github/workflows/android-guard.yml'
+      - 'tools/check_compose_local_fn_refs.sh'
   pull_request:
     paths:
       - 'ImasLiveDB-Android/**'
@@ -24,6 +25,7 @@ on:
       - 'imas-core/**'
       - 'imas-text-fold/**'
       - '.github/workflows/android-guard.yml'
+      - 'tools/check_compose_local_fn_refs.sh'
   workflow_dispatch:
 
 # GITHUB_TOKEN は既定で読み取りのみ (書き込みが要るジョブは個別に足す)。
@@ -37,6 +39,10 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
+
+      # ローカル関数を ::save の形でボタンに渡すと、古い値が送られる (お題が「あ」になった件)。
+      - name: Check local function references
+        run: bash tools/check_compose_local_fn_refs.sh
 
       # Gradle 8.11.1 は JDK 25 未対応。21 に固定する。
       - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1

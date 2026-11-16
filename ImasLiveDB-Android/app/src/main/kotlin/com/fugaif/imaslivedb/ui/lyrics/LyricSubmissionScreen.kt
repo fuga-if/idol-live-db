@@ -178,7 +178,7 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
         }
     }
 
-    val openCamera = rememberDocumentCamera(maxPages = 10, onFinish = ::read)
+    val openCamera = rememberDocumentCamera(maxPages = 10, onFinish = { uris -> read(uris) })
     val pickPhotos = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(10)) { read(it) }
 
     Box(Modifier.fillMaxWidth()) {
@@ -187,8 +187,8 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
                 kind = ImasSheetToolbarKind.Submit(
                     canSubmit = check.canSubmit && !isSaving,
                     isSubmitting = isSaving,
-                    onCancel = ::requestDismiss,
-                    onSubmit = ::submit
+                    onCancel = { requestDismiss() },
+                    onSubmit = { submit() }
                 ),
                 title = "歌詞を投稿"
             )

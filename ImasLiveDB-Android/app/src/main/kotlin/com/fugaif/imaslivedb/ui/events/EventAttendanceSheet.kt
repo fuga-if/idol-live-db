@@ -108,7 +108,7 @@ fun EventAttendanceSheet(
                         isSelected = allLive,
                         seed = seed,
                         brand = brand,
-                        onClick = ::toggleAllLive
+                        onClick = { toggleAllLive() }
                     )
                 }
 

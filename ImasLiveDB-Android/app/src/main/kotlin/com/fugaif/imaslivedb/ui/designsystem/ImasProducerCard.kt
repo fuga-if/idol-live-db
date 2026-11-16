@@ -285,7 +285,7 @@ fun ImasProducerCard(content: ImasProducerCardContent, modifier: Modifier = Modi
                 .widthIn(max = CARD_MAX_WIDTH.dp)
                 .fillMaxWidth()
                 .aspectRatio(ImasMeishi.ASPECT)
-                .then(if (canFlip) Modifier.imasRowPress(onClick = ::flip) else Modifier)
+                .then(if (canFlip) Modifier.imasRowPress(onClick = { flip() }) else Modifier)
                 .clearAndSetSemantics {
                     contentDescription = if (flipped) backLabel else frontLabel
                     if (canFlip) {

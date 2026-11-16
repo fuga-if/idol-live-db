@@ -163,7 +163,7 @@ internal fun StickerPrepSheet(image: Bitmap, onUse: (ByteArray) -> Unit, onDismi
         Box {
             Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = DS.Space.section)) {
                 ImasSheetToolbar(
-                    ImasSheetToolbarKind.Edit(canSave = !isCutting, onCancel = onDismiss, onSave = ::use),
+                    ImasSheetToolbarKind.Edit(canSave = !isCutting, onCancel = onDismiss, onSave = { use() }),
                     title = "素材を足す"
                 )
                 Column(Modifier.padding(horizontal = DS.Space.screen), verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)) {

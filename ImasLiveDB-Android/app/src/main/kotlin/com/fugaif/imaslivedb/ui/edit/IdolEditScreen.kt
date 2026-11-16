@@ -151,7 +151,7 @@ fun IdolEditScreen(
         canSave = true,
         isSaving = isSaving,
         onCancel = onDismiss,
-        onSave = ::save
+        onSave = { save() }
     ) {
         EditSection("名前") {
             EditReadonlyRow("ID", original.id)

@@ -106,7 +106,7 @@ fun IdolTagPickerSheet(
                     canSubmit = selected.isNotEmpty() && !isApplying,
                     isSubmitting = isApplying,
                     onCancel = onDismiss,
-                    onSubmit = ::submit
+                    onSubmit = { submit() }
                 ),
                 title = "タグを追加"
             )

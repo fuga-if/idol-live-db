@@ -124,7 +124,7 @@ fun VideoEditSheet(
         Box(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 ImasSheetToolbar(
-                    kind = ImasSheetToolbarKind.Edit(canSave = isValid && !isSaving, onCancel = onDismiss, onSave = ::save),
+                    kind = ImasSheetToolbarKind.Edit(canSave = isValid && !isSaving, onCancel = onDismiss, onSave = { save() }),
                     title = if (existing == null) "参考動画を投稿" else "参考動画を編集"
                 )
                 Column(

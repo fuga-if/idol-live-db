@@ -108,7 +108,7 @@ fun SpotifyExportSheet(name: String, songs: List<SpotifyExportSong>, onDismiss: 
                         ImasListSection(footer = "非公開のプレイリストとして作ります。") {
                             ImasValueRow(key = "プレイリスト名", value = name)
                             ImasValueRow(key = "曲", value = "${songs.size} 曲", monospaced = true)
-                            StartButton(::start)
+                            StartButton { start() }
                         }
                     } else {
                         ImasListSection(footer = "自分の Spotify アカウントで作った「アプリ」の Client ID を使います。最初の 1 回だけ設定が要ります。") {
@@ -123,7 +123,7 @@ fun SpotifyExportSheet(name: String, songs: List<SpotifyExportSong>, onDismiss: 
                     ExportPhase.Setup -> if (state.isConnected) {
                         ImasListSection(footer = "非公開のプレイリストとして作ります。") {
                             ImasValueRow(key = "プレイリスト名", value = name)
-                            StartButton(::start)
+                            StartButton { start() }
                         }
                     } else {
                         SpotifySettingsContent()
@@ -148,7 +148,7 @@ fun SpotifyExportSheet(name: String, songs: List<SpotifyExportSong>, onDismiss: 
                             modifier = Modifier.padding(horizontal = DS.Space.rowH, vertical = DS.Space.gap),
                         )
                         if (state.isConnected) {
-                            StartButton(::start)
+                            StartButton { start() }
                         } else {
                             ImasNavRow(
                                 title = "Spotify にログインし直す",

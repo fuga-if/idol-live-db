@@ -260,7 +260,7 @@ fun ProducerCardExchangeSheet(
             ) {
                 ImasTabs(labels = listOf("見せる", "読む"), selection = if (reading) 1 else 0, onSelect = { reading = it == 1 })
                 if (!reading) {
-                    ShowSection(myCard, lastReceived, onShareFile = ::shareCardFile)
+                    ShowSection(myCard, lastReceived, onShareFile = { card -> shareCardFile(card) })
                 } else {
                     ReadSection(
                         cameraAvailable = cardCameraAvailable(context),
@@ -268,7 +268,7 @@ fun ProducerCardExchangeSheet(
                         onRequestCamera = { permissions.launch(arrayOf(Manifest.permission.CAMERA)) },
                         scanNotice = scanNotice,
                         savedNotice = savedNotice,
-                        onScan = ::handleScan
+                        onScan = { text -> handleScan(text) }
                     )
                 }
             }
