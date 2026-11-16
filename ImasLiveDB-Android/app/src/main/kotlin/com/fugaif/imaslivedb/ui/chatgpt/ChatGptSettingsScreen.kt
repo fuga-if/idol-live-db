@@ -28,6 +28,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -91,6 +92,7 @@ fun ChatGptSettingsScreen(onBack: () -> Unit) {
     val service = remember { AppModule.from(context).chatGptPlanService }
     val state by service.state.collectAsState()
     var searchQuery by remember { mutableStateOf<String?>(null) }
+    var assistantOpen by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.tokens?.accessToken) { runCatching { service.loadModelsIfNeeded() } }
 
@@ -106,7 +108,7 @@ fun ChatGptSettingsScreen(onBack: () -> Unit) {
     ) { padding ->
         ImasFormBackdrop(Modifier.fillMaxSize().padding(padding)) {
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = DS.Space.section)) {
-                if (state.isSignedIn) ConnectedSections(onExample = { searchQuery = it }) else SetupSections()
+                if (state.isSignedIn) ConnectedSections(onExample = { searchQuery = it }, onOpenAssistant = { assistantOpen = true }) else SetupSections()
             }
         }
     }
@@ -119,10 +121,17 @@ fun ChatGptSettingsScreen(onBack: () -> Unit) {
             onOpen = { kind, id -> onBack(); NaturalSearchOpen.request(kind, id) },
         )
     }
+    if (assistantOpen) {
+        AssistantSheet(
+            initialOrder = "",
+            onDismiss = { assistantOpen = false },
+            onOpen = { kind, id -> onBack(); NaturalSearchOpen.request(kind, id) },
+        )
+    }
 }
 
 @Composable
-private fun ConnectedSections(onExample: (String) -> Unit) {
+private fun ConnectedSections(onExample: (String) -> Unit, onOpenAssistant: () -> Unit) {
     val context = LocalContext.current
     val service = remember { AppModule.from(context).chatGptPlanService }
     val state by service.state.collectAsState()
@@ -173,7 +182,20 @@ private fun ConnectedSections(onExample: (String) -> Unit) {
             }
         }
     }
-    ImasListSection(footer = "探すたび・DJ に頼むたびに ChatGPT のプランの利用量を使います。このアプリからの請求はありません。") {
+    if (state.canUsePlan) {
+        ImasListSection(
+            "チャット",
+            footer = "データベースを引いて質問に答えます。参加の記録・お気に入り・プレイリスト・収支など、アプリの中で自分でできる操作も頼めます。頼んだ操作は一覧で確かめてから実行します。歌詞やコールのように人が書くものは、その画面を開くところまでです。",
+        ) {
+            ImasNavRow(
+                title = "チャットを開く",
+                icon = Icons.Outlined.ChatBubbleOutline,
+                iconTone = ImasIconTileTone.NEUTRAL,
+                onClick = onOpenAssistant,
+            )
+        }
+    }
+    ImasListSection(footer = "探すたび・話すたびに ChatGPT のプランの利用量を使います。このアプリからの請求はありません。") {
         ImasNavRow(
             title = "ChatGPT の設定を開く",
             icon = Icons.AutoMirrored.Filled.OpenInNew,

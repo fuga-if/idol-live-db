@@ -32,6 +32,7 @@ struct ChatGPTSettingsView: View {
     @State private var signOutNote: String?
     @State private var confirmSignOut = false
     @State private var searchQuery: NaturalSearchQuery?
+    @State private var assistantOrder: AssistantOrder?
 
     private static let usageURL = URL(string: "https://chatgpt.com/#settings")!
 
@@ -49,6 +50,7 @@ struct ChatGPTSettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .imasErrorAlert("ChatGPT とつなげませんでした", message: $errorMessage)
         .sheet(item: $searchQuery) { NaturalSearchSheet(initialQuery: $0.text) }
+        .sheet(item: $assistantOrder) { AssistantSheet(initialOrder: $0.text) }
         .task { try? await session.loadModelsIfNeeded() }
         .trackScreen("chatgpt_settings")
     }
@@ -90,7 +92,18 @@ struct ChatGPTSettingsView: View {
                 }
             }
         }
-        ImasListSection(footer: "探すたび・DJ に頼むたびに ChatGPT のプランの利用量を使います。このアプリからの請求はありません。") {
+        if session.canUsePlan {
+            ImasListSection("チャット", footer: "データベースを引いて質問に答えます。参加の記録・お気に入り・プレイリスト・収支など、アプリの中で自分でできる操作も頼めます。頼んだ操作は一覧で確かめてから実行します。歌詞やコールのように人が書くものは、その画面を開くところまでです。") {
+                Button {
+                    AppAnalytics.tap("assistant.open")
+                    assistantOrder = AssistantOrder(text: "")
+                } label: {
+                    ImasNavRow(title: "チャットを開く", systemImage: "bubble.left.and.text.bubble.right", iconTone: .neutral)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        ImasListSection(footer: "探すたび・話すたびに ChatGPT のプランの利用量を使います。このアプリからの請求はありません。") {
             Link(destination: Self.usageURL) {
                 ImasNavRow(title: "ChatGPT の設定を開く", systemImage: "arrow.up.right.square", showsChevron: false)
             }

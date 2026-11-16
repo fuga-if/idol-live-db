@@ -197,6 +197,8 @@ fun AppNavigation() {
             NaturalSearchKind.SONG -> TopLevelTab.Songs to NavRoutes.SongDetail.createRoute(req.id)
             NaturalSearchKind.IDOL -> TopLevelTab.Idols to NavRoutes.IdolDetail.createRoute(req.id)
             NaturalSearchKind.EVENT -> TopLevelTab.Events to NavRoutes.EventDetail.createRoute(req.id)
+            NaturalSearchKind.SHOW -> TopLevelTab.Events to NavRoutes.Setlist.createRoute(req.id)
+            NaturalSearchKind.UNIT -> TopLevelTab.Idols to NavRoutes.UnitDetail.createRoute(req.id)
         }
         val target = if (wide || tabItems.any { it.destination == tab.destination }) tab.destination else AppDestination.PRODUCE
         current = target

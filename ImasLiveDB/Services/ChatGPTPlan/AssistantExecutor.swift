@@ -1,0 +1,109 @@
+import Foundation
+
+/// コアが検査した操作 1 件を、既存の書き込み口 1 回に写す。
+///
+/// 規則 (どの操作があるか・id が実在するか・どこまで届くか) はコア (`domain::ai_actions`)。
+/// ここは OS の持ち物 (端末の DB・再生・サーバへの送信) を呼ぶだけで、判断を足さない。
+@MainActor
+enum AssistantExecutor {
+    struct Failure: LocalizedError {
+        let message: String
+        var errorDescription: String? { message }
+    }
+
+    /// - Returns: 開く画面 (`open` のときだけ)。
+    @discardableResult
+    static func perform(_ action: AiAction) async throws -> DetailDestination? {
+        let marks = UserMarkService.shared
+        let container = AppContainer.shared
+        switch action {
+        case .setAttendance(let showId, let attendance, let on):
+            guard let type = AttendanceType(rawValue: attendance) else { throw Failure(message: "参加の種類が分かりません") }
+            try marks.setAttendance(entity: .show, id: showId, type: type, on: on)
+        case .setFavoriteSong(let songId, let on):
+            try marks.setBool(.favorite, entity: .song, id: songId, value: on)
+        case .setMyPick(let idolId, let on):
+            try marks.setBool(.myPick, entity: .idol, id: idolId, value: on)
+        case .setNote(let entity, let id, let text):
+            guard let entity = UserMarkEntity(rawValue: entity) else { throw Failure(message: "メモを書けない対象です") }
+            try marks.setNote(entity: entity, id: id, text: text.isEmpty ? nil : text)
+        case .setSeat(let showId, let text):
+            try marks.setSeat(entity: .show, id: showId, text: text.isEmpty ? nil : text)
+        case .addPersonalTag(let entity, let id, let name):
+            guard PersonalTagService.shared.addTag(entityType: entity, entityId: id, name: name) else {
+                throw Failure(message: "タグを付けられませんでした (同じ名前のタグがあるかもしれません)")
+            }
+        case .removePersonalTag(let entity, let id, let name):
+            PersonalTagService.shared.removeTag(entityType: entity, entityId: id, name: name)
+        case .createPlaylist(let name, let songIds):
+            let playlist = try await container.playlists.create(name: name)
+            do {
+                try await container.playlists.setSongIds(playlistId: playlist.id, songIds: songIds)
+            } catch {
+                // 曲を入れられなかったら、空のプレイリストを残さない。
+                try? await container.playlists.delete(id: playlist.id)
+                throw error
+            }
+        case .addToPlaylist(let playlistId, let songIds):
+            try await container.playlists.append(playlistId: playlistId, songIds: songIds)
+        case .addExpense(let date, let category, let amount, let showId, let eventId, let note):
+            try await container.ledgerWriting.save(
+                Expense.make(date: date, category: category, amount: amount, showId: showId, eventId: eventId, note: note)
+            )
+        case .open(let entity, let id, let section):
+            return try await destination(entity: entity, id: id, section: section)
+        case .playSongs(let songIds):
+            let songs = try await orderedSongs(songIds)
+            guard await PlaylistPlayback.play(songs) else {
+                throw Failure(message: "続けて流すには Apple Music の契約か Spotify の連携が要ります")
+            }
+        case .predictSong(let showId, let songId, let on):
+            if on {
+                _ = try await PredictionService.shared.vote(showId: showId, songId: songId)
+            } else {
+                try await PredictionService.shared.unvote(showId: showId, songId: songId)
+            }
+        case .likeSetlistSong(let showId, let songId, let on):
+            if on {
+                _ = try await SetlistLikeService.shared.like(showId: showId, songId: songId)
+            } else {
+                _ = try await SetlistLikeService.shared.unlike(showId: showId, songId: songId)
+            }
+        }
+        return nil
+    }
+
+    private static func orderedSongs(_ ids: [String]) async throws -> [Song] {
+        let songs = try await AppContainer.shared.songReading.songs(ids: ids)
+        let byId = Dictionary(songs.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        return ids.compactMap { byId[$0] }
+    }
+
+    private static func destination(entity: String, id: String, section: String) async throws -> DetailDestination {
+        let container = AppContainer.shared
+        let missing = Failure(message: "開く先が見つかりませんでした")
+        switch entity {
+        case "song":
+            guard let song = try await orderedSongs([id]).first else { throw missing }
+            switch section {
+            case "history": return .songHistory(song)
+            case "lyrics": return .songLyrics(song)
+            default: return .song(song)
+            }
+        case "idol":
+            guard let idol = try await container.idolReading.idols(ids: [id]).first else { throw missing }
+            return .idol(idol)
+        case "event":
+            guard let event = try await container.eventReading.event(id: id) else { throw missing }
+            return .event(event)
+        case "show":
+            guard let show = try await container.showReading.show(id: id) else { throw missing }
+            return .show(show)
+        case "unit":
+            guard let unit = try await container.unitReading.unit(id: id) else { throw missing }
+            return .unit(unit)
+        default:
+            throw missing
+        }
+    }
+}

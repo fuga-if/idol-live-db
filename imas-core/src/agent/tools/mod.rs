@@ -18,6 +18,8 @@
 
 pub mod browse;
 pub mod lookup;
+pub mod assistant;
+pub mod call_sheet_reader;
 pub mod natural_search;
 pub mod plan_loop;
 pub mod prep_dj;

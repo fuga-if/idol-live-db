@@ -71,6 +71,7 @@ struct CrossTabCountChips: View {
 
     @State private var counts = CrossTabSearchCounts()
     @State private var naturalSearch: NaturalSearchQuery?
+    @State private var assistantOrder: AssistantOrder?
 
     var body: some View {
         // 器は常に置く (中身が無くても高さ 0)。`Group { if ... }` だと候補が空のとき
@@ -98,6 +99,13 @@ struct CrossTabCountChips: View {
                             naturalSearch = NaturalSearchQuery(text: query)
                         }
                     }
+                    // 一覧で返せない問い (「次のライブはいつ？」) と、やってほしいこと (「〜に参加を付けて」) の行き先。
+                    if offersAssistant {
+                        ImasFilterChip(text: "チャットで聞く", systemImage: "text.bubble", isSelected: false) {
+                            AppAnalytics.tap("assistant.open")
+                            assistantOrder = AssistantOrder(text: query)
+                        }
+                    }
                 }
                 .padding(.vertical, DS.Space.gapTight)
             }
@@ -105,6 +113,12 @@ struct CrossTabCountChips: View {
         // 打鍵ごとにコアへ 1 往復 (数えるだけなので実体は運ばない)。
         .task(id: query) { await reload() }
         .sheet(item: $naturalSearch) { NaturalSearchSheet(initialQuery: $0.text) }
+        .sheet(item: $assistantOrder) { AssistantSheet(initialOrder: $0.text) }
+    }
+
+    /// 「チャットで聞く」を出すか。受ける長さかどうかはコアが決める。
+    private var offersAssistant: Bool {
+        ChatGPTPlanSession.shared.canUsePlan && assistantAccepts(order: query)
     }
 
     /// 「文で探す」を出すか。受ける長さかどうかはコアが決める。

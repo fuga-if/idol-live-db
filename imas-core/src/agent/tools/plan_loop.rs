@@ -35,7 +35,12 @@ pub struct Request {
 ///
 /// ChatGPT プランの経路では、関数ツールを namespace にまとめないと受け付けない。
 pub(super) fn responses_tools() -> Value {
-    let functions: Vec<Value> = tool_catalog()
+    responses_tools_of(tool_catalog(), "アイドルマスターのライブ / 楽曲 DB を読む。")
+}
+
+/// 渡すツールを選んで組む (読み取りに操作ツールを足す仕事用)。
+pub(super) fn responses_tools_of(specs: Vec<super::ToolSpec>, description: &str) -> Value {
+    let functions: Vec<Value> = specs
         .into_iter()
         .map(|spec| {
             json!({
@@ -52,7 +57,7 @@ pub(super) fn responses_tools() -> Value {
     json!([{
         "type": "namespace",
         "name": NAMESPACE,
-        "description": "アイドルマスターのライブ / 楽曲 DB を読む。",
+        "description": description,
         "tools": functions,
     }])
 }

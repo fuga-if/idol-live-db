@@ -24,6 +24,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -42,6 +43,7 @@ import com.fugaif.imaslivedb.data.lyrics.LyricSubmissionDrafts
 import com.fugaif.imaslivedb.data.lyrics.LyricsApi
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.chatgpt.CallSheetImportSheet
 import com.fugaif.imaslivedb.ui.designsystem.ImasButton
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonSize
@@ -76,6 +78,7 @@ import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import kotlinx.coroutines.launch
 import uniffi.imas_core.LyricSubmissionIssue
 import uniffi.imas_core.RubyMark
+import uniffi.imas_core.callSheetLyricText
 import uniffi.imas_core.lyricOcrAppend
 import uniffi.imas_core.lyricOcrSteps
 import uniffi.imas_core.lyricRemoveLines
@@ -123,6 +126,8 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
     var isReading by remember { mutableStateOf(false) }
     var ocrMessage by remember { mutableStateOf<String?>(null) }
     var showGuide by remember { mutableStateOf(false) }
+    var showCallSheet by remember { mutableStateOf(false) }
+    val chatGpt by AppModule.from(context).chatGptPlanService.state.collectAsState()
 
     val check = lyricSubmissionCheck(markup, agreed)
     val isDirty = text.trim().isNotEmpty()
@@ -235,6 +240,19 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
                     }
                 )
 
+                // ChatGPT とつないでいる人にだけ出す (つないでいない人に入口を増やさない)。
+                if (chatGpt.canUsePlan) {
+                    ImasButton(
+                        title = "コール表の画像から下書き",
+                        onClick = { showCallSheet = true },
+                        icon = Icons.Filled.DocumentScanner,
+                        role = ImasButtonRole.SECONDARY,
+                        size = ImasButtonSize.SMALL,
+                        fillsWidth = true,
+                        enabled = !isReading && !isSaving
+                    )
+                }
+
                 IssueNotes(song.id, check.lineCount, check.charCount, check.issues, draft.doubtfulLines)
 
                 PreviewSection(text = text, markup = markup)
@@ -284,6 +302,17 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
         message = sentMessage,
         onDismiss = { sentMessage = null; onDismiss() }
     )
+
+    if (showCallSheet) {
+        CallSheetImportSheet(
+            onUse = { reading ->
+                // 読んだ歌詞は入力欄に足すだけ。本人が歌詞カードと見比べてから送る。
+                val current = LyricSubmissionDrafts.draft(song.id).text
+                LyricSubmissionDrafts.setText(song.id, lyricOcrAppend(current, callSheetLyricText(reading)))
+            },
+            onDismiss = { showCallSheet = false },
+        )
+    }
 
     if (showGuide) {
         ImasFullScreenDialog(onDismissRequest = { showGuide = false }) {

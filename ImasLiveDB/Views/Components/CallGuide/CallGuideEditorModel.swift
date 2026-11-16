@@ -120,6 +120,27 @@ final class CallGuideEditorModel {
         lines[targetIndex].calls.append(moved)
     }
 
+    // MARK: - コール表の画像からの下書き
+
+    /// コール表から読んだコールを、今の歌詞に当てて足す (当て方はコア)。足したものは未保存の変更で、
+    /// 本人が見直してから「保存」する。結果 (何件入れたか・入らなかったもの) を返す。
+    func applyImport(_ reading: CallSheetReading) -> CallSheetPlacement {
+        // 当てる相手は本文の行だけ (見出しや空行にはコールを付けられない)。
+        let targets = lines.filter { $0.kind == .lyric && !$0.text.isEmpty }.map { line in
+            ImportTargetLine(id: line.id, text: line.text, hasClap: line.clap != nil,
+                             calls: line.calls.map { ImportExistingCall(start: UInt32($0.start), end: UInt32($0.end), text: $0.text) })
+        }
+        let placement = callSheetPlace(reading: reading, lines: targets)
+        for call in placement.calls {
+            addCall(lineId: call.lineId, start: Int(call.start), end: Int(call.end), anchorText: call.anchorText,
+                    text: call.text, emphasis: .normal, timing: CallTiming(rawValue: call.timing) ?? .after)
+        }
+        for clap in placement.claps {
+            if let kind = LyricClap(rawValue: clap.clap) { setClap(lineId: clap.lineId, clap: kind) }
+        }
+        return placement
+    }
+
     private func mutate(_ lineId: String, _ body: (inout LyricLine) -> Void) {
         guard let index = lines.firstIndex(where: { $0.id == lineId }) else { return }
         body(&lines[index])

@@ -1,5 +1,6 @@
 //! ドメイン核: 純粋ロジックのみ。uniffi は型 derive を除き持ち込まない。
 
+pub mod ai_actions;
 pub mod app_navigation;
 pub mod attendance;
 pub mod auth_rules;
@@ -8,6 +9,7 @@ pub mod backup_summary;
 pub mod brand_role;
 pub mod brand_theme;
 pub mod calendar_queries;
+pub mod call_guide_import;
 pub mod call_sheet;
 pub mod cast_song_matching;
 pub mod ck_record_mapping;

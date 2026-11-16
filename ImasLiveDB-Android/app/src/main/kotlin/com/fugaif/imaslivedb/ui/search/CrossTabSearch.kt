@@ -3,9 +3,12 @@ package com.fugaif.imaslivedb.ui.search
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import com.fugaif.imaslivedb.ui.chatgpt.AssistantSheet
 import com.fugaif.imaslivedb.ui.chatgpt.NaturalSearchSheet
+import uniffi.imas_core.assistantAccepts
 import uniffi.imas_core.naturalSearchAccepts
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -111,7 +114,11 @@ fun CrossTabCountChips(query: String, from: TopLevelTab) {
     var naturalSearch by remember { mutableStateOf<String?>(null) }
     // シートは早期 return より前に置く (検索中に 401 でトークンが消えても、シートは黙って消えない)。
     naturalSearch?.let { NaturalSearchSheet(initialQuery = it, onDismiss = { naturalSearch = null }) }
-    if (suggestions.isEmpty() && !offersNaturalSearch) return
+    // 「チャットで聞く」。文で探すと同じ条件 (つないである・受ける長さ) で、コアの assistantAccepts が決める。
+    val offersAssistant = chatGpt.canUsePlan && assistantAccepts(query)
+    var assistantOrder by remember { mutableStateOf<String?>(null) }
+    assistantOrder?.let { AssistantSheet(initialOrder = it, onDismiss = { assistantOrder = null }) }
+    if (suggestions.isEmpty() && !offersNaturalSearch && !offersAssistant) return
 
     ImasChipRow(modifier = Modifier.padding(vertical = DS.Space.gapTight)) {
         if (suggestions.isNotEmpty()) {
@@ -126,6 +133,9 @@ fun CrossTabCountChips(query: String, from: TopLevelTab) {
         }
         if (offersNaturalSearch) {
             ImasFilterChip(label = "文で探す", selected = false, icon = Icons.Filled.Search, onClick = { naturalSearch = query })
+        }
+        if (offersAssistant) {
+            ImasFilterChip(label = "チャットで聞く", selected = false, icon = Icons.Outlined.ChatBubbleOutline, onClick = { assistantOrder = query })
         }
     }
 }

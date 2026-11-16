@@ -573,7 +573,8 @@ pub fn responses_body(
         "store": false,
         "stream": true,
     });
-    if let Ok(tools) = serde_json::from_str::<Value>(tools_json) {
+    // ツールを渡さない仕事 (画像の書き写し) は null で来るので、鍵ごと載せない。
+    if let Some(tools) = serde_json::from_str::<Value>(tools_json).ok().filter(|t| !t.is_null()) {
         body["tools"] = tools;
     }
     if let Ok(format) = serde_json::from_str::<Value>(text_format_json) {

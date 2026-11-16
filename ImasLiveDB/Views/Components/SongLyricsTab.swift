@@ -58,6 +58,12 @@ struct SongLyricsTab: View {
     /// 選択待ち状態をまとめて解除するための合図 (シートを閉じた後など)。
     @State private var selectionResetToken = 0
     @State private var saveErrorMessage: String?
+    /// コール表の画像から下書きを作るシート。
+    @State private var showsCallSheetImport = false
+    /// シートで「使う」と決めた下書き (閉じてから入れる。シートを 2 枚重ねないため)。
+    @State private var pendingCallSheet: CallSheetReading?
+    /// コール表から入れた結果 (編集の頭に出す)。
+    @State private var importResult: CallSheetPlacement?
     /// 非 nil = タイミング編集を開いている。
     @State private var recorder: LyricTimingRecorder?
     /// 歌詞プレイヤーを開いている。
@@ -116,6 +122,9 @@ struct SongLyricsTab: View {
         }
         .sheet(item: $lineEditTarget) { line in
             LyricLineEditSheet(songId: song.id, line: line, onSaved: reload)
+        }
+        .sheet(isPresented: $showsCallSheetImport, onDismiss: usePendingCallSheet) {
+            CallSheetImportSheet(song: song, hasLyrics: vm.lyrics?.hasContent == true) { pendingCallSheet = $0 }
         }
         .sheet(item: $callRequest) { request in
             CallEditorSheet(
@@ -238,6 +247,7 @@ struct SongLyricsTab: View {
                     card { structureBody(lyrics) }
                 } else if let editor {
                     editingBanner
+                    callSheetSection(editor)
                     staleSection(editor)
                     card { editingBody(editor) }
                 } else {
@@ -267,6 +277,14 @@ struct SongLyricsTab: View {
                            actionTitle: onSubmitLyrics == nil ? nil : "歌詞を投稿",
                            action: onSubmitLyrics,
                            seed: seed)
+            // 投稿できる曲で、ChatGPT とつないでいる人にだけ出す (つないでいない人に入口を増やさない)。
+            if onSubmitLyrics != nil, ChatGPTPlanSession.shared.canUsePlan {
+                ImasButton(title: "コール表の画像から下書き", systemImage: "text.viewfinder", role: .secondary,
+                           size: .small, fillsWidth: true) {
+                    AppAnalytics.tap("call_sheet.open_from_empty")
+                    showsCallSheetImport = true
+                }
+            }
         } else {
             ImasEmptyState(systemImage: "text.quote",
                            title: "歌詞の表示にはログインが必要です",
@@ -439,9 +457,16 @@ struct SongLyricsTab: View {
                         isEditingStructure = false
                     }
                 } else if let editor {
+                    if ChatGPTPlanSession.shared.canUsePlan {
+                        ImasIconButton(systemImage: "text.viewfinder", label: "コール表の画像から下書き", size: .small) {
+                            AppAnalytics.tap("call_sheet.open_from_editor")
+                            showsCallSheetImport = true
+                        }
+                    }
                     ImasButton(title: "編集を終了", role: .plain, size: .small) {
                         self.editor = nil
                         reanchorTarget = nil
+                        importResult = nil
                     }
                     saveButton(editor)
                 } else {
@@ -498,6 +523,7 @@ struct SongLyricsTab: View {
         await LyricAnnotationStore.shared.mark(songId: song.id, .calls, hasCalls)
         // サーバが id を付け直したり stale を再計算したりするので、保存後は取り直す。
         self.editor = nil
+        importResult = nil
         reanchorTarget = nil
         reload()
     }
@@ -519,6 +545,56 @@ struct SongLyricsTab: View {
             ImasNote("歌詞の語をタップすると、その語に被せるコールを付けられます。行末の ＋ は追っかけ、行頭の記号は手拍子。語をまたぐ範囲は長押しからなぞって選びます。",
                     systemImage: "hand.tap")
                 .padding(.horizontal, DS.sp1)
+        }
+    }
+
+    /// シートで決めた下書きを、閉じたあとに入れる。歌詞のある曲はコールの編集へ、無い曲は歌詞の投稿へ。
+    private func usePendingCallSheet() {
+        guard let reading = pendingCallSheet else { return }
+        pendingCallSheet = nil
+        if let lyrics = vm.lyrics, lyrics.hasContent {
+            let model = editor ?? CallGuideEditorModel(lyrics: lyrics, songId: song.id)
+            editor = model
+            importResult = model.applyImport(reading)
+            CallSheetDrafts.shared.clear(song.id)
+        } else {
+            // コールは歌詞が公開されてから入れるので預けておく。歌詞は投稿画面の入力欄へ。
+            CallSheetDrafts.shared.keep(reading, for: song.id)
+            LyricSubmissionDrafts.shared.setText(song.id, lyricOcrAppend(
+                draft: LyricSubmissionDrafts.shared.draft(for: song.id).text,
+                recognized: callSheetLyricText(reading: reading)))
+            onSubmitLyrics?()
+        }
+    }
+
+    /// コール表からの下書き。預かっているものがあれば入れる入口を、入れたあとは結果を出す。
+    @ViewBuilder
+    private func callSheetSection(_ editor: CallGuideEditorModel) -> some View {
+        if let result = importResult {
+            ImasNotice(kind: result.calls.isEmpty && result.claps.isEmpty ? .warning : .info,
+                       message: result.summary + "。保存する前に、場所と文言を確かめてください。",
+                       actionTitle: "閉じる", action: { importResult = nil })
+            if !result.unplaced.isEmpty {
+                ImasSection("場所が決まらなかったコール", style: .small) {
+                    VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                        ForEach(Array(result.unplaced.enumerated()), id: \.offset) { _, call in
+                            VStack(alignment: .leading, spacing: 0) {
+                                Text(call.text).font(.imasFootnote.weight(.semibold))
+                                Text(call.near).font(.imasFootnote).foregroundStyle(DS.ink2)
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(.horizontal, DS.sp1)
+            }
+        } else if let kept = CallSheetDrafts.shared.reading(for: song.id) {
+            ImasNotice(kind: .info, message: "コール表から読んだコール \(kept.callCount) 件を預かっています。",
+                       actionTitle: "入れる", action: {
+                           AppAnalytics.tap("call_sheet.use_kept")
+                           importResult = editor.applyImport(kept)
+                           CallSheetDrafts.shared.clear(song.id)
+                       })
         }
     }
 

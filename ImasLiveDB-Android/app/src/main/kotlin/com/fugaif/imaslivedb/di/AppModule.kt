@@ -153,6 +153,25 @@ class AppModule private constructor(context: Context) {
     val prepDjRunner: com.fugaif.imaslivedb.data.chatgpt.PrepDjRunner by lazy {
         com.fugaif.imaslivedb.data.chatgpt.PrepDjRunner(chatGptPlanTaskRunner, snapshotStoreProvider)
     }
+    val callSheetRunner: com.fugaif.imaslivedb.data.chatgpt.CallSheetRunner by lazy {
+        com.fugaif.imaslivedb.data.chatgpt.CallSheetRunner(chatGptPlanTaskRunner)
+    }
+    val assistantRunner: com.fugaif.imaslivedb.data.chatgpt.AssistantRunner by lazy {
+        com.fugaif.imaslivedb.data.chatgpt.AssistantRunner(chatGptPlanTaskRunner, snapshotStoreProvider, playlistRepository)
+    }
+    /** チャットの「これからやること」を既存の書き込み口に写す役。 */
+    val assistantExecutor: com.fugaif.imaslivedb.data.chatgpt.AssistantExecutor by lazy {
+        com.fugaif.imaslivedb.data.chatgpt.AssistantExecutor(
+            marks = userMarkRepository,
+            personalTags = personalTagRepository,
+            playlists = playlistRepository,
+            expenses = expenseRepository,
+            songs = songRepository,
+            playback = lyricsPlayback,
+            predictions = setlistPredictionService,
+            likes = setlistLikeService,
+        )
+    }
     /** Worker (imas-live-api) への HTTP。セッションはリクエストの時点の値を付ける。 */
     val workerHttpClient: WorkerHttpClient by lazy { WorkerHttpClient(appContext, { authService.sessionToken }, renewer = authService) }
     val communityApi: CommunityApi by lazy { CommunityApi(workerHttpClient) }

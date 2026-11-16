@@ -64,7 +64,8 @@ import uniffi.imas_core.naturalSearchAccepts
 import uniffi.imas_core.naturalSearchExamples
 
 /** 結果の行から開く先 (アプリの本体の詳細画面。開く経路は AppNavigation が拾う)。 */
-enum class NaturalSearchKind { SONG, IDOL, EVENT }
+/** SHOW / UNIT は文で探すの結果には出ず、チャットの「開く」だけが使う。 */
+enum class NaturalSearchKind { SONG, IDOL, EVENT, SHOW, UNIT }
 
 data class NaturalSearchTarget(val kind: NaturalSearchKind, val id: String)
 

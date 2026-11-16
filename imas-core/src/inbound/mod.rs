@@ -84,6 +84,8 @@ pub mod lyric_penlight;
 pub mod karaoke;
 pub mod lyric_sync;
 pub mod lyrics_query;
+pub mod assistant;
+pub mod call_guide_import;
 pub mod natural_search;
 pub mod next_song;
 pub mod notification_plan;
