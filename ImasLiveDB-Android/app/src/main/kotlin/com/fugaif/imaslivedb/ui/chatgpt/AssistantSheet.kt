@@ -248,13 +248,13 @@ fun AssistantSheet(
     DisposableEffect(Unit) { onDispose { runJob?.cancel() } }
 
     ModalBottomSheet(
-        onDismissRequest = ::close,
+        onDismissRequest = { close() },
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = DS.bg,
     ) {
         ImasFormBackdrop(Modifier.fillMaxSize().imePadding()) {
             Column(Modifier.fillMaxSize()) {
-                ImasSheetToolbar(ImasSheetToolbarKind.Read(onClose = ::close), title = "チャット")
+                ImasSheetToolbar(ImasSheetToolbarKind.Read(onClose = { close() }), title = "チャット")
                 Column(
                     Modifier
                         .weight(1f)
@@ -270,12 +270,12 @@ fun AssistantSheet(
                             title = "ChatGPT とつなぐと使えます",
                             message = "マイページの「ChatGPT とつなぐ」から、ChatGPT Plus / Pro のアカウントでログインしてください",
                         )
-                        turns.isEmpty() -> Examples(onExample = ::send)
+                        turns.isEmpty() -> Examples(onExample = { send(it) })
                         else -> {
                             turns.forEach { turn ->
                                 TurnView(
                                     turn = turn,
-                                    onCancel = ::cancel,
+                                    onCancel = { cancel() },
                                     onRetry = { retry(turn) },
                                     onToggle = { index -> toggle(turn.key, index) },
                                     onExecute = { execute(turn.key) },
@@ -284,7 +284,7 @@ fun AssistantSheet(
                             if (!isRunning) {
                                 ImasButton(
                                     title = "新しい会話にする",
-                                    onClick = ::reset,
+                                    onClick = { reset() },
                                     icon = Icons.Filled.Edit,
                                     role = ImasButtonRole.PLAIN,
                                     size = ImasButtonSize.SMALL,

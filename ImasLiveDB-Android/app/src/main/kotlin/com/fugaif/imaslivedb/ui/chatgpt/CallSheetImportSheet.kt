@@ -121,13 +121,13 @@ fun CallSheetImportSheet(onUse: (CallSheetReading) -> Unit, onDismiss: () -> Uni
     DisposableEffect(Unit) { onDispose { job?.cancel() } }
 
     ModalBottomSheet(
-        onDismissRequest = ::close,
+        onDismissRequest = { close() },
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = DS.bg,
     ) {
         ImasFormBackdrop {
             Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = DS.Space.section)) {
-                ImasSheetToolbar(ImasSheetToolbarKind.Read(onClose = ::close), title = "コール表から下書き")
+                ImasSheetToolbar(ImasSheetToolbarKind.Read(onClose = { close() }), title = "コール表から下書き")
                 Column(
                     Modifier.padding(horizontal = DS.Space.screen),
                     verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose),
@@ -143,7 +143,7 @@ fun CallSheetImportSheet(onUse: (CallSheetReading) -> Unit, onDismiss: () -> Uni
                         Intro(
                             canUsePlan = session.canUsePlan,
                             progress = progress,
-                            onCancel = ::cancel,
+                            onCancel = { cancel() },
                             onPick = { pickPhotos.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
                         )
                     }

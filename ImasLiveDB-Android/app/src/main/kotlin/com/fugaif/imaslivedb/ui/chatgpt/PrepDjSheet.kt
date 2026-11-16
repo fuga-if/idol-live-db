@@ -181,14 +181,14 @@ fun PrepDjSheet(showId: String, onDismiss: () -> Unit) {
     }
 
     ModalBottomSheet(
-        onDismissRequest = ::close,
+        onDismissRequest = { close() },
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = DS.bg,
     ) {
         ImasFormBackdrop {
             Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = DS.Space.section)) {
                 val title = (phase as? PrepDjPhase.Loaded)?.plan?.heading ?: "予習 DJ"
-                ImasSheetToolbar(ImasSheetToolbarKind.Read(onClose = ::close), title = title)
+                ImasSheetToolbar(ImasSheetToolbarKind.Read(onClose = { close() }), title = title)
                 Column(
                     Modifier.padding(horizontal = DS.Space.screen),
                     verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose),
@@ -225,8 +225,8 @@ fun PrepDjSheet(showId: String, onDismiss: () -> Unit) {
                                 onOrderChange = { order = it },
                                 asking = asking,
                                 askError = askError,
-                                onAsk = ::ask,
-                                onCancel = ::cancelAsk,
+                                onAsk = { ask() },
+                                onCancel = { cancelAsk() },
                             )
                             TrackSections(plan, loadedSongId, isPlaying, onPlay = { index -> play(plan, index) })
                             if (plan.byModel) {
