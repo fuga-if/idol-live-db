@@ -1,6 +1,12 @@
 package com.fugaif.imaslivedb.ui.chatgpt
 
+import android.content.ClipboardManager
+import android.graphics.Bitmap
+import android.net.Uri
 import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import com.fugaif.imaslivedb.data.chatgpt.AssistantExecutor
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -23,7 +29,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
@@ -54,8 +59,11 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasButton
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonSize
 import com.fugaif.imaslivedb.ui.designsystem.ImasCardList
+import com.fugaif.imaslivedb.ui.designsystem.ImasChatAccessoryItem
+import com.fugaif.imaslivedb.ui.designsystem.ImasChatAccessoryMenu
 import com.fugaif.imaslivedb.ui.designsystem.ImasChatBubble
 import com.fugaif.imaslivedb.ui.designsystem.ImasChatComposer
+import com.fugaif.imaslivedb.ui.designsystem.ImasChatThinking
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.designsystem.ImasFormBackdrop
 import com.fugaif.imaslivedb.ui.designsystem.ImasIconTileTone
@@ -70,6 +78,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeaderStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasSelectableRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbar
 import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbarKind
+import com.fugaif.imaslivedb.ui.producercard.PaperCardCodeReader
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasText
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
@@ -80,6 +89,8 @@ import uniffi.imas_core.AiActionReach
 import uniffi.imas_core.AiPlannedAction
 import uniffi.imas_core.AssistantPlan
 import uniffi.imas_core.assistantAccepts
+import uniffi.imas_core.assistantAcceptsMessage
+import uniffi.imas_core.assistantMaxImages
 import uniffi.imas_core.assistantExamples
 import uniffi.imas_core.assistantMaxOrderChars
 
@@ -104,7 +115,7 @@ private sealed interface TurnState {
     data class Failed(val message: String) : TurnState
 }
 
-private data class Turn(val key: Int, val order: String, val state: TurnState)
+private data class Turn(val key: Int, val order: String, val images: List<Bitmap>, val state: TurnState)
 
 /**
  * チャット。利用者の ChatGPT プランで、データベースを引いて答え、頼まれた操作を一覧にする。iOS `AssistantSheet`。
@@ -134,9 +145,36 @@ fun AssistantSheet(
     var history by remember { mutableStateOf<List<String>>(emptyList()) }
     var nextKey by remember { mutableStateOf(0) }
     var runJob by remember { mutableStateOf<Job?>(null) }
+    /** 次の発言に添える画像。 */
+    var attachments by remember { mutableStateOf<List<Bitmap>>(emptyList()) }
     val scroll = rememberScrollState()
 
     val isRunning = turns.lastOrNull()?.state is TurnState.Running
+    val maxImages = remember { assistantMaxImages().toInt() }
+
+    /** 写真・クリップボードの URI を開いて、上限までを添える。 */
+    fun attach(uris: List<Uri>) {
+        if (uris.isEmpty()) return
+        scope.launch {
+            for (uri in uris) {
+                if (attachments.size >= maxImages) break
+                val image = PaperCardCodeReader.loadBitmap(context, uri) ?: continue
+                attachments = attachments + image
+            }
+        }
+    }
+
+    val pickPhotos = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickMultipleVisualMedia(maxImages.coerceAtLeast(2)),
+    ) { attach(it) }
+
+    /** クリップボードに画像の URI があるときだけ添える。無ければ何もしない。 */
+    fun pasteImages() {
+        val clip = (context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? ClipboardManager)?.primaryClip ?: return
+        val uris = (0 until clip.itemCount).mapNotNull { clip.getItemAt(it).uri }
+            .filter { context.contentResolver.getType(it)?.startsWith("image/") == true }
+        attach(uris)
+    }
 
     fun update(key: Int, change: (Turn) -> Turn) {
         turns = turns.map { if (it.key == key) change(it) else it }
@@ -147,7 +185,7 @@ fun AssistantSheet(
         val before = history
         runJob = scope.launch {
             try {
-                val plan = module.assistantRunner.run(before, turn.order) { label ->
+                val plan = module.assistantRunner.run(before, turn.order, turn.images) { label ->
                     update(turn.key) { it.copy(state = TurnState.Running(label)) }
                 }
                 history = plan.history
@@ -165,9 +203,11 @@ fun AssistantSheet(
     }
 
     fun send(order: String) {
-        if (!session.canUsePlan || isRunning || !assistantAccepts(order)) return
+        val images = attachments
+        if (!session.canUsePlan || isRunning || !assistantAcceptsMessage(order, images.size.toUInt())) return
         text = ""
-        val turn = Turn(nextKey++, order.trim(), TurnState.Running("考えています…"))
+        attachments = emptyList()
+        val turn = Turn(nextKey++, order.trim(), images, TurnState.Running("考えています…"))
         turns = turns + turn
         start(turn)
     }
@@ -187,6 +227,7 @@ fun AssistantSheet(
         if (last.state !is TurnState.Running) return
         turns = turns.dropLast(1)
         text = last.order
+        attachments = last.images
     }
 
     fun reset() {
@@ -194,6 +235,7 @@ fun AssistantSheet(
         runJob = null
         turns = emptyList()
         history = emptyList()
+        attachments = emptyList()
     }
 
     fun toggle(key: Int, index: Int) {
@@ -277,7 +319,6 @@ fun AssistantSheet(
                             turns.forEach { turn ->
                                 TurnView(
                                     turn = turn,
-                                    onCancel = { cancel() },
                                     onRetry = { retry(turn) },
                                     onToggle = { index -> toggle(turn.key, index) },
                                     onExecute = { execute(turn.key) },
@@ -303,8 +344,25 @@ fun AssistantSheet(
                             val limit = assistantMaxOrderChars().toInt()
                             text = if (new.length > limit) new.take(limit) else new
                         },
-                        canSend = !isRunning && assistantAccepts(text),
+                        canSend = !isRunning && assistantAcceptsMessage(text, attachments.size.toUInt()),
                         onSend = { send(text) },
+                        attachments = attachments,
+                        onRemoveAttachment = { index ->
+                            attachments = attachments.filterIndexed { i, _ -> i != index }
+                        },
+                        isRunning = isRunning,
+                        onStop = { cancel() },
+                        accessory = {
+                            ImasChatAccessoryMenu(
+                                items = listOf(
+                                    ImasChatAccessoryItem("写真を選ぶ") {
+                                        pickPhotos.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                                    },
+                                    ImasChatAccessoryItem("貼り付ける") { pasteImages() },
+                                ),
+                                enabled = attachments.size < maxImages,
+                            )
+                        },
                     )
                 }
             }
@@ -338,29 +396,14 @@ private fun Examples(onExample: (String) -> Unit) {
 @Composable
 private fun TurnView(
     turn: Turn,
-    onCancel: () -> Unit,
     onRetry: () -> Unit,
     onToggle: (Int) -> Unit,
     onExecute: () -> Unit,
 ) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
-        ImasChatBubble(turn.order)
+        ImasChatBubble(turn.order, images = turn.images)
         when (val state = turn.state) {
-            is TurnState.Running -> Row(
-                Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(DS.Space.gap),
-            ) {
-                ImasInlineLoading(tint = DS.sys)
-                ImasText(state.label, role = ImasTextRole.NOTE, modifier = Modifier.weight(1f))
-                ImasButton(
-                    title = "やめる",
-                    onClick = onCancel,
-                    icon = Icons.Filled.Close,
-                    role = ImasButtonRole.SECONDARY,
-                    size = ImasButtonSize.SMALL,
-                )
-            }
+            is TurnState.Running -> ImasChatThinking(state.label)
             is TurnState.Done -> ReviewView(state.review, onToggle, onExecute)
             is TurnState.Failed -> ImasNotice(
                 kind = ImasNoticeKind.ERROR,

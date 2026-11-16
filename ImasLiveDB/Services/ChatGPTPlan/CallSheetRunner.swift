@@ -31,7 +31,7 @@ enum CallSheetRunner {
     }
 
     /// 長辺を上限に縮めて JPEG にし、base64 にする。
-    private nonisolated static func jpegBase64(_ image: UIImage) -> String? {
+    nonisolated static func jpegBase64(_ image: UIImage) -> String? {
         let longest = max(image.size.width, image.size.height) * image.scale
         let ratio = longest > maxSide ? maxSide / longest : 1
         let size = CGSize(width: image.size.width * image.scale * ratio, height: image.size.height * image.scale * ratio)

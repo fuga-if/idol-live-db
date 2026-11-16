@@ -54,6 +54,20 @@ pub fn accepts(order: &str) -> bool {
     (MIN_ORDER_CHARS..=MAX_ORDER_CHARS).contains(&n)
 }
 
+/// 1 回の発言に添えられる画像の上限。
+pub const MAX_IMAGES: usize = 4;
+
+/// 画像だけを送ったときに、発言の代わりに添える一言。
+const IMAGE_ONLY_ORDER: &str = "この画像を見てください。";
+
+/// この発言を送ってよいか。画像があれば、字は無くてもよい (長すぎるのは不可)。
+pub fn accepts_message(order: &str, image_count: usize) -> bool {
+    if image_count == 0 {
+        return accepts(order);
+    }
+    image_count <= MAX_IMAGES && order.trim().chars().count() <= MAX_ORDER_CHARS
+}
+
 /// 入力欄が空のときに出す例。
 pub fn example_orders() -> Vec<&'static str> {
     vec![
@@ -79,24 +93,45 @@ fn user_item(order: &str) -> String {
     json!({ "role": "user", "content": order.trim() }).to_string()
 }
 
+/// 画像を添えた発言。画像は JPEG の base64 (多ければ先頭の [`MAX_IMAGES`] 枚)。
+fn user_item_with_images(order: &str, images: &[&String]) -> String {
+    let text = match order.trim() {
+        "" => IMAGE_ONLY_ORDER,
+        t => t,
+    };
+    let mut content = vec![json!({ "type": "input_text", "text": text })];
+    content.extend(images.iter().map(|b64| json!({ "type": "input_image", "image_url": format!("data:image/jpeg;base64,{b64}") })));
+    json!({ "role": "user", "content": content }).to_string()
+}
+
+/// 次の番に持ち越す形の発言。画像は持ち越さない (毎番送り直すと大きすぎる) ので、
+/// 字と「画像を添えた」という事実だけを残す。
+fn carried_user_item(item: &Value) -> Value {
+    let Some(parts) = item["content"].as_array() else { return item.clone() };
+    let text: Vec<&str> = parts.iter().filter(|p| p["type"] == "input_text").filter_map(|p| p["text"].as_str()).collect();
+    let images = parts.iter().filter(|p| p["type"] == "input_image").count();
+    json!({ "role": "user", "content": format!("{} (画像 {images} 枚を添えた。いまは見えない)", text.join(" ")) })
+}
+
 /// 会話の続きの input。`history` は前の番の [`Plan::history`]。
 ///
 /// 発言が受けられない長さ・会話が長くなりすぎた、なら None (端末は新しい会話を促す)。
-pub fn follow_up(history: &[String], order: &str) -> Option<Vec<String>> {
+pub fn follow_up(history: &[String], order: &str, images_base64: &[String]) -> Option<Vec<String>> {
+    let images: Vec<&String> = images_base64.iter().filter(|s| !s.is_empty()).take(MAX_IMAGES).collect();
     let chars: usize = history.iter().map(|s| s.chars().count()).sum();
-    if !accepts(order) || history.len() >= MAX_HISTORY_ITEMS || chars >= MAX_HISTORY_CHARS {
+    if !accepts_message(order, images.len()) || history.len() >= MAX_HISTORY_ITEMS || chars >= MAX_HISTORY_CHARS {
         return None;
     }
     let mut input = history.to_vec();
-    input.push(user_item(order));
+    input.push(if images.is_empty() { user_item(order) } else { user_item_with_images(order, &images) });
     Some(input)
 }
 
 /// 1 番ぶんのリクエスト。`history` は前の番までの会話 (最初は空)。
 /// 発言が受けられない長さ・会話が長くなりすぎた、なら None。
-pub fn request(history: &[String], order: &str, ctx: PlanContext<'_>) -> Option<Request> {
+pub fn request(history: &[String], order: &str, images_base64: &[String], ctx: PlanContext<'_>) -> Option<Request> {
     let today_key = ctx.today_key;
-    let input = follow_up(history, order)?;
+    let input = follow_up(history, order, images_base64)?;
     let mut specs = tool_catalog();
     specs.extend(action_specs());
     Some(Request {
@@ -125,6 +160,8 @@ fn instructions(today_key: &str, mastery_labels: &[String]) -> String {
 - セトリの「予想」を訊かれたら、過去の実績 (setlist_shape など) を材料に自分で組み立て、根拠にした公演数や回数を添える。
 - 歌詞の本文は扱わない。書かない・直さない・探さない。訊かれたら、曲の画面で見られると伝える。
 - このアプリとアイドルマスターに関係のない話には、短く断る。
+- 画像が添えられたら、写っているもの (チケット・レシート・セトリの写真・告知の画像など) を読んで、頼みに使う。読み取った名前は、必ずツールで DB と照らし合わせてから id にする。読めない字を推測で埋めない。
+- 画像が歌詞カードやコール表でも、歌詞を書き写さない。コール表なら、曲の「歌詞とコール」(open の section = lyrics) にある「コール表の画像から下書き」を案内する。
 
 # 操作
 - 利用者に何かを頼まれたら、操作ツール (set_attendance / create_playlist / add_expense / open など) を、やる順に呼ぶ。
@@ -234,7 +271,7 @@ pub fn resolve(snap: &Snapshot, input: &[String], text: &str, ctx: PlanContext<'
     let mut history: Vec<String> = items
         .iter()
         .filter(|i| i["role"] == "user" || (i["role"] == "assistant" && i["content"].is_string()))
-        .map(Value::to_string)
+        .map(|i| if i["role"] == "user" { carried_user_item(i).to_string() } else { i.to_string() })
         .collect();
     history.push(json!({ "role": "assistant", "content": message }).to_string());
     let mut plan = Plan { message, history, ..Plan::default() };
@@ -270,8 +307,8 @@ mod tests {
 
     #[test]
     fn 読み取りと操作のツールを両方渡す() {
-        assert!(request(&[], " ", CTX).is_none());
-        let req = request(&[], "READY!! をお気に入りに入れて", CTX).unwrap();
+        assert!(request(&[], " ", &[], CTX).is_none());
+        let req = request(&[], "READY!! をお気に入りに入れて", &[], CTX).unwrap();
         let tools = &req.tools[0];
         assert_eq!(tools["name"], NAMESPACE);
         let names: Vec<&str> = tools["tools"].as_array().unwrap().iter().filter_map(|t| t["name"].as_str()).collect();
@@ -282,14 +319,14 @@ mod tests {
         assert!(req.instructions.contains("この端末では使えない"));
         let labels = ["聴いた".to_string(), "歌える".to_string()];
         let with = PlanContext { today_key: TODAY, playlists: &[], mastery_labels: &labels };
-        assert!(request(&[], "習熟度を付けて", with).unwrap().instructions.contains("1 = 聴いた、2 = 歌える"));
+        assert!(request(&[], "習熟度を付けて", &[], with).unwrap().instructions.contains("1 = 聴いた、2 = 歌える"));
     }
 
     #[test]
     fn 操作は実行せず積んで_返事と一緒に一覧にする() {
         let snap = bundle_snapshot();
         let song = snap.songs[0].id.clone();
-        let req = request(&[], "この曲をお気に入りに入れて", CTX).unwrap();
+        let req = request(&[], "この曲をお気に入りに入れて", &[], CTX).unwrap();
 
         let items = vec![
             call("c1", "set_favorite_song", json!({ "song_id": song })),
@@ -320,14 +357,14 @@ mod tests {
     fn 次の番は前の番の操作をもう一度出さない() {
         let snap = bundle_snapshot();
         let idol = snap.idols[0].id.clone();
-        let first = request(&[], "担当にして", CTX).unwrap();
+        let first = request(&[], "担当にして", &[], CTX).unwrap();
         let Step::Continue(next) = step(snap, &first.input, &[call("c1", "set_my_pick", json!({ "idol_id": idol }))], "", CTX) else {
             panic!("続くはず")
         };
         let Step::Finished(one) = step(snap, &next, &[], r#"{"message":"どうぞ"}"#, CTX) else { panic!("終わるはず") };
         assert_eq!(one.actions.len(), 1);
 
-        let second = request(&one.history, "ありがとう", CTX).unwrap();
+        let second = request(&one.history, "ありがとう", &[], CTX).unwrap();
         assert_eq!(second.input.len(), one.history.len() + 1);
         let Step::Finished(two) = step(snap, &second.input, &[], r#"{"message":"どういたしまして"}"#, CTX) else { panic!("終わるはず") };
         assert!(two.actions.is_empty());
@@ -351,7 +388,26 @@ mod tests {
     #[test]
     fn 長くなりすぎた会話は続けない() {
         let long: Vec<String> = (0..MAX_HISTORY_ITEMS).map(|_| user_item("あ")).collect();
-        assert!(follow_up(&long, "続き").is_none());
-        assert!(follow_up(&[], "続き").is_some());
+        assert!(follow_up(&long, "続き", &[]).is_none());
+        assert!(follow_up(&[], "続き", &[]).is_some());
+    }
+
+    #[test]
+    fn 画像は今の番にだけ載り_次の番には持ち越さない() {
+        let snap = bundle_snapshot();
+        assert!(accepts_message("", 1) && !accepts_message("", 0) && !accepts_message("", MAX_IMAGES + 1));
+        let images: Vec<String> = (0..6).map(|i| format!("AAA{i}")).collect();
+        let req = request(&[], "", &images, CTX).unwrap();
+        let item: Value = serde_json::from_str(&req.input[0]).unwrap();
+        let content = item["content"].as_array().unwrap();
+        assert_eq!(content.len(), 1 + MAX_IMAGES);
+        assert_eq!(content[0]["text"], IMAGE_ONLY_ORDER);
+        assert_eq!(content[1]["image_url"], "data:image/jpeg;base64,AAA0");
+
+        let Step::Finished(plan) = step(snap, &req.input, &[], r#"{"message":"チケットですね"}"#, CTX) else { panic!("終わるはず") };
+        assert!(plan.history.iter().all(|s| !s.contains("base64")));
+        assert!(plan.history[0].contains("画像 4 枚"));
+        // 持ち越した発言のあとでも、番の切れ目は発言で数える。
+        assert!(request(&plan.history, "金額はいくら？", &[], CTX).is_some());
     }
 }

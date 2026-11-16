@@ -1,4 +1,5 @@
 import os
+import PhotosUI
 import SwiftUI
 
 /// シートに渡す最初の発言 (`.sheet(item:)` 用)。空なら何も送らずに開く。
@@ -22,12 +23,17 @@ struct AssistantSheet: View {
     @State private var history: [String] = []
     @State private var path: [DetailDestination] = []
     @State private var runTask: Task<Void, Never>?
+    /// 次の発言に添える画像。
+    @State private var attachments: [UIImage] = []
+    @State private var showsPhotoPicker = false
+    @State private var pickedItems: [PhotosPickerItem] = []
 
     private var session: ChatGPTPlanSession { .shared }
 
     private struct Turn: Identifiable {
         let id = UUID()
         let order: String
+        var images: [UIImage] = []
         var state: State
 
         enum State {
@@ -81,6 +87,9 @@ struct AssistantSheet: View {
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if session.canUsePlan { composer }
             }
+            .photosPicker(isPresented: $showsPhotoPicker, selection: $pickedItems,
+                          maxSelectionCount: max(1, maxImages - attachments.count), matching: .images)
+            .onChange(of: pickedItems) { _, items in loadPicked(items) }
             .navigationTitle("チャット")
             .navigationBarTitleDisplayMode(.inline)
             .imasSheetToolbar(.read(onClose: { dismiss() }))
@@ -146,16 +155,11 @@ struct AssistantSheet: View {
     @ViewBuilder
     private func turnView(_ turn: Turn) -> some View {
         VStack(alignment: .leading, spacing: DS.Space.gap) {
-            ImasChatBubble(turn.order)
+            ImasChatBubble(turn.order, images: turn.images)
 
             switch turn.state {
             case .running(let label):
-                HStack(spacing: DS.Space.gap) {
-                    ImasInlineLoading(tint: DS.sys)
-                    Text(label).imasText(.note)
-                    Spacer(minLength: 0)
-                    ImasButton(title: "やめる", systemImage: "xmark", role: .secondary, size: .small) { cancel() }
-                }
+                ImasChatThinking(label)
             case .done(let review):
                 reviewView(review, turnID: turn.id)
             case .failed(let message):
@@ -212,11 +216,62 @@ struct AssistantSheet: View {
     }
 
     private var composer: some View {
-        ImasChatComposer(prompt: "聞きたいこと・やってほしいこと", text: $text, canSend: canSend) { send(text) }
+        ImasChatComposer(
+            prompt: "聞きたいこと・やってほしいこと",
+            text: $text,
+            attachments: attachments,
+            onRemoveAttachment: { index in
+                if attachments.indices.contains(index) { attachments.remove(at: index) }
+            },
+            canSend: canSend,
+            isRunning: isRunning,
+            onSend: { send(text) },
+            onStop: { cancel() }
+        ) {
+            Menu {
+                Button {
+                    AppAnalytics.tap("assistant.attach_photo")
+                    showsPhotoPicker = true
+                } label: {
+                    Label("写真を選ぶ", systemImage: "photo.on.rectangle")
+                }
+                Button {
+                    AppAnalytics.tap("assistant.attach_paste")
+                    pasteImages()
+                } label: {
+                    Label("貼り付ける", systemImage: "doc.on.clipboard")
+                }
+            } label: {
+                ImasChatAccessoryLabel(systemImage: "plus")
+            }
+            .disabled(attachments.count >= maxImages)
+            .accessibilityLabel("画像を添える")
+        }
+    }
+
+    private var maxImages: Int { Int(assistantMaxImages()) }
+
+    private func loadPicked(_ items: [PhotosPickerItem]) {
+        guard !items.isEmpty else { return }
+        pickedItems = []
+        Task {
+            for item in items {
+                guard attachments.count < maxImages,
+                      let data = try? await item.loadTransferable(type: Data.self),
+                      let image = UIImage(data: data) else { continue }
+                attachments.append(image)
+            }
+        }
+    }
+
+    /// クリップボードの画像を添える (スクリーンショットをコピーして貼る流れ)。
+    private func pasteImages() {
+        let images = UIPasteboard.general.images ?? []
+        attachments.append(contentsOf: images.prefix(max(0, maxImages - attachments.count)))
     }
 
     private var canSend: Bool {
-        !isRunning && assistantAccepts(order: text)
+        !isRunning && assistantAcceptsMessage(order: text, imageCount: UInt32(attachments.count))
     }
 
     private func trailingLabel(_ item: AiPlannedAction, outcome: Outcome?) -> String {
@@ -242,10 +297,14 @@ struct AssistantSheet: View {
     // MARK: - 処理
 
     private func send(_ order: String) {
-        guard session.canUsePlan, !isRunning, assistantAccepts(order: order) else { return }
-        AppAnalytics.tap("assistant.send")
+        let images = attachments
+        guard session.canUsePlan, !isRunning,
+              assistantAcceptsMessage(order: order, imageCount: UInt32(images.count)) else { return }
+        AppAnalytics.tap(images.isEmpty ? "assistant.send" : "assistant.send_with_image")
         text = ""
-        let turn = Turn(order: order.trimmingCharacters(in: .whitespacesAndNewlines), state: .running(label: "考えています…"))
+        attachments = []
+        let turn = Turn(order: order.trimmingCharacters(in: .whitespacesAndNewlines), images: images,
+                        state: .running(label: "考えています…"))
         turns.append(turn)
         start(turn)
     }
@@ -261,7 +320,7 @@ struct AssistantSheet: View {
         let before = history
         runTask = Task {
             do {
-                let plan = try await AssistantRunner.run(history: before, order: turn.order) { label in
+                let plan = try await AssistantRunner.run(history: before, order: turn.order, images: turn.images) { label in
                     update(turn.id) { $0.state = .running(label: label) }
                 }
                 if Task.isCancelled { return }
@@ -285,6 +344,7 @@ struct AssistantSheet: View {
         runTask = nil
         guard isRunning, let last = turns.popLast() else { return }
         text = last.order
+        attachments = last.images
     }
 
     private func reset() {
@@ -292,6 +352,7 @@ struct AssistantSheet: View {
         runTask = nil
         turns = []
         history = []
+        attachments = []
     }
 
     private func update(_ id: UUID, _ change: (inout Turn) -> Void) {

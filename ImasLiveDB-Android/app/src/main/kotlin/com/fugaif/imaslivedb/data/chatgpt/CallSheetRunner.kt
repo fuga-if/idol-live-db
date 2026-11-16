@@ -41,25 +41,23 @@ class CallSheetRunner(private val tasks: ChatGptPlanTaskRunner) {
             ChatGptPlanTaskRunner.Outcome.Finished(reading)
         }
     }
-
-    /** 長辺を上限に縮めて JPEG にし、base64 にする。 */
-    private fun jpegBase64(image: Bitmap): String? {
-        val longest = max(image.width, image.height)
-        val ratio = if (longest > MAX_SIDE) MAX_SIDE.toFloat() / longest else 1f
-        val width = max(1, (image.width * ratio).roundToInt())
-        val height = max(1, (image.height * ratio).roundToInt())
-        val resized = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(resized)
-        canvas.drawColor(Color.WHITE)
-        canvas.drawBitmap(image, null, Rect(0, 0, width, height), null)
-        val out = ByteArrayOutputStream()
-        val ok = resized.compress(Bitmap.CompressFormat.JPEG, 80, out)
-        resized.recycle()
-        return if (ok) Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP) else null
-    }
-
-    private companion object {
-        /** 送る画像の長辺の上限 (画素)。縦長のコール表でも字が潰れない大きさ。 */
-        const val MAX_SIDE = 2048
-    }
 }
+
+/** 長辺を [JPEG_MAX_SIDE] に縮めて JPEG にし、base64 にする。コール表もチャットも同じ口を使う。 */
+internal fun jpegBase64(image: Bitmap): String? {
+    val longest = max(image.width, image.height)
+    val ratio = if (longest > JPEG_MAX_SIDE) JPEG_MAX_SIDE.toFloat() / longest else 1f
+    val width = max(1, (image.width * ratio).roundToInt())
+    val height = max(1, (image.height * ratio).roundToInt())
+    val resized = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(resized)
+    canvas.drawColor(Color.WHITE)
+    canvas.drawBitmap(image, null, Rect(0, 0, width, height), null)
+    val out = ByteArrayOutputStream()
+    val ok = resized.compress(Bitmap.CompressFormat.JPEG, 80, out)
+    resized.recycle()
+    return if (ok) Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP) else null
+}
+
+/** 送る画像の長辺の上限 (画素)。縦長のコール表でも字が潰れない大きさ。 */
+private const val JPEG_MAX_SIDE = 2048

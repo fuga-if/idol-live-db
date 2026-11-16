@@ -384,6 +384,8 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_chatgpt_sign_in_expired_message,
     uniffi_imas_core_checksum_func_chatgpt_stream_cut_off,
     uniffi_imas_core_checksum_func_assistant_accepts,
+    uniffi_imas_core_checksum_func_assistant_accepts_message,
+    uniffi_imas_core_checksum_func_assistant_max_images,
     uniffi_imas_core_checksum_func_assistant_request,
     uniffi_imas_core_checksum_func_assistant_examples,
     uniffi_imas_core_checksum_func_assistant_max_order_chars,
