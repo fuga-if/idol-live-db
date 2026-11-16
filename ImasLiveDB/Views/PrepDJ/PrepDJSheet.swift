@@ -64,8 +64,15 @@ struct PrepDJSheet: View {
             .imasSheetToolbar(.read(onClose: { dismiss() }))
         }
         .task { await load() }
+        .task(id: loadedTrackAppleMusicIds) { await music.checkStreamable(loadedTrackAppleMusicIds) }
         .onDisappear { askTask?.cancel() }
         .trackScreen("prep_dj")
+    }
+
+    /// 組んだ流れの曲の Apple Music の id (聴き放題で鳴らせるかを調べ直す鍵)。
+    private var loadedTrackAppleMusicIds: [String?] {
+        if case .loaded(let plan) = phase { return plan.tracks.map(\.appleMusicId) }
+        return []
     }
 
     private var title: String {
@@ -92,7 +99,7 @@ struct PrepDJSheet: View {
             }
             let unplayable = unplayableCount(plan)
             if unplayable > 0 {
-                ImasNote("Apple Music に無い \(unplayable) 曲は飛ばします。", systemImage: "forward.end")
+                ImasNote("Apple Music で聴けない \(unplayable) 曲は飛ばします。", systemImage: "forward.end")
             }
             if let talk = nowTalk(plan) {
                 ImasNote(talk, systemImage: "waveform")
@@ -163,8 +170,10 @@ struct PrepDJSheet: View {
                             subtitle: item.track.fact.isEmpty ? nil : item.track.fact,
                             artworkURL: item.track.artworkUrl.flatMap(URL.init(string:)),
                             brandHex: BrandColors.hex(for: item.track.brandId),
-                            trailing: music.isPlayingFull(songId: item.track.songId) ? .value("再生中") : .none,
-                            density: .compact
+                            trailing: music.isPlayingFull(songId: item.track.songId) ? .value("再生中")
+                                : music.fullPlaySkips(item.track.appleMusicId) ? .value("聴けない") : .none,
+                            density: .compact,
+                            emphasis: music.fullPlaySkips(item.track.appleMusicId) ? .dimmed : .normal
                         ) {
                             if !item.track.talk.isEmpty {
                                 Text(item.track.talk)
@@ -249,10 +258,10 @@ struct PrepDJSheet: View {
         }
     }
 
-    /// Apple Music で鳴らせない曲の数。Spotify は曲名で探すので、鳴らしてみるまで分からない (0)。
+    /// フル尺で鳴らせず飛ばす曲の数 (Apple Music に無い曲と、聴き放題に無い版の曲)。
+    /// Spotify は曲名で探すので、鳴らしてみるまで分からない (0)。
     private func unplayableCount(_ plan: PrepDjPlan) -> Int {
-        guard music.fullPlaybackService != .spotify else { return 0 }
-        return plan.tracks.filter { $0.appleMusicId == nil }.count
+        music.fullPlaySkipCount(plan.tracks.map(\.appleMusicId))
     }
 
     private func save(_ plan: PrepDjPlan) async {

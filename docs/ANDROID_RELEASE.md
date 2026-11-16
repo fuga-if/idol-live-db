@@ -66,3 +66,9 @@ Play への上げは `tools/play_release.py` (Android Publisher API v3) で行�
 
 - 起動・同期・一覧の高速化。iOS の審査に出したのと同じコミット (d389dbbf) からビルド。
 - 本番に下書きで置き、オーナーの go のあと `promote` で completed にした。
+
+## 2026-11-17: 2.9.2 (versionCode 21) 修正版
+
+- 再生中バーを押すと落ちる不具合 (Play の最多クラッシュ。楽曲タブを一度も開いていないと NavHost のグラフが無く navigate が IllegalArgumentException) を直した。
+- develop の修正 (29546ff6) を 2.9.1 (d389dbbf) に当てたブランチ `android-hotfix-2.9.2` からビルド。develop の未公開機能は入れていない。
+- 本番に下書きで置いた。公開はオーナーの go のあと `promote`。develop の次の Android リリースは versionCode 22 以上にする。

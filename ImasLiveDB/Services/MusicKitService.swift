@@ -326,6 +326,53 @@ final class MusicKitService {
         if let previewURL { togglePreview(url: previewURL, songId: songId) }
     }
 
+    /// 聴き放題で鳴らせない (購入専用の版を指している) Apple Music の id。`checkStreamable` で調べた分だけ入る。
+    ///
+    /// 購入専用の版はカタログに `playParameters` が無く、積んでも Apple Music が黙って次へ送る
+    /// (プレイリストの先頭が飛ばされて 3 曲目から始まった)。押す前に数えて伝えるために持つ。
+    private(set) var unstreamableAppleMusicIds: Set<String> = []
+    /// `checkStreamable` で調べ終えた id (鳴らせるものも含む)。同じ id をカタログに聞き直さない。
+    @ObservationIgnored private var checkedAppleMusicIds: Set<String> = []
+
+    /// Apple Music の id が聴き放題で鳴らせるかをカタログに聞いて `unstreamableAppleMusicIds` に反映する。
+    /// 引けなかった id (認可前・通信失敗) は分からないままにする (飛ばすとは言わない)。
+    func checkStreamable(_ appleMusicIds: [String?]) async {
+        guard fullPlaybackService == .appleMusic else { return }
+        let unchecked = Array(Set(appleMusicIds.compactMap { $0 }.filter { !$0.isEmpty && !checkedAppleMusicIds.contains($0) }))
+        // カタログの 1 回の問い合わせに載せられる id の数には上限があるので分けて聞く。
+        for start in stride(from: 0, to: unchecked.count, by: 100) {
+            let chunk = unchecked[start..<min(start + 100, unchecked.count)].map { MusicItemID($0) }
+            let request = MusicCatalogResourceRequest<MusicKit.Song>(matching: \.id, memberOf: chunk)
+            guard let response = try? await request.response() else { continue }
+            recordStreamability(response.items)
+        }
+    }
+
+    private func recordStreamability(_ songs: some Sequence<MusicKit.Song>) {
+        for song in songs {
+            let id = song.id.rawValue
+            checkedAppleMusicIds.insert(id)
+            if song.playParameters == nil {
+                unstreamableAppleMusicIds.insert(id)
+            } else {
+                unstreamableAppleMusicIds.remove(id)
+            }
+        }
+    }
+
+    /// 並べた曲のうち、フル尺で鳴らせず飛ばす曲の数 (一覧で「n 曲は飛ばします」と出す)。
+    /// Apple Music の id が無い曲と、聴き放題に無い版の曲。Spotify は曲名で探すので鳴らすまで分からない (0)。
+    func fullPlaySkipCount(_ appleMusicIds: [String?]) -> Int {
+        appleMusicIds.filter(fullPlaySkips).count
+    }
+
+    /// この曲をフル尺で鳴らせず飛ばすか (行を薄くして「聴けない」と出す)。数え方は `fullPlaySkipCount` と同じ。
+    func fullPlaySkips(_ appleMusicId: String?) -> Bool {
+        guard fullPlaybackService != .spotify else { return false }
+        guard let appleMusicId, !appleMusicId.isEmpty else { return true }
+        return unstreamableAppleMusicIds.contains(appleMusicId)
+    }
+
     /// 曲をフル尺で鳴らす。Apple Music か Spotify か (`fullPlaybackService`) で振り分ける。
     ///
     /// - Parameters:
@@ -430,7 +477,11 @@ final class MusicKitService {
             let ids = entries.map { MusicItemID($0.appleMusicId) }
             let request = MusicCatalogResourceRequest<MusicKit.Song>(matching: \.id, memberOf: ids)
             let response = try await request.response()
-            let byId = Dictionary(response.items.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+            await MainActor.run { self.recordStreamability(response.items) }
+            // 聴き放題に無い版 (playParameters が無い) は積まない。積むと Apple Music が黙って次へ送り、
+            // 押した曲と違う曲から鳴り出す。
+            let byId = Dictionary(response.items.filter { $0.playParameters != nil }.map { ($0.id, $0) },
+                                  uniquingKeysWith: { first, _ in first })
             // 応答の並びは保証されないので、積む順は entries に合わせる。
             let playable = entries.enumerated().compactMap { offset, entry in
                 byId[MusicItemID(entry.appleMusicId)].map { (offset: offset, songId: entry.songId, song: $0) }

@@ -42,6 +42,12 @@ class RoutedLyricsPlayback(
 
     override val fullPlaysWithoutAppleMusicId: Boolean get() = currentService() == FullPlaybackService.SPOTIFY
 
+    // 聴き放題で鳴らせるかは Apple Music の版の話。Spotify で鳴らすときは数えない ([PlaylistPlayback.unplayableCount])。
+    override val unstreamableAppleMusicIds: StateFlow<Set<String>> get() = apple.unstreamableAppleMusicIds
+    override suspend fun checkStreamable(appleMusicIds: List<String>) {
+        if (currentService() == FullPlaybackService.APPLE_MUSIC) apple.checkStreamable(appleMusicIds)
+    }
+
     /** Spotify で鳴らせなかった理由 (画面が出して [clearSpotifyFailure] で消す)。 */
     val spotifyFailure: StateFlow<SpotifyFailure?> = spotifyPlayback.failure
     fun clearSpotifyFailure() = spotifyPlayback.clearFailure()

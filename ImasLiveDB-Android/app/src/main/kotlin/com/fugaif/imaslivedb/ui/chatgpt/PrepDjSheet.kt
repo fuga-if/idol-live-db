@@ -48,6 +48,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasNotice
 import com.fugaif.imaslivedb.ui.designsystem.ImasNoticeKind
 import com.fugaif.imaslivedb.ui.designsystem.ImasNote
 import com.fugaif.imaslivedb.ui.designsystem.ImasRowDensity
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowEmphasis
 import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
 import com.fugaif.imaslivedb.ui.designsystem.ImasSearchField
 import com.fugaif.imaslivedb.ui.designsystem.ImasSection
@@ -173,6 +174,11 @@ fun PrepDjSheet(showId: String, onDismiss: () -> Unit) {
     }
 
     LaunchedEffect(showId) { load() }
+    val unstreamable by module.lyricsPlayback.unstreamableAppleMusicIds.collectAsState()
+    val loadedPlan = (phase as? PrepDjPhase.Loaded)?.plan
+    LaunchedEffect(loadedPlan) {
+        loadedPlan?.let { plan -> PlaylistPlayback.checkStreamable(module.lyricsPlayback, plan.tracks.map { it.appleMusicId }) }
+    }
     DisposableEffect(Unit) { onDispose { askJob?.cancel() } }
 
     fun close() {
@@ -212,7 +218,7 @@ fun PrepDjSheet(showId: String, onDismiss: () -> Unit) {
                             Header(
                                 plan = plan,
                                 playFailed = playFailed,
-                                unplayable = unplayableCount(plan, module.lyricsPlayback.fullPlaysWithoutAppleMusicId),
+                                unplayable = PlaylistPlayback.unplayableCount(module.lyricsPlayback, plan.tracks.map { it.appleMusicId }, unstreamable),
                                 nowTalk = nowTalk(plan, isPlaying, loadedSongId),
                                 savedNote = savedNote,
                                 onPlay = { play(plan, 0) },
@@ -228,7 +234,11 @@ fun PrepDjSheet(showId: String, onDismiss: () -> Unit) {
                                 onAsk = { ask() },
                                 onCancel = { cancelAsk() },
                             )
-                            TrackSections(plan, loadedSongId, isPlaying, onPlay = { index -> play(plan, index) })
+                            TrackSections(
+                                plan, loadedSongId, isPlaying,
+                                skips = { id -> PlaylistPlayback.skips(module.lyricsPlayback, id, unstreamable) },
+                                onPlay = { index -> play(plan, index) },
+                            )
                             if (plan.byModel) {
                                 ImasNote("語りは ChatGPT が書いています。事実と違うことがあります。", icon = Icons.Filled.Info)
                             }
@@ -240,9 +250,6 @@ fun PrepDjSheet(showId: String, onDismiss: () -> Unit) {
     }
 }
 
-/** Apple Music で鳴らせない曲の数。Spotify は曲名で探すので、鳴らしてみるまで分からない (0)。 */
-private fun unplayableCount(plan: PrepDjPlan, fullPlaysWithoutAppleMusicId: Boolean): Int =
-    if (fullPlaysWithoutAppleMusicId) 0 else plan.tracks.count { it.appleMusicId.isNullOrEmpty() }
 
 /** いま流れている曲の語り (この流れの曲で、語りがあるときだけ)。 */
 private fun nowTalk(plan: PrepDjPlan, isPlaying: Boolean, loadedSongId: String?): String? {
@@ -273,7 +280,7 @@ private fun Header(
             fillsWidth = true,
         )
         if (playFailed) ImasNote("プレイリストの再生には Apple Music の契約が要ります。", icon = Icons.Filled.MusicNote)
-        if (unplayable > 0) ImasNote("Apple Music に無い $unplayable 曲は飛ばします。", icon = Icons.Filled.SkipNext)
+        if (unplayable > 0) ImasNote("Apple Music で聴けない $unplayable 曲は飛ばします。", icon = Icons.Filled.SkipNext)
         if (nowTalk != null) ImasNote(nowTalk, icon = Icons.Filled.GraphicEq)
         ImasButton(
             title = "プレイリストに保存",
@@ -354,7 +361,14 @@ private fun groups(tracks: List<PrepDjTrack>): List<Group> {
 }
 
 @Composable
-private fun TrackSections(plan: PrepDjPlan, loadedSongId: String?, isPlaying: Boolean, onPlay: (Int) -> Unit) {
+private fun TrackSections(
+    plan: PrepDjPlan,
+    loadedSongId: String?,
+    isPlaying: Boolean,
+    /** Apple Music の id → フル尺で鳴らせず飛ばすか (行を薄くして「聴けない」と出す)。 */
+    skips: (String?) -> Boolean,
+    onPlay: (Int) -> Unit,
+) {
     groups(plan.tracks).forEach { group ->
         ImasSection(group.label, count = "${group.tracks.size}曲", style = ImasSectionHeaderStyle.SMALL) {
             ImasCardList {
@@ -364,8 +378,13 @@ private fun TrackSections(plan: PrepDjPlan, loadedSongId: String?, isPlaying: Bo
                         subtitle = track.fact.ifEmpty { null },
                         artworkUrl = track.artworkUrl,
                         brand = track.brandId,
-                        trailing = if (isPlaying && loadedSongId == track.songId) ImasRowTrailing.Value("再生中") else ImasRowTrailing.None,
+                        trailing = when {
+                            isPlaying && loadedSongId == track.songId -> ImasRowTrailing.Value("再生中")
+                            skips(track.appleMusicId) -> ImasRowTrailing.Value("聴けない")
+                            else -> ImasRowTrailing.None
+                        },
                         density = ImasRowDensity.COMPACT,
+                        emphasis = if (skips(track.appleMusicId)) ImasRowEmphasis.DIMMED else ImasRowEmphasis.NORMAL,
                         onClick = { onPlay(index) },
                         detail = if (track.talk.isEmpty()) null else {
                             { ImasText(track.talk, role = ImasTextRole.NOTE) }

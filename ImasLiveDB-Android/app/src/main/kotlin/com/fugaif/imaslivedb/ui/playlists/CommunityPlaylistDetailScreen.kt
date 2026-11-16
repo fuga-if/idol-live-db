@@ -51,6 +51,8 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasListSummary
 import com.fugaif.imaslivedb.ui.designsystem.ImasLoadingState
 import com.fugaif.imaslivedb.ui.designsystem.ImasNote
 import com.fugaif.imaslivedb.ui.designsystem.ImasRowDensity
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowEmphasis
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
 import com.fugaif.imaslivedb.ui.theme.DS
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -128,6 +130,9 @@ fun CommunityPlaylistDetailScreen(
     var message by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(playlistId) { viewModel.load(playlistId) }
+    val playback = AppModule.from(context).lyricsPlayback
+    val unstreamable by playback.unstreamableAppleMusicIds.collectAsState()
+    LaunchedEffect(state.songs) { PlaylistPlayback.checkStreamable(playback, state.songs.map { it.appleMusicId }) }
 
     Scaffold(
         topBar = {
@@ -174,7 +179,7 @@ fun CommunityPlaylistDetailScreen(
             when {
                 !state.loaded -> ImasLoadingState()
                 else -> {
-                    val unplayable = PlaylistPlayback.unplayableCount(AppModule.from(context).lyricsPlayback, state.songs)
+                    val unplayable = PlaylistPlayback.unplayableCount(playback, state.songs.map { it.appleMusicId }, unstreamable)
                     val missing = (state.playlist?.songCount ?: 0) - state.songs.size
                     LazyColumn(Modifier.fillMaxSize()) {
                         item {
@@ -194,7 +199,7 @@ fun CommunityPlaylistDetailScreen(
                                     ImasNote("プレイリストの再生には Apple Music の契約が要ります。", modifier = Modifier.padding(top = DS.Space.header))
                                 }
                                 if (unplayable > 0) {
-                                    ImasNote("Apple Music に無い $unplayable 曲は飛ばします。", modifier = Modifier.padding(top = DS.Space.header))
+                                    ImasNote("Apple Music で聴けない $unplayable 曲は飛ばします。", modifier = Modifier.padding(top = DS.Space.header))
                                 }
                                 if (missing > 0) {
                                     // 端末のカタログにまだ無い曲 (新曲の取り込み待ち) は出せない。
@@ -204,9 +209,12 @@ fun CommunityPlaylistDetailScreen(
                         }
                         item(key = "count") { ImasListSummary<Unit>(count = state.songs.size, unit = "曲") }
                         itemsIndexed(state.songs, key = { _, song -> song.id }) { index, song ->
+                            val skips = PlaylistPlayback.skips(playback, song.appleMusicId, unstreamable)
                             ImasSongRow(
                                 song = song,
+                                trailing = if (skips) ImasRowTrailing.Value("聴けない") else ImasRowTrailing.None,
                                 density = ImasRowDensity.COMPACT,
+                                emphasis = if (skips) ImasRowEmphasis.DIMMED else ImasRowEmphasis.NORMAL,
                                 modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.screen),
                                 onClick = { scope.launch { playFailed = !viewModel.play(index) } }
                             )

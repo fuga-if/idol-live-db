@@ -1,0 +1,51 @@
+{
+ "title": "聴き放題で鳴らない Apple Music の版を、鳴る版に差し替える",
+ "author": "fuga",
+ "source": "https://itunes.apple.com/lookup (isStreamable) と Apple Music API の playParams",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "cg_お願いシンデレラ",
+   "fields": {
+    "apple_music_id": "1676897795",
+    "apple_music_album_id": "1676897794",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/4d/d5/d9/4dd5d9e3-c386-2f30-6feb-e436176c2294/COKM-44335.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/95/4e/c3/954ec3e0-79fa-166c-bbdc-ac20c3a87b41/mzaf_15868186760974405365.plus.aac.p.m4a"
+   },
+   "note": "登録していた版は Apple Music で購入専用 (聴き放題で鳴らない)。聴き放題で鳴る「お願い! シンデレラ (GAME VERSION)」(THE IDOLM@STER CINDERELLA MASTER SERIES GAME VERSION SONG COLLECTION Vol. 1) に差し替え"
+  },
+  {
+   "table": "songs",
+   "id": "cg_memories",
+   "fields": {
+    "apple_music_id": "1676896286",
+    "apple_music_album_id": "1676896285",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/c7/d6/26/c7d6265d-0cb6-f357-3213-83a1664fba42/COKM-44338.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview116/v4/c1/ec/2e/c1ec2efc-422d-7b50-048c-96276fd1c331/mzaf_7019175633917225402.plus.aac.p.m4a"
+   },
+   "note": "登録していた版は Apple Music で購入専用 (聴き放題で鳴らない)。聴き放題で鳴る「Memories (GAME VERSION)」(THE IDOLM@STER CINDERELLA GIRLS ANIMATION PROJECT SERIES GAME VERSION SONG COLLECTION) に差し替え"
+  },
+  {
+   "table": "songs",
+   "id": "cg_always",
+   "fields": {
+    "apple_music_id": "1676897805",
+    "apple_music_album_id": "1676897794",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/4d/d5/d9/4dd5d9e3-c386-2f30-6feb-e436176c2294/COKM-44335.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/7a/e3/b9/7ae3b943-8d2a-4a69-44bf-9bd03552079b/mzaf_18173629131878528757.plus.aac.p.m4a"
+   },
+   "note": "登録していた版は Apple Music で購入専用 (聴き放題で鳴らない)。聴き放題で鳴る「always (GAME VERSION)」(THE IDOLM@STER CINDERELLA MASTER SERIES GAME VERSION SONG COLLECTION Vol. 1) に差し替え"
+  },
+  {
+   "table": "songs",
+   "id": "cg_sunhighgold",
+   "fields": {
+    "apple_music_id": "1676893334",
+    "apple_music_album_id": "1676893330",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/0e/da/51/0eda5139-5cea-6293-f822-bad8ae71d4ee/COKM-44336.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/6e/a7/e3/6ea7e344-ceaa-7b9f-1d7f-c3bdf5ebd8f2/mzaf_150920691316751063.plus.aac.p.m4a"
+   },
+   "note": "登録していた版は Apple Music で購入専用 (聴き放題で鳴らない)。聴き放題で鳴る「Sun! High! Gold! (GAME VERSION)」(THE IDOLM@STER CINDERELLA MASTER SERIES GAME VERSION SONG COLLECTION Vol. 2) に差し替え"
+  }
+ ]
+}

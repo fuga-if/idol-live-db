@@ -67,6 +67,8 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasTextInputDialog
 import com.fugaif.imaslivedb.ui.designsystem.ImasTwoFieldTextInputDialog
 import com.fugaif.imaslivedb.ui.components.ImasSongRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasRowDensity
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowEmphasis
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
 import com.fugaif.imaslivedb.ui.polls.SongPollCandidatePicker
 import com.fugaif.imaslivedb.ui.theme.DS
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -214,6 +216,9 @@ fun PlaylistDetailScreen(
     var publishMessage by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(playlistId) { viewModel.load(playlistId) }
+    val playback = AppModule.from(context).lyricsPlayback
+    val unstreamable by playback.unstreamableAppleMusicIds.collectAsState()
+    LaunchedEffect(state.songs) { PlaylistPlayback.checkStreamable(playback, state.songs.map { it.appleMusicId }) }
 
     fun beginPublish() {
         authState.startCommunityEdit(promptLogin = { showsLoginPrompt = true }) {
@@ -295,7 +300,7 @@ fun PlaylistDetailScreen(
                     )
                 }
                 else -> {
-                    val unplayable = PlaylistPlayback.unplayableCount(AppModule.from(context).lyricsPlayback, state.songs)
+                    val unplayable = PlaylistPlayback.unplayableCount(playback, state.songs.map { it.appleMusicId }, unstreamable)
                     LazyColumn(Modifier.fillMaxSize()) {
                         item {
                             Column(Modifier.padding(DS.Space.card)) {
@@ -313,7 +318,7 @@ fun PlaylistDetailScreen(
                                     ImasNote("プレイリストの再生には Apple Music の契約が要ります。", modifier = Modifier.padding(top = DS.Space.header))
                                 }
                                 if (unplayable > 0) {
-                                    ImasNote("Apple Music に無い $unplayable 曲は飛ばします。", modifier = Modifier.padding(top = DS.Space.header))
+                                    ImasNote("Apple Music で聴けない $unplayable 曲は飛ばします。", modifier = Modifier.padding(top = DS.Space.header))
                                 }
                             }
                         }
@@ -330,6 +335,7 @@ fun PlaylistDetailScreen(
                         itemsIndexed(state.songs, key = { _, song -> song.id }) { index, song ->
                             PlaylistSongRow(
                                 song = song,
+                                skips = PlaylistPlayback.skips(playback, song.appleMusicId, unstreamable),
                                 isFirst = index == 0,
                                 isLast = index == state.songs.size - 1,
                                 onPlay = { scope.launch { playFailed = !viewModel.play(index) } },
@@ -409,6 +415,8 @@ fun PlaylistDetailScreen(
 @Composable
 private fun PlaylistSongRow(
     song: Song,
+    /** フル尺で鳴らせず飛ばす曲 (行を薄くして「聴けない」と出す)。 */
+    skips: Boolean,
     isFirst: Boolean,
     isLast: Boolean,
     onPlay: () -> Unit,
@@ -419,7 +427,9 @@ private fun PlaylistSongRow(
     Row(verticalAlignment = Alignment.CenterVertically) {
         ImasSongRow(
             song = song,
+            trailing = if (skips) ImasRowTrailing.Value("聴けない") else ImasRowTrailing.None,
             density = ImasRowDensity.COMPACT,
+            emphasis = if (skips) ImasRowEmphasis.DIMMED else ImasRowEmphasis.NORMAL,
             modifier = Modifier.weight(1f),
             onClick = onPlay
         )

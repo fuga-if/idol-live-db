@@ -82,6 +82,19 @@ interface LyricsPlayback {
 
     /** Apple Music の id が無い曲もフル尺で鳴らせるか (Spotify は曲名で探して鳴らす)。 */
     val fullPlaysWithoutAppleMusicId: Boolean get() = false
+
+    /**
+     * 聴き放題で鳴らせない (購入専用の版を指している) Apple Music の id。[checkStreamable] で調べた分だけ入る。
+     * 積んでも Apple Music が黙って次へ送るので、押す前に「n 曲は飛ばします」と数えて伝える。iOS と対。
+     */
+    val unstreamableAppleMusicIds: StateFlow<Set<String>> get() = NO_UNSTREAMABLE
+
+    /** Apple Music の id が聴き放題で鳴らせるかをカタログに聞いて [unstreamableAppleMusicIds] に反映する。 */
+    suspend fun checkStreamable(appleMusicIds: List<String>) {}
+
+    companion object {
+        private val NO_UNSTREAMABLE: StateFlow<Set<String>> = kotlinx.coroutines.flow.MutableStateFlow(emptySet())
+    }
 }
 
 /** 再生できない環境の実装 (SDK の AAR が無いビルド等)。画面は「Apple Music で再生できません」と出す。 */
