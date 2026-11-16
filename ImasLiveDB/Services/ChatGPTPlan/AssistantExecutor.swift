@@ -65,6 +65,10 @@ enum AssistantExecutor {
             guard await PlaylistPlayback.play(songs) else {
                 throw Failure(message: "続けて流すには Apple Music の契約か Spotify の連携が要ります")
             }
+        case .setOwnedRelease(let releaseId, let on):
+            try marks.setBool(.owned, entity: .release, id: releaseId, value: on)
+        case .setTicketApplication(let saleId, let application):
+            try marks.setTicketApplication(saleId: saleId, application)
         case .setMastery(let songIds, let level):
             try marks.setMastery(songIds: songIds, level: UInt8(clamping: level))
         case .addToCalendar(let showId):

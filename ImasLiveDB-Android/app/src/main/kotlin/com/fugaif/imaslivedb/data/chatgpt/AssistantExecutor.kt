@@ -95,6 +95,8 @@ class AssistantExecutor(
                     throw Failure("続けて流すには Apple Music の契約か Spotify の連携が要ります")
                 }
             }
+            is AiAction.SetOwnedRelease -> setOnOff(UserMark.RELEASE, action.releaseId, UserMark.OWNED, action.on)
+            is AiAction.SetTicketApplication -> marks.setTicketApplication(action.saleId, action.application)
             is AiAction.SetMastery -> marks.setMastery(action.songIds, action.level.coerceAtMost(255u).toUByte())
             is AiAction.AddToCalendar -> addToCalendar(action.showId)
             is AiAction.SetNotification -> setNotification(action.kind, action.on)

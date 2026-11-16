@@ -515,6 +515,40 @@ fn get_event(snap: &Snapshot, args: &Value) -> Result<Value, ToolError> {
                 .collect(),
         ),
     );
+
+    // 円盤とチケット受付。利用者の「持っている」「申し込んだ」の記録は、この id に付く。
+    let releases: Vec<Value> = snap.releases_by_event[ei as usize]
+        .iter()
+        .map(|&r| {
+            let release = &snap.event_releases[r as usize];
+            let mut x = Obj::new();
+            x.put("id", release.id.as_str());
+            x.put("title", release.title.as_str());
+            x.put("product_type", release.product_type.as_str());
+            x.opt("release_date", release.release_date.as_deref());
+            x.value()
+        })
+        .collect();
+    if !releases.is_empty() {
+        o.put("releases", Value::Array(releases));
+    }
+    let sales: Vec<Value> = snap.ticket_sales_by_event[ei as usize]
+        .iter()
+        .map(|&t| {
+            let sale = &snap.ticket_sales[t as usize];
+            let mut x = Obj::new();
+            x.put("id", sale.id.as_str());
+            x.put("name", sale.name.as_str());
+            x.put("kind", crate::domain::ticket_sales::ticket_sale_kind_raw(sale.kind));
+            x.opt("starts_at", sale.starts_at.as_deref());
+            x.opt("ends_at", sale.ends_at.as_deref());
+            x.opt("result_at", sale.result_at.as_deref());
+            x.value()
+        })
+        .collect();
+    if !sales.is_empty() {
+        o.put("ticket_sales", Value::Array(sales));
+    }
     Ok(o.value())
 }
 

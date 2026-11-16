@@ -16,6 +16,7 @@
 //! 実行そのものは各 OS (GRDB・通知・再生は OS の持ち物)。操作 1 件 = 既存の書き込み口 1 回。
 
 use crate::domain::ledger::{self, ExpenseCategory};
+use crate::domain::ticket_sales::{self, TicketApplication};
 use crate::domain::show_naming::show_title;
 use crate::domain::snapshot::Snapshot;
 use serde_json::{json, Value};
@@ -73,6 +74,10 @@ pub enum AiAction {
     Open { entity: String, id: String, section: String },
     /// 曲を続けて流す。
     PlaySongs { song_ids: Vec<String> },
+    /// ライブの円盤 (BD / DVD) を持っている印。
+    SetOwnedRelease { release_id: String, on: bool },
+    /// チケット受付への自分の申込の記録。None は記録を消す。
+    SetTicketApplication { sale_id: String, application: Option<TicketApplication> },
     /// 曲の習熟度。`level` は 0 (未設定) から、利用者が決めた段数まで。
     SetMastery { song_ids: Vec<String>, level: u32 },
     /// 公演を端末のカレンダーに足す。
@@ -256,6 +261,22 @@ pub fn catalog() -> Vec<ActionSpec> {
             required: &["song_ids"],
         },
         ActionSpec {
+            name: "set_owned_release",
+            description: "ライブの円盤 (BD / DVD) を、利用者が持っている印を付ける・外す。円盤の id は get_event の releases にある。端末の中だけの記録。",
+            properties: json!({ "release_id": string("円盤の id (get_event の releases の id)。"), "on": on_flag() }),
+            required: &["release_id"],
+        },
+        ActionSpec {
+            name: "set_ticket_application",
+            description: "チケット受付に、利用者の申込の記録を付ける。受付の id は get_event の ticket_sales にある。端末の中だけの記録で、実際の申込はしない。前の記録は置き換わる。",
+            properties: json!({
+                "sale_id": string("受付の id (get_event の ticket_sales の id)。"),
+                "status": { "type": "string", "enum": ["applied", "won", "lost", "none"],
+                            "description": "applied = 申し込んだ (先着・当日券では買えた)、won = 当選、lost = 落選、none = 記録を消す。当選・落選は抽選のある受付だけ。" },
+            }),
+            required: &["sale_id", "status"],
+        },
+        ActionSpec {
             name: "set_mastery",
             description: "曲の習熟度 (どれくらい覚えたか) を付ける。段階の番号と名前は指示文にある。0 で未設定に戻す。前の段階は置き換わる。",
             properties: json!({
@@ -386,7 +407,8 @@ fn replaces_or_removes(action: &AiAction) -> bool {
         | AiAction::SetMyPick { on, .. }
         | AiAction::PredictSong { on, .. }
         | AiAction::LikeSetlistSong { on, .. } => !on,
-        AiAction::SetNotification { on, .. } => !on,
+        AiAction::SetNotification { on, .. } | AiAction::SetOwnedRelease { on, .. } => !on,
+        AiAction::SetTicketApplication { .. } => true,
         AiAction::SetNote { .. } | AiAction::SetSeat { .. } | AiAction::RemovePersonalTag { .. } | AiAction::SetMastery { .. } => true,
         AiAction::AddPersonalTag { .. }
         | AiAction::CreatePlaylist { .. }
@@ -535,6 +557,40 @@ pub fn plan(snap: &Snapshot, name: &str, args: &Value, ctx: PlanContext<'_>) -> 
             let song_ids = songs(snap, args)?;
             let target = format!("{} 曲", song_ids.len());
             Ok(planned(AiAction::PlaySongs { song_ids }, Screen, "続けて流す", target))
+        }
+        "set_owned_release" => {
+            let id = text_arg(args, "release_id");
+            let release = snap
+                .event_releases
+                .iter()
+                .find(|r| r.id == id)
+                .ok_or_else(|| format!("円盤の id が DB にありません: {id} (get_event の releases から)"))?;
+            let title = if on { "持っている円盤に入れる" } else { "持っている円盤から外す" };
+            Ok(planned(AiAction::SetOwnedRelease { release_id: release.id.clone(), on }, Device, title, release.title.clone()))
+        }
+        "set_ticket_application" => {
+            let id = text_arg(args, "sale_id");
+            let sale = snap
+                .ticket_sales
+                .iter()
+                .find(|t| t.id == id)
+                .ok_or_else(|| format!("受付の id が DB にありません: {id} (get_event の ticket_sales から)"))?;
+            let application = match text_arg(args, "status") {
+                "none" => None,
+                raw => Some(
+                    ticket_sales::ticket_application_from_raw(Some(raw))
+                        .ok_or_else(|| format!("status は applied / won / lost / none のどれか: {raw}"))?,
+                ),
+            };
+            if matches!(application, Some(TicketApplication::Won | TicketApplication::Lost)) && !ticket_sales::has_draw(sale.kind) {
+                return Err("この受付は抽選ではないので、当選・落選は付けられません".into());
+            }
+            let title = match application {
+                Some(a) => format!("申込の記録を「{}」にする", ticket_sales::ticket_application_label(sale.kind, a)),
+                None => "申込の記録を消す".to_string(),
+            };
+            let target = format!("{} — {}", sale.name, snap.events[sale.event as usize].name);
+            Ok(planned(AiAction::SetTicketApplication { sale_id: sale.id.clone(), application }, Device, title, target))
         }
         "set_mastery" => {
             let song_ids = songs(snap, args)?;
@@ -754,5 +810,27 @@ mod tests {
         let list = plan(&snap, "open_list", &json!({ "list": "songs", "query": "READY" }), CTX).unwrap();
         assert_eq!(list.action, AiAction::OpenList { list: "songs".into(), query: "READY".into() });
         assert!(plan(&snap, "open_list", &json!({ "list": "polls" }), CTX).is_err());
+    }
+
+    #[test]
+    fn 円盤と受付は_DB_にある_id_だけ() {
+        let snap = bundle_snapshot();
+        assert!(plan(&snap, "set_owned_release", &json!({ "release_id": "nope" }), CTX).is_err());
+        assert!(plan(&snap, "set_ticket_application", &json!({ "sale_id": "nope", "status": "applied" }), CTX).is_err());
+        if let Some(release) = snap.event_releases.first() {
+            let p = plan(&snap, "set_owned_release", &json!({ "release_id": release.id }), CTX).unwrap();
+            assert!(p.preselected && p.target == release.title);
+        }
+        if let Some(sale) = snap.ticket_sales.first() {
+            let args = |status: &str| json!({ "sale_id": sale.id, "status": status });
+            let p = plan(&snap, "set_ticket_application", &args("applied"), CTX).unwrap();
+            assert!(!p.preselected);
+            assert_eq!(p.action, AiAction::SetTicketApplication { sale_id: sale.id.clone(), application: Some(TicketApplication::Applied) });
+            let none = plan(&snap, "set_ticket_application", &args("none"), CTX).unwrap();
+            assert_eq!(none.title, "申込の記録を消す");
+            assert!(plan(&snap, "set_ticket_application", &args("maybe"), CTX).is_err());
+            // 当選・落選は抽選のある受付だけ。
+            assert_eq!(plan(&snap, "set_ticket_application", &args("won"), CTX).is_ok(), ticket_sales::has_draw(sale.kind));
+        }
     }
 }

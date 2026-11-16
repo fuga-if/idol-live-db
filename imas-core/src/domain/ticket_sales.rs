@@ -832,7 +832,7 @@ pub fn ticket_application_from_raw(raw: Option<&str>) -> Option<TicketApplicatio
 }
 
 /// 抽選がある受付か (当選・落選を付ける意味があるか)。先着・当日券は申し込めた = 買えた。
-fn has_draw(kind: TicketSaleKind) -> bool {
+pub(crate) fn has_draw(kind: TicketSaleKind) -> bool {
     matches!(kind, TicketSaleKind::Lottery | TicketSaleKind::Resale)
 }
 
