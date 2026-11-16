@@ -24,9 +24,8 @@ extension AppDestination {
     var label: String { AppDestination.labels[self] ?? "" }
     var analyticsKey: String { AppDestination.analyticsKeys[self] ?? "" }
 
-    // チャットはタブバーの 5 枠とは別枠なので、選べる並びには入っていない。名前だけここで足す。
-    private static let items = tabBarChoices(lyricsAvailable: true)
-        + [appNavigationChatItem(chatConnected: true)].compactMap { $0 }
+    // 名前を引くだけなので、出せる行き先をぜんぶ (歌詞あり・連携あり) で引く。
+    private static let items = tabBarChoices(lyricsAvailable: true, chatConnected: true)
     private static let labels = Dictionary(uniqueKeysWithValues: items.map { ($0.destination, $0.label) })
     private static let analyticsKeys = Dictionary(uniqueKeysWithValues: items.map { ($0.destination, $0.analyticsKey) })
 }

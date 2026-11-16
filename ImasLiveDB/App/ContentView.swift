@@ -23,12 +23,9 @@ struct ContentView: View {
     private var primaryItems: [NavItem] { navSections.flatMap(\.items).filter(\.inTabBar) }
     /// サイドバーだけに出る見出し。狭い画面ではタブバーに載らない。
     private var secondarySections: [NavSection] { navSections.filter { $0.title != nil } }
-    /// チャットの行き先。ChatGPT とつないだ人にだけ出す (出すかどうかはコア)。タブバーの 5 枠とは別枠。
-    private var chatItem: NavItem? { appNavigationChatItem(chatConnected: ChatGPTPlanSession.shared.canUsePlan) }
-    /// いまの選択がタブバー (とチャットの枠) に無いか。
+    /// いまの選択がタブバーに無いか。
     private func isOffTabBar(_ destination: AppDestination) -> Bool {
-        if destination == .chat { return chatItem == nil }
-        return !primaryItems.contains(where: { $0.destination == destination })
+        !primaryItems.contains(where: { $0.destination == destination })
     }
     /// タブを跨いだ検索の引き継ぎ (「他のタブに N 件」を押されたとき)。
     @State private var crossTab = CrossTabSearch.shared
@@ -166,7 +163,7 @@ struct ContentView: View {
     @ViewBuilder
     private var rootTabs: some View {
         if #available(iOS 18, *) {
-            AdaptiveRootTabs(selection: $selection, primary: primaryItems, secondary: secondarySections, chat: chatItem)
+            AdaptiveRootTabs(selection: $selection, primary: primaryItems, secondary: secondarySections)
                 // タブバーから今いる画面を外したら、外した画面の入口があるプロデュースへ。
                 .onAppear {
                     // 最初の画面 (スケジュール) をタブから外していたら、タブバーの先頭で開く。
@@ -175,9 +172,9 @@ struct ContentView: View {
                 .onChange(of: tabBarOrder) { _, _ in
                     if isOffTabBar(selection) { selection = .produce }
                 }
-                // 連携を解除したら、チャットに居たままにしない。
-                .onChange(of: chatItem == nil) { _, gone in
-                    if gone, selection == .chat { selection = .produce }
+                // ChatGPT とつなぐ・解除するとタブバーの並びが変わる (チャットが入る・消える)。
+                .onChange(of: TabBarSettings.chatConnected) { _, _ in
+                    if isOffTabBar(selection) { selection = .produce }
                 }
         } else {
             TabView(selection: $selection) {
@@ -347,18 +344,7 @@ private struct AdaptiveRootTabs: View {
     @Binding var selection: AppDestination
     let primary: [NavItem]
     let secondary: [NavSection]
-    /// チャット (つないだ人だけ)。
-    let chat: NavItem?
     @Environment(\.horizontalSizeClass) private var sizeClass
-
-    /// チャットの枠を出すか。iPhone のタブバーは 5 枠までなので、5 枠とは別に右へ離して置ける
-    /// iOS 26 からだけ出す (それより前は 6 つ目が「その他」に畳まれる)。広い画面はサイドバーなので出す。
-    private var chatTab: NavItem? {
-        guard let chat else { return nil }
-        if sizeClass != .compact { return chat }
-        if #available(iOS 26, *) { return chat }
-        return nil
-    }
 
     /// サイドバーだけの行き先は狭い画面では載せない。`defaultVisibility(.hidden)` だけだと
     /// iPhone のタブバーが 5 枠を超えたと数えて「その他」に畳み、プロデュースが隠れる。
@@ -368,12 +354,6 @@ private struct AdaptiveRootTabs: View {
         TabView(selection: $selection) {
             ForEach(primary, id: \.destination) { item in
                 tab(item)
-            }
-            if let chatTab {
-                // 検索の役の枠は、iOS 26 のタブバーでは 5 枠の右に離れた 1 枠になる。
-                Tab(chatTab.label, systemImage: chatTab.destination.systemImage, value: chatTab.destination, role: .search) {
-                    DestinationScreen(destination: chatTab.destination)
-                }
             }
             ForEach(sidebarSections, id: \.title) { section in
                 TabSection(section.title ?? "") {
@@ -391,8 +371,7 @@ private struct AdaptiveRootTabs: View {
         // iPad の画面分割などで狭くなったとき、サイドバーだけの行き先に居たら
         // 同じ画面の入口があるプロデュースへ戻す (空の選択を残さない)。
         .onChange(of: sizeClass) { _, newValue in
-            if newValue == .compact, selection != chatTab?.destination,
-               !primary.contains(where: { $0.destination == selection }) {
+            if newValue == .compact, !primary.contains(where: { $0.destination == selection }) {
                 selection = .produce
             }
         }

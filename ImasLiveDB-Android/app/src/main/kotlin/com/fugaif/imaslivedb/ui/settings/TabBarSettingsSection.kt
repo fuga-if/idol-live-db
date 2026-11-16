@@ -26,6 +26,10 @@ import com.fugaif.imaslivedb.ui.theme.AppPreferences
 import com.fugaif.imaslivedb.ui.theme.DS
 import uniffi.imas_core.AppDestination
 import uniffi.imas_core.maxTabBarCount
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
+import com.fugaif.imaslivedb.di.AppModule
 import uniffi.imas_core.normalizeTabBarKeys
 import uniffi.imas_core.tabBarChoices
 
@@ -35,11 +39,14 @@ import uniffi.imas_core.tabBarChoices
  */
 @Composable
 fun TabBarSettingsSection() {
-    val choices = remember { tabBarChoices(lyricsAvailable = false) }
+    // チャットは ChatGPT とつないだ人にだけ選べる (出すかどうかはコア)。
+    val chatState by AppModule.from(LocalContext.current).chatGptPlanService.state.collectAsState()
+    val chatConnected = chatState.canUsePlan
+    val choices = remember(chatConnected) { tabBarChoices(lyricsAvailable = false, chatConnected = chatConnected) }
     val max = remember { maxTabBarCount().toInt() }
-    val tabs = normalizeTabBarKeys(lyricsAvailable = false, tabKeys = AppPreferences.tabBarKeys)
+    val tabs = normalizeTabBarKeys(lyricsAvailable = false, chatConnected = chatConnected, tabKeys = AppPreferences.tabBarKeys)
     fun save(keys: List<String>) =
-        AppPreferences.setTabBarKeys(normalizeTabBarKeys(lyricsAvailable = false, tabKeys = keys))
+        AppPreferences.setTabBarKeys(normalizeTabBarKeys(lyricsAvailable = false, chatConnected = chatConnected, tabKeys = keys))
     fun item(key: String) = choices.firstOrNull { it.analyticsKey == key }
 
     Column {

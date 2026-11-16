@@ -31,8 +31,8 @@ pub enum AppDestination {
     CommunityActivity,
     TagActivity,
     Games,
-    /// チャット。ChatGPT とつないだ人にだけ出す。タブバーの 5 枠とは別の枠 ([`chat_item`]) なので、
-    /// 選べる並び ([`ALL`]) には入れない。
+    /// チャット。ChatGPT とつないだ人にだけ出す ([`is_available`])。つないだ人の既定のタブバーでは
+    /// スケジュールと入れ替わる ([`default_tab_bar`])。
     Chat,
 }
 
@@ -102,7 +102,7 @@ pub struct NavSection {
 }
 
 /// 行き先すべて (選べる並びの順)。
-const ALL: [AppDestination; 12] = [
+const ALL: [AppDestination; 13] = [
     AppDestination::Schedule,
     AppDestination::Events,
     AppDestination::Songs,
@@ -115,6 +115,7 @@ const ALL: [AppDestination; 12] = [
     AppDestination::CommunityActivity,
     AppDestination::TagActivity,
     AppDestination::Games,
+    AppDestination::Chat,
 ];
 
 /// タブバーに載せられる数の上限 (iPhone のタブバーは 5 を超えると「その他」に畳まれる)。
@@ -145,32 +146,35 @@ const SECONDARY: [(&str, &[AppDestination]); 3] = [
     ("あそぶ", &[AppDestination::Games]),
 ];
 
-/// チャットの行き先。ChatGPT とつないでいなければ None (行き先ごと出さない)。
-///
-/// タブバーの 5 枠には数えない。iOS 26 はタブバーの右に離れた 1 枠、Android は並びの末尾、
-/// 広い画面はサイドバーの先頭の並びに出す (どう描くかは各 OS)。
-pub fn chat_item(chat_connected: bool) -> Option<NavItem> {
-    chat_connected.then(|| item(AppDestination::Chat, true, None))
+/// ChatGPT とつないだ人の既定のタブバー。iPhone のタブバーは 5 枠まで (6 つ目は OS が「その他」に
+/// 畳む) なので、チャットはスケジュールと入れ替える。スケジュールは「そのほか」から開ける。
+const PRIMARY_WITH_CHAT: [AppDestination; 5] = [
+    AppDestination::Events,
+    AppDestination::Songs,
+    AppDestination::Idols,
+    AppDestination::Chat,
+    AppDestination::Produce,
+];
+
+/// 既定のタブバー。自分で並びを選んでいない人に使う。
+pub fn default_tab_bar(chat_connected: bool) -> Vec<AppDestination> {
+    if chat_connected { PRIMARY_WITH_CHAT.to_vec() } else { PRIMARY.to_vec() }
 }
 
-/// 既定のタブバー。
-pub fn default_tab_bar() -> Vec<AppDestination> {
-    PRIMARY.to_vec()
-}
-
-/// このビルドで出せる行き先か。
-fn is_available(d: AppDestination, lyrics_available: bool) -> bool {
+/// いま出せる行き先か。
+fn is_available(d: AppDestination, lyrics_available: bool, chat_connected: bool) -> bool {
     match d {
         AppDestination::CallGuide => lyrics_available,
+        AppDestination::Chat => chat_connected,
         _ => true,
     }
 }
 
 /// タブバーに選べる行き先 (このビルドで出せるものすべて)。
-pub fn tab_bar_choices(lyrics_available: bool) -> Vec<NavItem> {
+pub fn tab_bar_choices(lyrics_available: bool, chat_connected: bool) -> Vec<NavItem> {
     ALL.iter()
         .copied()
-        .filter(|&d| is_available(d, lyrics_available))
+        .filter(|&d| is_available(d, lyrics_available, chat_connected))
         .map(|d| item(d, false, None))
         .collect()
 }
@@ -183,10 +187,11 @@ pub fn tab_bar_choices(lyrics_available: bool) -> Vec<NavItem> {
 pub fn normalize_tab_bar(
     tabs: &[AppDestination],
     lyrics_available: bool,
+    chat_connected: bool,
 ) -> Vec<AppDestination> {
     let mut out: Vec<AppDestination> = Vec::new();
     for &d in tabs {
-        if is_available(d, lyrics_available) && !out.contains(&d) {
+        if is_available(d, lyrics_available, chat_connected) && !out.contains(&d) {
             out.push(d);
         }
     }
@@ -204,8 +209,8 @@ pub fn normalize_tab_bar(
 ///
 /// `lyrics_available`: 歌詞を出せるビルドか。出せないビルドではコールガイドを
 /// 書く場所そのものが無いので、行き先ごと出さない (プロデュースの入口と同じ根拠)。
-pub fn app_navigation(lyrics_available: bool) -> Vec<NavSection> {
-    app_navigation_with_tabs(lyrics_available, &PRIMARY)
+pub fn app_navigation(lyrics_available: bool, chat_connected: bool) -> Vec<NavSection> {
+    app_navigation_with_tabs(lyrics_available, chat_connected, &default_tab_bar(chat_connected))
 }
 
 /// タブバーから外した主な画面を置く見出し。
@@ -218,17 +223,20 @@ pub const OTHERS_TITLE: &str = "そのほか";
 /// 「そのほか」の見出しに並べる (狭い画面ではプロデュースから辿る)。
 pub fn app_navigation_with_tabs(
     lyrics_available: bool,
+    chat_connected: bool,
     tabs: &[AppDestination],
 ) -> Vec<NavSection> {
-    let tabs = normalize_tab_bar(tabs, lyrics_available);
+    let tabs = normalize_tab_bar(tabs, lyrics_available, chat_connected);
     let primary = NavSection {
         title: None,
         items: tabs.iter().enumerate().map(|(i, &d)| item(d, true, Some(i as u8 + 1))).collect(),
     };
+    // タブから外したチャットも、ここから開ける (つないでいるときだけ)。
     let others: Vec<NavItem> = PRIMARY
         .iter()
         .copied()
-        .filter(|&d| is_available(d, lyrics_available) && !tabs.contains(&d))
+        .chain(std::iter::once(AppDestination::Chat))
+        .filter(|&d| is_available(d, lyrics_available, chat_connected) && !tabs.contains(&d))
         .map(|d| item(d, false, None))
         .collect();
     let others = (!others.is_empty()).then(|| NavSection { title: Some(OTHERS_TITLE.to_string()), items: others });
@@ -236,7 +244,7 @@ pub fn app_navigation_with_tabs(
         let items: Vec<NavItem> = dests
             .iter()
             .copied()
-            .filter(|&d| is_available(d, lyrics_available) && !tabs.contains(&d))
+            .filter(|&d| is_available(d, lyrics_available, chat_connected) && !tabs.contains(&d))
             .map(|d| item(d, false, None))
             .collect();
         (!items.is_empty()).then(|| NavSection { title: Some(title.to_string()), items })
@@ -264,7 +272,7 @@ mod tests {
 
     #[test]
     fn tab_bar_is_the_five_primary_tabs_in_order() {
-        let nav = app_navigation(true);
+        let nav = app_navigation(true, false);
         let tabs: Vec<AppDestination> = all_items(&nav)
             .into_iter()
             .filter(|i| i.in_tab_bar)
@@ -275,7 +283,7 @@ mod tests {
 
     #[test]
     fn shortcuts_are_one_to_five_on_tabs_only() {
-        let nav = app_navigation(true);
+        let nav = app_navigation(true, false);
         let digits: Vec<Option<u8>> = all_items(&nav).iter().map(|i| i.shortcut_digit).collect();
         assert_eq!(&digits[..5], &[Some(1), Some(2), Some(3), Some(4), Some(5)]);
         assert!(digits[5..].iter().all(Option::is_none));
@@ -283,7 +291,7 @@ mod tests {
 
     #[test]
     fn every_destination_appears_once_when_lyrics_available() {
-        let nav = app_navigation(true);
+        let nav = app_navigation(true, false);
         let items = all_items(&nav);
         assert_eq!(items.len(), 12);
         let mut seen = std::collections::HashSet::new();
@@ -292,7 +300,7 @@ mod tests {
 
     #[test]
     fn call_guide_is_hidden_without_lyrics() {
-        let nav = app_navigation(false);
+        let nav = app_navigation(false, false);
         assert!(all_items(&nav).iter().all(|i| i.destination != AppDestination::CallGuide));
         // 見出しは残る (みんなの投票などが居る)
         assert!(nav.iter().any(|s| s.title.as_deref() == Some("みんな")));
@@ -301,18 +309,18 @@ mod tests {
     #[test]
     fn chosen_tabs_keep_produce_and_cap_at_five() {
         use AppDestination::*;
-        let tabs = normalize_tab_bar(&[Songs, Songs, Polls, Games, Stats, Timeline, Idols], true);
+        let tabs = normalize_tab_bar(&[Songs, Songs, Polls, Games, Stats, Timeline, Idols], true, false);
         assert_eq!(tabs, vec![Songs, Polls, Games, Stats, Produce]);
         // 出せないコールガイドは落ちる
-        assert_eq!(normalize_tab_bar(&[CallGuide, Idols], false), vec![Idols, Produce]);
+        assert_eq!(normalize_tab_bar(&[CallGuide, Idols], false, false), vec![Idols, Produce]);
         // 空でもプロデュースだけは残る
-        assert_eq!(normalize_tab_bar(&[], true), vec![Produce]);
+        assert_eq!(normalize_tab_bar(&[], true, false), vec![Produce]);
     }
 
     #[test]
     fn removed_main_tabs_go_to_others() {
         use AppDestination::*;
-        let nav = app_navigation_with_tabs(true, &[Events, Songs, Stats, Produce]);
+        let nav = app_navigation_with_tabs(true, false, &[Events, Songs, Stats, Produce]);
         let tabs: Vec<_> = nav[0].items.iter().map(|i| i.destination).collect();
         assert_eq!(tabs, vec![Events, Songs, Stats, Produce]);
         assert_eq!(nav[1].title.as_deref(), Some(OTHERS_TITLE));
@@ -335,5 +343,25 @@ mod tests {
         // 既存の計測系列 (ContentView.tabName) を切らない。
         let keys: Vec<&str> = PRIMARY.iter().map(|d| d.analytics_key()).collect();
         assert_eq!(keys, ["schedule", "events", "songs", "idols", "produce"]);
+    }
+
+    #[test]
+    fn つないだ人の既定はスケジュールとチャットが入れ替わる() {
+        let nav = app_navigation(true, true);
+        let tabs: Vec<AppDestination> = all_items(&nav).into_iter().filter(|i| i.in_tab_bar).map(|i| i.destination).collect();
+        assert_eq!(tabs, PRIMARY_WITH_CHAT.to_vec());
+        assert!(tabs.len() <= MAX_TABS);
+        // スケジュールは「そのほか」から開ける。
+        let others = nav.iter().find(|s| s.title.as_deref() == Some(OTHERS_TITLE)).unwrap();
+        assert_eq!(others.items.iter().map(|i| i.destination).collect::<Vec<_>>(), vec![AppDestination::Schedule]);
+        // つないでいなければ、チャットは選べる並びにもタブにも出ない。保存した並びに残っていても落ちる。
+        assert!(tab_bar_choices(true, false).iter().all(|i| i.destination != AppDestination::Chat));
+        assert!(tab_bar_choices(true, true).iter().any(|i| i.destination == AppDestination::Chat));
+        assert_eq!(normalize_tab_bar(&PRIMARY_WITH_CHAT, true, false), vec![AppDestination::Events, AppDestination::Songs, AppDestination::Idols, AppDestination::Produce]);
+        // 自分で並べた人がチャットを外していたら、「そのほか」に出る。
+        let custom = app_navigation_with_tabs(true, true, &PRIMARY);
+        let others = custom.iter().find(|s| s.title.as_deref() == Some(OTHERS_TITLE)).unwrap();
+        assert_eq!(others.items[0].destination, AppDestination::Chat);
+        assert_eq!(AppDestination::from_key("chat"), Some(AppDestination::Chat));
     }
 }

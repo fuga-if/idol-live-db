@@ -338,8 +338,10 @@ private fun ShortcutsSection(
     Column(verticalArrangement = Arrangement.spacedBy(DS.Space.section)) {
         // タブバーから外した主な画面 (並べ方はコア)。
         val tabKeys = AppPreferences.tabBarKeys
-        val others = remember(tabKeys) {
-            appNavigationSectionsWithTabs(lyricsAvailable = false, tabKeys = tabKeys)
+        val chatState by AppModule.from(LocalContext.current).chatGptPlanService.state.collectAsState()
+        val chatConnected = chatState.canUsePlan
+        val others = remember(tabKeys, chatConnected) {
+            appNavigationSectionsWithTabs(lyricsAvailable = false, chatConnected = chatConnected, tabKeys = tabKeys)
                 .firstOrNull { it.title == "そのほか" }?.items.orEmpty()
         }
         if (others.isNotEmpty()) {

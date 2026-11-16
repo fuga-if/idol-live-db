@@ -9,7 +9,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalConfiguration
 import uniffi.imas_core.AppDestination
 import uniffi.imas_core.NavSection
-import uniffi.imas_core.appNavigationChatItem
 import com.fugaif.imaslivedb.ui.chatgpt.AssistantScreen
 import uniffi.imas_core.appNavigationSectionsWithTabs
 import com.fugaif.imaslivedb.ui.theme.AppPreferences
@@ -137,18 +136,16 @@ private const val WIDE_SCREEN_MIN_DP = 600
 fun AppNavigation() {
     var current by rememberSaveable { mutableStateOf(AppDestination.SCHEDULE) }
     // 行き先の一覧 (並び・見出し・タブバーに載るか) はコアが決める。タブバーの並びは設定で選ぶ。
-    // Android には歌詞 (コールガイド) と AI チャットが無いので両方 false。
+    // Android には歌詞 (コールガイド) が無いので false。チャットは ChatGPT とつないだ人にだけ出て、
+    // 既定の並びではスケジュールと入れ替わる (タブバーは 5 枠まで。決めるのはコア)。
     val tabKeys = AppPreferences.tabBarKeys
-    val sections = remember(tabKeys) {
-        appNavigationSectionsWithTabs(lyricsAvailable = false, tabKeys = tabKeys)
+    val chatState by AppModule.from(LocalContext.current).chatGptPlanService.state.collectAsState()
+    val chatConnected = chatState.canUsePlan
+    val sections = remember(tabKeys, chatConnected) {
+        appNavigationSectionsWithTabs(lyricsAvailable = false, chatConnected = chatConnected, tabKeys = tabKeys)
     }
     val tabItems = remember(sections) { sections.flatMap { it.items }.filter { it.inTabBar } }
-    // チャットの行き先。ChatGPT とつないだ人にだけ出す (出すかどうかはコア)。タブバーの 5 枠 (並びの設定) とは別枠で、
-    // 並びの末尾に 6 つ目として足す。
-    val chatConnected by AppModule.from(LocalContext.current).chatGptPlanService.state
-        .collectAsState()
-    val chatItem = remember(chatConnected.canUsePlan) { appNavigationChatItem(chatConnected.canUsePlan) }
-    val barItems = remember(tabItems, chatItem) { tabItems + listOfNotNull(chatItem) }
+    val barItems = tabItems
     val wide = LocalConfiguration.current.screenWidthDp >= WIDE_SCREEN_MIN_DP
     // 最初の画面 (スケジュール) や今いる画面をタブから外したら、タブバーの先頭か、
     // 外した画面の入口があるプロデュースへ。
@@ -161,10 +158,6 @@ fun AppNavigation() {
     // プロデュースへ戻す。iOS の AdaptiveRootTabs と同じ規則。
     LaunchedEffect(wide) {
         if (!wide && barItems.none { it.destination == current }) current = AppDestination.PRODUCE
-    }
-    // 連携を解除したら、チャットに居たままにしない (広い画面ではサイドバーの項目も消える)。
-    LaunchedEffect(chatItem == null) {
-        if (chatItem == null && current == AppDestination.CHAT) current = AppDestination.PRODUCE
     }
     // 「他のタブに N 件」を押されたら、そのタブへ移る。語の受け渡しは移った先の
     // 一覧が `CrossTabSearch.take()` で拾う。generation を鍵にするのは、同じタブへ
@@ -245,7 +238,7 @@ fun AppNavigation() {
     Row {
         if (wide) {
             AppSidebar(
-                sections = sections + listOfNotNull(chatItem?.let { NavSection(title = null, items = listOf(it)) }),
+                sections = sections,
                 current = current,
                 onSelect = selectDestination
             )

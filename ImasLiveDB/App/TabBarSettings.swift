@@ -5,18 +5,21 @@ import SwiftUI
 enum TabBarSettings {
     static let storageKey = "tab_bar_order"
 
+    /// ChatGPT とつないでいるか。つないでいる人にだけチャットを出す (出し方はコアが決める)。
+    @MainActor static var chatConnected: Bool { ChatGPTPlanSession.shared.canUsePlan }
+
     static func keys(_ raw: String) -> [String] {
         raw.split(separator: ",").map(String.init)
     }
 
     /// 行き先を見出しごとに。先頭 (見出しなし) がタブバー、タブから外した主な画面は「そのほか」。
     @MainActor static func sections(_ raw: String) -> [NavSection] {
-        appNavigationSectionsWithTabs(lyricsAvailable: LyricsFeature.isAvailable, tabKeys: keys(raw))
+        appNavigationSectionsWithTabs(lyricsAvailable: LyricsFeature.isAvailable, chatConnected: chatConnected, tabKeys: keys(raw))
     }
 
     /// 整えた並び (保存する値)。
     @MainActor static func normalized(_ keys: [String]) -> [String] {
-        normalizeTabBarKeys(lyricsAvailable: LyricsFeature.isAvailable, tabKeys: keys)
+        normalizeTabBarKeys(lyricsAvailable: LyricsFeature.isAvailable, chatConnected: chatConnected, tabKeys: keys)
     }
 }
 
@@ -30,7 +33,7 @@ struct TabBarSettingsView: View {
 
     private var tabs: [String] { TabBarSettings.normalized(TabBarSettings.keys(raw)) }
     private var choices: [NavItem] {
-        tabBarChoices(lyricsAvailable: LyricsFeature.isAvailable)
+        tabBarChoices(lyricsAvailable: LyricsFeature.isAvailable, chatConnected: TabBarSettings.chatConnected)
     }
     private var maxCount: Int { Int(maxTabBarCount()) }
 
