@@ -102,7 +102,7 @@ fun ExpenseEditorSheet(
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = DS.bg) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = DS.Space.section)) {
             ImasSheetToolbar(
-                ImasSheetToolbarKind.Edit(canSave = validation == null, onCancel = onDismiss, onSave = ::save),
+                ImasSheetToolbarKind.Edit(canSave = validation == null, onCancel = onDismiss, onSave = { save() }),
                 title = if (expense == null) "支出を足す" else "支出を直す"
             )
 

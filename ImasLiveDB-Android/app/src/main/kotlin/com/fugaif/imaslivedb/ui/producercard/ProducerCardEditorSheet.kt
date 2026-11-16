@@ -699,13 +699,13 @@ fun ProducerCardEditorSheet(
         skipPartiallyExpanded = true,
         confirmValueChange = remember { { value: SheetValue -> value != SheetValue.Hidden || !dirtyNow } }
     )
-    ModalBottomSheet(onDismissRequest = ::cancel, sheetState = sheetState, containerColor = DS.bg) {
+    ModalBottomSheet(onDismissRequest = { cancel() }, sheetState = sheetState, containerColor = DS.bg) {
         Box {
             // 見本は画面の上に固定する (下の欄は別にスクロールし、写真やリンクを足して見本の背が
             // 変わっても欄は動かない。実機で「操作するたびにレイアウトがずれる」と指摘された)。
             Column(Modifier.fillMaxWidth().fillMaxHeight(0.92f)) {
                 ImasSheetToolbar(
-                    ImasSheetToolbarKind.Edit(canSave = canSave, isSaving = isSaving, onCancel = ::cancel, onSave = ::save),
+                    ImasSheetToolbarKind.Edit(canSave = canSave, isSaving = isSaving, onCancel = { cancel() }, onSave = { save() }),
                     title = if (card.name.isEmpty()) "P名刺を作る" else "P名刺を編集"
                 )
                 ImasPinnedPreview {
@@ -819,7 +819,7 @@ fun ProducerCardEditorSheet(
                                     val source = photoSource
                                     if (source != null) {
                                         CardEditorAction(Icons.Filled.Crop, "位置を直す") { cropping = CropDraft(source, crop, photoOrigin) }
-                                        CardEditorAction(Icons.Filled.RemoveCircleOutline, "写真を外す", tint = DS.danger, onClick = ::removePhoto)
+                                        CardEditorAction(Icons.Filled.RemoveCircleOutline, "写真を外す", tint = DS.danger, onClick = { removePhoto() })
                                     }
                                     val notice = avatarNotice
                                     if (notice != null) {

@@ -143,7 +143,7 @@ fun LyricLineEditScreen(songId: String, line: LyricLine, onSaved: () -> Unit, on
         }
     }
 
-    val openCamera = rememberDocumentCamera(maxPages = 1, onFinish = ::read)
+    val openCamera = rememberDocumentCamera(maxPages = 1, onFinish = { uris -> read(uris) })
     val pickPhoto = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) read(listOf(uri))
     }
@@ -155,7 +155,7 @@ fun LyricLineEditScreen(songId: String, line: LyricLine, onSaved: () -> Unit, on
                     canSubmit = check.canSubmit && isChanged && !isSaving && !isReading,
                     isSubmitting = isSaving,
                     onCancel = onDismiss,
-                    onSubmit = ::submit
+                    onSubmit = { submit() }
                 ),
                 title = "この行を直す"
             )

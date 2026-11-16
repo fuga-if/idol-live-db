@@ -245,7 +245,7 @@ fun ProducerCardImageScreen(onBack: () -> Unit) {
                 },
                 actions = {
                     if (card != null) {
-                        IconButton(onClick = ::export, enabled = !exporting) {
+                        IconButton(onClick = { export() }, enabled = !exporting) {
                             Icon(Icons.Filled.Share, contentDescription = "画像を書き出す")
                         }
                     }
@@ -325,12 +325,12 @@ fun ProducerCardImageScreen(onBack: () -> Unit) {
                             ) {
                                 ImasButton(
                                     title = "画像を書き出す", icon = Icons.Filled.Share, role = ImasButtonRole.PRIMARY,
-                                    size = ImasButtonSize.LARGE, fillsWidth = true, isLoading = exporting, onClick = ::export
+                                    size = ImasButtonSize.LARGE, fillsWidth = true, isLoading = exporting, onClick = { export() }
                                 )
                                 ImasCardList {
                                     ImasActionRow(
                                         title = "写真に保存", icon = Icons.Filled.Download,
-                                        position = ImasRowPosition.FIRST, onClick = ::saveToPictures
+                                        position = ImasRowPosition.FIRST, onClick = { saveToPictures() }
                                     )
                                 }
                             }

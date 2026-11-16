@@ -143,7 +143,7 @@ fun UnitPollCandidatePicker(
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.92f)) {
             ImasSheetToolbar(
-                kind = ImasSheetToolbarKind.Select(canFinish = selection != alreadySelected, onCancel = onDismiss, onFinish = ::confirm),
+                kind = ImasSheetToolbarKind.Select(canFinish = selection != alreadySelected, onCancel = onDismiss, onFinish = { confirm() }),
                 title = "ユニットを選択 (${selection.size})"
             )
             Row(Modifier.fillMaxWidth().padding(horizontal = DS.Space.screen), horizontalArrangement = Arrangement.End) {

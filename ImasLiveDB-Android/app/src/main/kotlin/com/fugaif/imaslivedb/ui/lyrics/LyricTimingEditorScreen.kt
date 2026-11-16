@@ -339,7 +339,7 @@ fun LyricTimingEditorScreen(
             onPaint = { lineId, start, end -> paint(lineId, start, end) },
             partsTargetId = partsTargetId,
             partsErasing = partsErasing,
-            onPickPartsLine = ::pickPartsLine,
+            onPickPartsLine = { lineId -> pickPartsLine(lineId) },
             listState = laneListState,
             followPausedUntil = { followPausedUntil },
             onUserScroll = { followPausedUntil = System.currentTimeMillis() + 4000 },

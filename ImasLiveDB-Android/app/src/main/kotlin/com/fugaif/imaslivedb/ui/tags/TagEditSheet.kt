@@ -84,7 +84,7 @@ fun TagEditSheet(
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(Modifier.fillMaxWidth()) {
             ImasSheetToolbar(
-                kind = ImasSheetToolbarKind.Edit(canSave = !isSaving, isSaving = isSaving, onCancel = onDismiss, onSave = ::submit),
+                kind = ImasSheetToolbarKind.Edit(canSave = !isSaving, isSaving = isSaving, onCancel = onDismiss, onSave = { submit() }),
                 title = "「${tag.name}」を編集"
             )
             ImasFormPage(Modifier.weight(1f)) {

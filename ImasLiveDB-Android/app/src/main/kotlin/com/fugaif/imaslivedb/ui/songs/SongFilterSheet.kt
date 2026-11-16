@@ -213,7 +213,7 @@ fun SongFilterSheet(
             )
             FilterPage.MAIN -> Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
                 // 左=リセット・右=適用はこの帯にだけ置く (DS §2.6)。
-                ImasFilterSheetToolbar(canReset = true, onReset = ::resetAll, onApply = ::apply, title = "フィルター・並び替え")
+                ImasFilterSheetToolbar(canReset = true, onReset = { resetAll() }, onApply = { apply() }, title = "フィルター・並び替え")
 
                 // 表示形式
                 ImasListSection("表示形式") {

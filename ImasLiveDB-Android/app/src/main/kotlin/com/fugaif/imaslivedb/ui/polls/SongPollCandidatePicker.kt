@@ -144,7 +144,7 @@ fun SongPollCandidatePicker(
                 kind = ImasSheetToolbarKind.Select(
                     canFinish = (selection - alreadySelected).isNotEmpty(),
                     onCancel = onDismiss,
-                    onFinish = ::confirm
+                    onFinish = { confirm() }
                 ),
                 title = "楽曲を選択 (${selection.size})"
             )

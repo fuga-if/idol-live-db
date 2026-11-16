@@ -168,7 +168,7 @@ fun ProducerCardReceiveContent(
             ImasSheetToolbar(
                 ImasSheetToolbarKind.Edit(
                     canSave = card != null && !isSaving, isSaving = isSaving,
-                    onCancel = { onDone(null) }, onSave = ::save
+                    onCancel = { onDone(null) }, onSave = { save() }
                 ),
                 title = "名刺を受け取る"
             )

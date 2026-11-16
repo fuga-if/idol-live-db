@@ -105,7 +105,7 @@ fun PersonalTagsSection(
             onTextChange = { input = it },
             prompt = "マイタグを追加 (例: 聞いた)",
             submitAccessibilityLabel = "マイタグを追加",
-            onSubmit = ::add,
+            onSubmit = { add() },
             limit = 30,
             isEnabled = canAdd
         )

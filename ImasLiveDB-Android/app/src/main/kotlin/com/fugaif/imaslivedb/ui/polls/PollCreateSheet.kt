@@ -114,7 +114,7 @@ fun PollCreateSheet(
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(Modifier.fillMaxWidth()) {
             ImasSheetToolbar(
-                kind = ImasSheetToolbarKind.Submit(canSubmit = canSubmit, isSubmitting = state.isSubmitting, onCancel = onDismiss, onSubmit = ::submit),
+                kind = ImasSheetToolbarKind.Submit(canSubmit = canSubmit, isSubmitting = state.isSubmitting, onCancel = onDismiss, onSubmit = { submit() }),
                 title = "お題を投稿"
             )
             ImasFormPage(Modifier.weight(1f)) {

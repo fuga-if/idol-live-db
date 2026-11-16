@@ -89,7 +89,7 @@ fun PenlightVoteSheet(
                     canSubmit = selected.isNotEmpty() && !isSending,
                     isSubmitting = isSending,
                     onCancel = onDismiss,
-                    onSubmit = ::vote
+                    onSubmit = { vote() }
                 ),
                 title = "ペンライトカラーを投票"
             )

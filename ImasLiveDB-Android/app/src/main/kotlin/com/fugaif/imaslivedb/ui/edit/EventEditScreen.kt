@@ -151,7 +151,7 @@ fun EventEditScreen(
         canSave = name.trim().isNotEmpty(),
         isSaving = isSaving,
         onCancel = onDismiss,
-        onSave = ::save
+        onSave = { save() }
     ) {
         EditSection("基本情報", footer = "合同ブランドはブランド ID をカンマ区切りで (例: 315,283)。") {
             if (original != null) EditReadonlyRow("ID", original.id)
