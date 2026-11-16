@@ -1,0 +1,7 @@
+{
+ "title": "アルストロメリア「BEAM」の cd_series 補完",
+ "author": "claude (daily-data-crawl 2026-11-17)",
+ "_help": "fill_artwork_urls.py がアルバム名を cd_series に入れた (前日 apple_music_album_id を補完した続き)。他の配信シングルと同じ「<タイトル> - Single」形式",
+ "source": ["https://itunes.apple.com/lookup?id=6818007052&country=jp (BEAM - Single / アルストロメリア)"],
+ "fixes": [{"table": "songs", "id": "sc_beam", "fields": {"cd_series": "BEAM - Single"}}]
+}
