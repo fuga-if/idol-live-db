@@ -167,6 +167,8 @@ class AppModule private constructor(context: Context) {
             playlists = playlistRepository,
             expenses = expenseRepository,
             songs = songRepository,
+            events = eventRepository,
+            context = appContext,
             playback = lyricsPlayback,
             predictions = setlistPredictionService,
             likes = setlistLikeService,

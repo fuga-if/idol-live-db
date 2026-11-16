@@ -11,9 +11,17 @@ enum AssistantExecutor {
         var errorDescription: String? { message }
     }
 
-    /// - Returns: 開く画面 (`open` のときだけ)。
+    /// 実行のあと、画面の側でやること。
+    enum Opened {
+        /// シートの中に詳細を積む。
+        case detail(DetailDestination)
+        /// 一覧のタブへ移った (シートを閉じる)。
+        case list
+    }
+
+    /// - Returns: 開くもの (`open` / `open_list` のときだけ)。
     @discardableResult
-    static func perform(_ action: AiAction) async throws -> DetailDestination? {
+    static func perform(_ action: AiAction) async throws -> Opened? {
         let marks = UserMarkService.shared
         let container = AppContainer.shared
         switch action {
@@ -51,12 +59,36 @@ enum AssistantExecutor {
                 Expense.make(date: date, category: category, amount: amount, showId: showId, eventId: eventId, note: note)
             )
         case .open(let entity, let id, let section):
-            return try await destination(entity: entity, id: id, section: section)
+            return .detail(try await destination(entity: entity, id: id, section: section))
         case .playSongs(let songIds):
             let songs = try await orderedSongs(songIds)
             guard await PlaylistPlayback.play(songs) else {
                 throw Failure(message: "続けて流すには Apple Music の契約か Spotify の連携が要ります")
             }
+        case .setMastery(let songIds, let level):
+            try marks.setMastery(songIds: songIds, level: UInt8(clamping: level))
+        case .addToCalendar(let showId):
+            guard let show = try await container.showReading.show(id: showId),
+                  let event = try await container.eventReading.event(id: show.eventId) else {
+                throw Failure(message: "公演が見つかりませんでした")
+            }
+            if case .permissionDenied = try await CalendarExportService.shared.exportShow(show, event: event) {
+                throw Failure(message: "カレンダーへの追加が許可されていません。設定アプリで許可してください")
+            }
+        case .setNotification(let kind, let on):
+            // 保存先は設定画面のスイッチと同じ鍵。予約の組み直しも同じ口。
+            UserDefaults.standard.set(on, forKey: "notif_\(kind)")
+            await NotificationService.shared.rescheduleAll(database: .shared, reason: on ? .refresh : .settingTurnedOff)
+        case .openList(let list, let query):
+            let tab: RootTab
+            switch list {
+            case "events": tab = .events
+            case "songs": tab = .songs
+            case "idols": tab = .idols
+            default: throw Failure(message: "開く先が見つかりませんでした")
+            }
+            CrossTabSearch.shared.hand(query, to: tab)
+            return .list
         case .predictSong(let showId, let songId, let on):
             if on {
                 _ = try await PredictionService.shared.vote(showId: showId, songId: songId)

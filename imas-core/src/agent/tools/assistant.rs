@@ -94,19 +94,27 @@ pub fn follow_up(history: &[String], order: &str) -> Option<Vec<String>> {
 
 /// 1 番ぶんのリクエスト。`history` は前の番までの会話 (最初は空)。
 /// 発言が受けられない長さ・会話が長くなりすぎた、なら None。
-pub fn request(history: &[String], order: &str, today_key: &str) -> Option<Request> {
+pub fn request(history: &[String], order: &str, ctx: PlanContext<'_>) -> Option<Request> {
+    let today_key = ctx.today_key;
     let input = follow_up(history, order)?;
     let mut specs = tool_catalog();
     specs.extend(action_specs());
     Some(Request {
-        instructions: instructions(today_key),
+        instructions: instructions(today_key, ctx.mastery_labels),
         input,
         tools: plan_loop::responses_tools_of(specs, "アイドルマスターのライブ / 楽曲 DB を読み、利用者の記録への操作を予定に積む。"),
         text_format: text_format(),
     })
 }
 
-fn instructions(today_key: &str) -> String {
+fn instructions(today_key: &str, mastery_labels: &[String]) -> String {
+    // 習熟度の段階は利用者が決めた名前なので、番号との対応をここで教える。
+    let mastery: String = if mastery_labels.is_empty() {
+        "- 習熟度 (set_mastery) は、この端末では使えない。".to_string()
+    } else {
+        let steps: Vec<String> = mastery_labels.iter().enumerate().map(|(i, l)| format!("{} = {l}", i + 1)).collect();
+        format!("- 習熟度 (set_mastery) の段階: 0 = 未設定、{}。", steps.join("、"))
+    };
     format!(
         "\
 あなたはアイドルマスターのライブ / 楽曲データベースアプリ「アイドルライブDB」の中の話し相手です。利用者の質問にデータベースを引いて答え、頼まれた操作を予定に積みます。今日は {today_key} (日本時間) です。
@@ -126,7 +134,8 @@ fn instructions(today_key: &str) -> String {
 - どの公演・どの曲か決めきれないときは、当て推量で積まず、候補を挙げて訊き返す。
 - 金額・座席・メモの文面は、利用者が言ったものだけを使う。DB の値や推測で埋めない。
 - 用意されていない操作 (消す・公開する・歌詞やコールを書く・設定を変える) は積めない。人が中身を書くものは open でその画面を開くところまでにして、そう伝える。
-- 前の番で積んだ操作を、頼まれていないのにもう一度積まない。"
+- 前の番で積んだ操作を、頼まれていないのにもう一度積まない。
+{mastery}"
     )
 }
 
@@ -253,7 +262,7 @@ mod tests {
     use crate::test_support::bundle_snapshot;
 
     const TODAY: &str = "2026-11-16";
-    const CTX: PlanContext<'static> = PlanContext { today_key: TODAY, playlists: &[] };
+    const CTX: PlanContext<'static> = PlanContext { today_key: TODAY, playlists: &[], mastery_labels: &[] };
 
     fn call(id: &str, name: &str, args: Value) -> String {
         json!({ "type": "function_call", "id": "fc_x", "call_id": id, "name": name, "arguments": args.to_string() }).to_string()
@@ -261,8 +270,8 @@ mod tests {
 
     #[test]
     fn 読み取りと操作のツールを両方渡す() {
-        assert!(request(&[], " ", TODAY).is_none());
-        let req = request(&[], "READY!! をお気に入りに入れて", TODAY).unwrap();
+        assert!(request(&[], " ", CTX).is_none());
+        let req = request(&[], "READY!! をお気に入りに入れて", CTX).unwrap();
         let tools = &req.tools[0];
         assert_eq!(tools["name"], NAMESPACE);
         let names: Vec<&str> = tools["tools"].as_array().unwrap().iter().filter_map(|t| t["name"].as_str()).collect();
@@ -270,13 +279,17 @@ mod tests {
         // 最上位は type: object だけ (この経路は $schema を受けない)。
         assert!(tools["tools"].as_array().unwrap().iter().all(|t| t["parameters"].get("$schema").is_none()));
         assert!(req.instructions.contains("その場では実行されない"));
+        assert!(req.instructions.contains("この端末では使えない"));
+        let labels = ["聴いた".to_string(), "歌える".to_string()];
+        let with = PlanContext { today_key: TODAY, playlists: &[], mastery_labels: &labels };
+        assert!(request(&[], "習熟度を付けて", with).unwrap().instructions.contains("1 = 聴いた、2 = 歌える"));
     }
 
     #[test]
     fn 操作は実行せず積んで_返事と一緒に一覧にする() {
         let snap = bundle_snapshot();
         let song = snap.songs[0].id.clone();
-        let req = request(&[], "この曲をお気に入りに入れて", TODAY).unwrap();
+        let req = request(&[], "この曲をお気に入りに入れて", CTX).unwrap();
 
         let items = vec![
             call("c1", "set_favorite_song", json!({ "song_id": song })),
@@ -307,14 +320,14 @@ mod tests {
     fn 次の番は前の番の操作をもう一度出さない() {
         let snap = bundle_snapshot();
         let idol = snap.idols[0].id.clone();
-        let first = request(&[], "担当にして", TODAY).unwrap();
+        let first = request(&[], "担当にして", CTX).unwrap();
         let Step::Continue(next) = step(snap, &first.input, &[call("c1", "set_my_pick", json!({ "idol_id": idol }))], "", CTX) else {
             panic!("続くはず")
         };
         let Step::Finished(one) = step(snap, &next, &[], r#"{"message":"どうぞ"}"#, CTX) else { panic!("終わるはず") };
         assert_eq!(one.actions.len(), 1);
 
-        let second = request(&one.history, "ありがとう", TODAY).unwrap();
+        let second = request(&one.history, "ありがとう", CTX).unwrap();
         assert_eq!(second.input.len(), one.history.len() + 1);
         let Step::Finished(two) = step(snap, &second.input, &[], r#"{"message":"どういたしまして"}"#, CTX) else { panic!("終わるはず") };
         assert!(two.actions.is_empty());

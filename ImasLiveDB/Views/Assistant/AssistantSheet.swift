@@ -358,11 +358,11 @@ struct AssistantSheet: View {
         review.isExecuting = true
         update(turnID) { $0.state = .done(review) }
         Task {
-            var opened: DetailDestination?
+            var opened: AssistantExecutor.Opened?
             for index in targets {
                 do {
-                    let destination = try await AssistantExecutor.perform(review.plan.actions[index].action)
-                    opened = opened ?? destination
+                    let result = try await AssistantExecutor.perform(review.plan.actions[index].action)
+                    opened = opened ?? result
                     review.outcomes[index] = .done
                 } catch {
                     Logger.database.error("assistant_action_failed: \(error.localizedDescription)")
@@ -372,7 +372,12 @@ struct AssistantSheet: View {
             }
             review.isExecuting = false
             update(turnID) { $0.state = .done(review) }
-            if let opened { path.append(opened) }
+            switch opened {
+            case .detail(let destination)?: path.append(destination)
+            // 一覧のタブへ移ったので、上に被さっているこのシートは閉じる。
+            case .list?: dismiss()
+            case nil: break
+            }
         }
     }
 }

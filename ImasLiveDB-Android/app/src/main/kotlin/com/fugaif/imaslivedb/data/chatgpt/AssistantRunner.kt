@@ -3,6 +3,8 @@ package com.fugaif.imaslivedb.data.chatgpt
 import com.fugaif.imaslivedb.data.core.SnapshotStoreProvider
 import com.fugaif.imaslivedb.data.model.JstDay
 import com.fugaif.imaslivedb.data.repository.PlaylistRepository
+import com.fugaif.imaslivedb.ui.theme.AppPreferences
+import uniffi.imas_core.AiDeviceContext
 import uniffi.imas_core.AiPlaylistRef
 import uniffi.imas_core.AssistantPlan
 import uniffi.imas_core.assistantRequest
@@ -21,12 +23,13 @@ class AssistantRunner(
     /** @param history 前の番の [AssistantPlan.history] (最初は空)。 */
     suspend fun run(history: List<String>, order: String, onProgress: (String) -> Unit): AssistantPlan {
         val today = JstDay.today()
-        val request = assistantRequest(history, order, today)
-            ?: throw ChatGptPlanTaskException("会話が長くなりました。新しい会話を始めてください")
-        // 「〜に足して」の足す先は、コアが名前から決める。端末にあるプレイリストを射影して渡す。
+        // 端末の側の事情 (足す先のプレイリスト・習熟度の段階の名前) を射影して渡す。決めるのはコア。
         val refs = playlists.summaries().map { AiPlaylistRef(it.playlist.id, it.playlist.name) }
+        val device = AiDeviceContext(refs, AppPreferences.masteryScale.labels)
+        val request = assistantRequest(history, order, today, device)
+            ?: throw ChatGptPlanTaskException("会話が長くなりました。新しい会話を始めてください")
         return tasks.run(request, onProgress) { input, items, text ->
-            val step = snapshots.query { store -> store.assistantStep(input, items, text, today, refs) }
+            val step = snapshots.query { store -> store.assistantStep(input, items, text, today, device) }
             step.plan?.let { ChatGptPlanTaskRunner.Outcome.Finished(it) }
                 ?: ChatGptPlanTaskRunner.Outcome.Next(step.nextInput)
         }

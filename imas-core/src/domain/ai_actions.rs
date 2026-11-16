@@ -73,6 +73,14 @@ pub enum AiAction {
     Open { entity: String, id: String, section: String },
     /// 曲を続けて流す。
     PlaySongs { song_ids: Vec<String> },
+    /// 曲の習熟度。`level` は 0 (未設定) から、利用者が決めた段数まで。
+    SetMastery { song_ids: Vec<String>, level: u32 },
+    /// 公演を端末のカレンダーに足す。
+    AddToCalendar { show_id: String },
+    /// 通知の種類ごとのオンオフ。`kind` は "oshi_birthday" / "live_week" / "ticket" / "monday"。
+    SetNotification { kind: String, on: bool },
+    /// 一覧 (タブ) を開いて、その検索欄に語を入れる。`list` は "events" / "songs" / "idols"。
+    OpenList { list: String, query: String },
     /// セトリ予想の 1 票。
     PredictSong { show_id: String, song_id: String, on: bool },
     /// セトリの曲への「いいね」。
@@ -104,6 +112,22 @@ pub struct PlanContext<'a> {
     /// JST の今日 (`YYYY-MM-DD`)。
     pub today_key: &'a str,
     pub playlists: &'a [AiPlaylistRef],
+    /// 習熟度の段階の名前 (LV.1 から順)。段数は利用者が決めるので端末から受ける。
+    pub mastery_labels: &'a [String],
+}
+
+/// 端末の側の事情 (DB の外にあって、検査や頼み方に要るもの)。各 OS が 1 回射影して渡す。
+#[derive(uniffi::Record, Debug, Clone, Default, PartialEq, Eq)]
+pub struct AiDeviceContext {
+    pub playlists: Vec<AiPlaylistRef>,
+    /// 習熟度の段階の名前 (LV.1 から順)。
+    pub mastery_labels: Vec<String>,
+}
+
+impl AiDeviceContext {
+    pub fn plan_context<'a>(&'a self, today_key: &'a str) -> PlanContext<'a> {
+        PlanContext { today_key, playlists: &self.playlists, mastery_labels: &self.mastery_labels }
+    }
 }
 
 /// 操作ツール 1 本の定義 (名前・説明・引数の型)。
@@ -232,6 +256,40 @@ pub fn catalog() -> Vec<ActionSpec> {
             required: &["song_ids"],
         },
         ActionSpec {
+            name: "set_mastery",
+            description: "曲の習熟度 (どれくらい覚えたか) を付ける。段階の番号と名前は指示文にある。0 で未設定に戻す。前の段階は置き換わる。",
+            properties: json!({
+                "song_ids": song_ids(),
+                "level": { "type": "integer", "description": "段階の番号。0 は未設定。" },
+            }),
+            required: &["song_ids", "level"],
+        },
+        ActionSpec {
+            name: "add_to_calendar",
+            description: "公演を端末のカレンダーに予定として足す。",
+            properties: json!({ "show_id": string("公演の id。") }),
+            required: &["show_id"],
+        },
+        ActionSpec {
+            name: "set_notification",
+            description: "アプリの通知を種類ごとにオンオフする。",
+            properties: json!({
+                "kind": { "type": "string", "enum": ["oshi_birthday", "live_week", "ticket", "monday"],
+                          "description": "oshi_birthday = 担当の誕生日、live_week = ライブの前、ticket = チケットの受付、monday = 月曜のお知らせ。" },
+                "on": on_flag(),
+            }),
+            required: &["kind"],
+        },
+        ActionSpec {
+            name: "open_list",
+            description: "ライブ・楽曲・アイドルの一覧を開いて、検索欄に語を入れる。たくさんの結果を利用者が自分で眺めたいときに。",
+            properties: json!({
+                "list": { "type": "string", "enum": ["events", "songs", "idols"] },
+                "query": string("検索欄に入れる語 (曲名・名前・会場など)。空でもよい。"),
+            }),
+            required: &["list"],
+        },
+        ActionSpec {
             name: "predict_song",
             description: "これからの公演のセトリ予想に、この曲で 1 票入れる・取り消す。サーバに送られ、票の数は他の人にも見える。",
             properties: json!({ "show_id": string("公演の id。"), "song_id": string("曲の id。"), "on": on_flag() }),
@@ -328,12 +386,15 @@ fn replaces_or_removes(action: &AiAction) -> bool {
         | AiAction::SetMyPick { on, .. }
         | AiAction::PredictSong { on, .. }
         | AiAction::LikeSetlistSong { on, .. } => !on,
-        AiAction::SetNote { .. } | AiAction::SetSeat { .. } | AiAction::RemovePersonalTag { .. } => true,
+        AiAction::SetNotification { on, .. } => !on,
+        AiAction::SetNote { .. } | AiAction::SetSeat { .. } | AiAction::RemovePersonalTag { .. } | AiAction::SetMastery { .. } => true,
         AiAction::AddPersonalTag { .. }
         | AiAction::CreatePlaylist { .. }
         | AiAction::AddToPlaylist { .. }
         | AiAction::AddExpense { .. }
         | AiAction::Open { .. }
+        | AiAction::OpenList { .. }
+        | AiAction::AddToCalendar { .. }
         | AiAction::PlaySongs { .. } => false,
     }
 }
@@ -475,6 +536,49 @@ pub fn plan(snap: &Snapshot, name: &str, args: &Value, ctx: PlanContext<'_>) -> 
             let target = format!("{} 曲", song_ids.len());
             Ok(planned(AiAction::PlaySongs { song_ids }, Screen, "続けて流す", target))
         }
+        "set_mastery" => {
+            let song_ids = songs(snap, args)?;
+            let steps = ctx.mastery_labels.len() as i64;
+            let level = args.get("level").and_then(Value::as_i64).ok_or("level は整数で")?;
+            if !(0..=steps).contains(&level) {
+                return Err(format!("level は 0 から {steps} まで"));
+            }
+            let title = match level {
+                0 => "習熟度を未設定に戻す".to_string(),
+                n => format!("習熟度を「{}」にする (前の段階は置き換わります)", ctx.mastery_labels[n as usize - 1]),
+            };
+            let target = match song_ids.as_slice() {
+                [one] => song_title(snap, one)?.1,
+                many => format!("{} 曲", many.len()),
+            };
+            Ok(planned(AiAction::SetMastery { song_ids, level: level as u32 }, Device, title, target))
+        }
+        "add_to_calendar" => {
+            let (show_id, target) = show_name(snap, text_arg(args, "show_id"))?;
+            Ok(planned(AiAction::AddToCalendar { show_id }, Device, "カレンダーに足す", target))
+        }
+        "set_notification" => {
+            let (kind, label) = match text_arg(args, "kind") {
+                k @ "oshi_birthday" => (k, "担当の誕生日"),
+                k @ "live_week" => (k, "ライブの前"),
+                k @ "ticket" => (k, "チケットの受付"),
+                k @ "monday" => (k, "月曜のお知らせ"),
+                other => return Err(format!("kind が語彙にありません: {other}")),
+            };
+            let title = if on { "通知をオンにする" } else { "通知をオフにする" };
+            Ok(planned(AiAction::SetNotification { kind: kind.into(), on }, Device, title, label))
+        }
+        "open_list" => {
+            let (list, label) = match text_arg(args, "list") {
+                l @ "events" => (l, "ライブ"),
+                l @ "songs" => (l, "楽曲"),
+                l @ "idols" => (l, "アイドル"),
+                other => return Err(format!("list は events / songs / idols のどれか: {other}")),
+            };
+            let query = clipped(text_arg(args, "query"), MAX_NAME_CHARS, "検索の語")?;
+            let title = if query.is_empty() { "一覧を開く".to_string() } else { format!("一覧を開いて「{query}」で探す") };
+            Ok(planned(AiAction::OpenList { list: list.into(), query }, Screen, title, label))
+        }
         "predict_song" | "like_setlist_song" => {
             let (show_id, show) = show_name(snap, text_arg(args, "show_id"))?;
             let (song_id, song) = song_title(snap, text_arg(args, "song_id"))?;
@@ -504,7 +608,7 @@ mod tests {
     use super::*;
     use crate::test_support::bundle_snapshot;
 
-    const CTX: PlanContext<'static> = PlanContext { today_key: "2026-11-16", playlists: &[] };
+    const CTX: PlanContext<'static> = PlanContext { today_key: "2026-11-16", playlists: &[], mastery_labels: &[] };
 
     fn first_ids(snap: &Snapshot) -> (String, String, String) {
         (snap.songs[0].id.clone(), snap.idols[0].id.clone(), snap.shows[0].id.clone())
@@ -588,11 +692,11 @@ mod tests {
         let snap = bundle_snapshot();
         let (song, _, show) = first_ids(&snap);
         // 予想はこれからの公演だけ (取り消しはいつでも)。
-        let future = PlanContext { today_key: "1990-01-01", playlists: &[] };
+        let future = PlanContext { today_key: "1990-01-01", playlists: &[], mastery_labels: &[] };
         let vote = plan(&snap, "predict_song", &json!({ "show_id": show, "song_id": song }), future).unwrap();
         assert_eq!(vote.reach, AiActionReach::Shared);
         assert!(!vote.preselected);
-        let far = PlanContext { today_key: "2999-01-01", playlists: &[] };
+        let far = PlanContext { today_key: "2999-01-01", playlists: &[], mastery_labels: &[] };
         assert!(plan(&snap, "predict_song", &json!({ "show_id": show, "song_id": song }), far).is_err());
         assert!(plan(&snap, "predict_song", &json!({ "show_id": show, "song_id": song, "on": false }), far).is_ok());
         assert!(plan(&snap, "like_setlist_song", &json!({ "show_id": show, "song_id": song }), future).is_err());
@@ -622,12 +726,33 @@ mod tests {
             AiPlaylistRef { id: "p2".into(), name: "かぶり".into() },
             AiPlaylistRef { id: "p3".into(), name: "かぶり".into() },
         ];
-        let ctx = PlanContext { today_key: "2026-11-16", playlists: &lists };
+        let ctx = PlanContext { today_key: "2026-11-16", playlists: &lists, mastery_labels: &[] };
         let args = |name: &str| json!({ "playlist_name": name, "song_ids": [song] });
         let hit = plan(&snap, "add_to_playlist", &args("予習"), ctx).unwrap();
         assert_eq!(hit.action, AiAction::AddToPlaylist { playlist_id: "p1".into(), song_ids: vec![song.clone()] });
         let new = plan(&snap, "add_to_playlist", &args("復習"), ctx).unwrap();
         assert!(matches!(new.action, AiAction::CreatePlaylist { .. }) && new.title.contains("新しく作って"));
         assert!(plan(&snap, "add_to_playlist", &args("かぶり"), ctx).is_err());
+    }
+
+    #[test]
+    fn 習熟度は利用者の段数まで_設定と一覧も積める() {
+        let snap = bundle_snapshot();
+        let (song, _, show) = first_ids(&snap);
+        let labels = ["聴いた".to_string(), "歌える".to_string()];
+        let ctx = PlanContext { today_key: "2026-11-16", playlists: &[], mastery_labels: &labels };
+        let p = plan(&snap, "set_mastery", &json!({ "song_ids": [song], "level": 2 }), ctx).unwrap();
+        assert!(p.title.contains("歌える") && !p.preselected);
+        assert!(plan(&snap, "set_mastery", &json!({ "song_ids": [song], "level": 3 }), ctx).is_err());
+        assert!(plan(&snap, "set_mastery", &json!({ "song_ids": [song], "level": 1 }), CTX).is_err());
+
+        let cal = plan(&snap, "add_to_calendar", &json!({ "show_id": show }), CTX).unwrap();
+        assert!(cal.preselected && cal.reach == AiActionReach::Device);
+        let off = plan(&snap, "set_notification", &json!({ "kind": "monday", "on": false }), CTX).unwrap();
+        assert!(!off.preselected && off.target == "月曜のお知らせ");
+        assert!(plan(&snap, "set_notification", &json!({ "kind": "all" }), CTX).is_err());
+        let list = plan(&snap, "open_list", &json!({ "list": "songs", "query": "READY" }), CTX).unwrap();
+        assert_eq!(list.action, AiAction::OpenList { list: "songs".into(), query: "READY".into() });
+        assert!(plan(&snap, "open_list", &json!({ "list": "polls" }), CTX).is_err());
     }
 }

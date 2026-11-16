@@ -1,6 +1,7 @@
 package com.fugaif.imaslivedb.ui.chatgpt
 
 import android.util.Log
+import com.fugaif.imaslivedb.data.chatgpt.AssistantExecutor
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -214,11 +215,11 @@ fun AssistantSheet(
         review = review.copy(isExecuting = true)
         update(key) { it.copy(state = TurnState.Done(review)) }
         scope.launch {
-            var opened: NaturalSearchTarget? = null
+            var opened: AssistantExecutor.Opened? = null
             for (index in targets) {
                 val outcome = try {
-                    val destination = module.assistantExecutor.perform(review.plan.actions[index].action)
-                    opened = opened ?: destination
+                    val result = module.assistantExecutor.perform(review.plan.actions[index].action)
+                    opened = opened ?: result
                     Outcome.Done
                 } catch (e: CancellationException) {
                     throw e
@@ -231,7 +232,12 @@ fun AssistantSheet(
             }
             review = review.copy(isExecuting = false)
             update(key) { it.copy(state = TurnState.Done(review)) }
-            opened?.let { target -> close(); onOpen(target.kind, target.id) }
+            when (val result = opened) {
+                is AssistantExecutor.Opened.Detail -> { close(); onOpen(result.target.kind, result.target.id) }
+                // 一覧のタブへ移ったので、上に被さっているこのシートは閉じる。
+                AssistantExecutor.Opened.List -> close()
+                null -> Unit
+            }
         }
     }
 

@@ -2,7 +2,17 @@ package com.fugaif.imaslivedb.data.chatgpt
 
 import com.fugaif.imaslivedb.data.community.SetlistLikeService
 import com.fugaif.imaslivedb.data.community.SetlistPredictionService
+import android.content.Context
 import com.fugaif.imaslivedb.data.model.AttendanceType
+import com.fugaif.imaslivedb.data.model.CalShowRow
+import com.fugaif.imaslivedb.data.notification.NotificationCategory
+import com.fugaif.imaslivedb.data.notification.NotificationPrefs
+import com.fugaif.imaslivedb.data.notification.NotificationScheduler
+import com.fugaif.imaslivedb.data.repository.CalendarShowDetail
+import com.fugaif.imaslivedb.data.repository.EventRepository
+import com.fugaif.imaslivedb.ui.schedule.DeviceCalendar
+import com.fugaif.imaslivedb.ui.navigation.TopLevelTab
+import com.fugaif.imaslivedb.ui.search.CrossTabSearch
 import com.fugaif.imaslivedb.data.model.Expense
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.data.model.UserMark
@@ -29,6 +39,8 @@ class AssistantExecutor(
     private val playlists: PlaylistRepository,
     private val expenses: ExpenseRepository,
     private val songs: SongRepository,
+    private val events: EventRepository,
+    private val context: Context,
     private val playback: LyricsPlayback,
     private val predictions: SetlistPredictionService,
     private val likes: SetlistLikeService,
@@ -36,8 +48,16 @@ class AssistantExecutor(
     /** 画面に出す失敗の文言を持つ。 */
     class Failure(message: String) : Exception(message)
 
-    /** @return 開く画面 (`Open` のときだけ)。 */
-    suspend fun perform(action: AiAction): NaturalSearchTarget? {
+    /** 実行のあと、画面の側でやること。 */
+    sealed interface Opened {
+        /** シートの中 (本体のナビ) で詳細を開く。 */
+        data class Detail(val target: NaturalSearchTarget) : Opened
+        /** 一覧のタブへ移った (シートを閉じる)。 */
+        data object List : Opened
+    }
+
+    /** @return 開くもの (`Open` / `OpenList` のときだけ)。 */
+    suspend fun perform(action: AiAction): Opened? {
         when (action) {
             is AiAction.SetAttendance -> {
                 val type = AttendanceType.from(action.attendance) ?: throw Failure("参加の種類が分かりません")
@@ -69,11 +89,24 @@ class AssistantExecutor(
             is AiAction.AddExpense -> expenses.save(
                 Expense.make(action.date, action.category, action.amount, action.showId, action.eventId, action.note)
             )
-            is AiAction.Open -> return destination(action.entity, action.id)
+            is AiAction.Open -> return Opened.Detail(destination(action.entity, action.id))
             is AiAction.PlaySongs -> {
                 if (!PlaylistPlayback.play(playback, orderedSongs(action.songIds))) {
                     throw Failure("続けて流すには Apple Music の契約か Spotify の連携が要ります")
                 }
+            }
+            is AiAction.SetMastery -> marks.setMastery(action.songIds, action.level.coerceAtMost(255u).toUByte())
+            is AiAction.AddToCalendar -> addToCalendar(action.showId)
+            is AiAction.SetNotification -> setNotification(action.kind, action.on)
+            is AiAction.OpenList -> {
+                val tab = when (action.list) {
+                    "events" -> TopLevelTab.Events
+                    "songs" -> TopLevelTab.Songs
+                    "idols" -> TopLevelTab.Idols
+                    else -> throw Failure("開く先が見つかりませんでした")
+                }
+                CrossTabSearch.hand(action.query, tab)
+                return Opened.List
             }
             is AiAction.PredictSong ->
                 if (action.on) predictions.vote(action.showId, action.songId) else predictions.unvote(action.showId, action.songId)
@@ -81,6 +114,25 @@ class AssistantExecutor(
                 if (action.on) likes.like(action.showId, action.songId) else likes.unlike(action.showId, action.songId)
         }
         return null
+    }
+
+    /** カレンダーアプリの「予定を追加」画面を開く (権限は要らない。保存は利用者がそちらで押す)。 */
+    private suspend fun addToCalendar(showId: String) {
+        val show = events.fetchShowInfo(showId)?.show ?: throw Failure("公演が見つかりませんでした")
+        val event = events.fetchEvent(show.eventId) ?: throw Failure("公演が見つかりませんでした")
+        val row = CalShowRow(show.id, show.date, show.name, event.id, event.name, event.brandId)
+        val detail = CalendarShowDetail(show.startTime, show.venue, null)
+        if (!DeviceCalendar.addShow(context, row, detail)) throw Failure("カレンダーアプリが見つかりませんでした")
+    }
+
+    /** 保存先と組み直しは設定画面のトグルと同じ。オフにしたときの理由も同じ。 */
+    private suspend fun setNotification(kind: String, on: Boolean) {
+        val category = NotificationCategory.entries.firstOrNull { it.prefKey == "notif_$kind" }
+            ?: throw Failure("この通知は設定できません")
+        NotificationPrefs(context).setEnabled(category, on)
+        val reason = if (on) NotificationScheduler.RescheduleReason.REFRESH
+        else NotificationScheduler.RescheduleReason.SETTING_TURNED_OFF
+        NotificationScheduler.rescheduleAll(context, reason)
     }
 
     /** 札の付け外し。今の状態と違うときだけ反転する (トグルの口しか無いため)。 */
