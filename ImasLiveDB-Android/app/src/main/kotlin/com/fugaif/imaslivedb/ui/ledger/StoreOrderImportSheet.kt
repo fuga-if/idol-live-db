@@ -153,7 +153,7 @@ fun StoreOrderImportSheet(
                                 label = "貼り付け",
                                 imprint = "PASTE",
                                 text = text,
-                                onTextChange = ::parse,
+                                onTextChange = { parse(it) },
                                 prompt = "または、ここに直接貼り付け"
                             )
                         }

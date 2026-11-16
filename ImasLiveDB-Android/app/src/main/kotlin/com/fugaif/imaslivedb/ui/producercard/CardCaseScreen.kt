@@ -215,7 +215,7 @@ fun CardCaseScreen(onBack: () -> Unit, onOpenCard: (String) -> Unit, onOpenMyCar
                         status = streetpassStatus(streetPassState.active, hasMyCard, streetPassState.todayCount, streetPassState.radio),
                         hasCard = hasMyCard,
                         isOn = streetPassState.active,
-                        onToggle = ::toggleStreetPass,
+                        onToggle = { on -> toggleStreetPass(on) },
                         onOpenMyCard = onOpenMyCard
                     )
                 }
@@ -427,7 +427,7 @@ fun CardMemoEditorSheet(card: ReceivedProducerCard, onDismiss: () -> Unit) {
         Box {
             Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = DS.Space.section)) {
                 ImasSheetToolbar(
-                    ImasSheetToolbarKind.Edit(canSave = !isSaving, isSaving = isSaving, onCancel = onDismiss, onSave = ::save),
+                    ImasSheetToolbarKind.Edit(canSave = !isSaving, isSaving = isSaving, onCancel = onDismiss, onSave = { save() }),
                     title = card.card?.name ?: "メモ"
                 )
                 Column(Modifier.padding(horizontal = DS.Space.screen)) {

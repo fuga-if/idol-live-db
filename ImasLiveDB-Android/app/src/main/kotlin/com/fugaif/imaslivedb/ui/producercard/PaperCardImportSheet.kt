@@ -202,7 +202,7 @@ fun PaperCardImportSheet(onDismiss: () -> Unit) {
         }
     }
 
-    val openCamera = rememberPaperCardCamera(onFinish = ::accept)
+    val openCamera = rememberPaperCardCamera(onFinish = { uris -> accept(uris) })
     val pickPhotos = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(2)) { acceptPicks(it) }
 
     val trimmedName = name.trim()
@@ -268,7 +268,7 @@ fun PaperCardImportSheet(onDismiss: () -> Unit) {
         Box {
             Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = DS.Space.section)) {
                 ImasSheetToolbar(
-                    ImasSheetToolbarKind.Edit(canSave = canSave, isSaving = isSaving, onCancel = onDismiss, onSave = ::save),
+                    ImasSheetToolbarKind.Edit(canSave = canSave, isSaving = isSaving, onCancel = onDismiss, onSave = { save() }),
                     title = "紙の名刺"
                 )
                 Column(

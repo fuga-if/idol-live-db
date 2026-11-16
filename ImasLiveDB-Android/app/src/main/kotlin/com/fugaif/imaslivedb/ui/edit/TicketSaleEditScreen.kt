@@ -211,7 +211,7 @@ fun TicketSaleEditScreen(
         canSave = name.trim().isNotEmpty() && sourceUrl.trim().isNotEmpty(),
         isSaving = isSaving,
         onCancel = onDismiss,
-        onSave = ::save
+        onSave = { save() }
     ) {
         EditSection("基本情報") {
             if (original != null) EditReadonlyRow("ID", original.id)
@@ -277,7 +277,7 @@ fun TicketSaleEditScreen(
         title = "受付を削除しますか？",
         isPresented = showDeleteConfirm,
         onDismiss = { showDeleteConfirm = false },
-        onConfirm = ::delete,
+        onConfirm = { delete() },
         actionTitle = "削除",
         message = "この操作は取り消せません。"
     )

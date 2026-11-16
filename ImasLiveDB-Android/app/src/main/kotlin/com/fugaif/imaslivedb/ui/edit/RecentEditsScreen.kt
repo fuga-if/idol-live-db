@@ -177,7 +177,7 @@ fun RecentEditsScreen(onBack: (() -> Unit)?, viewModel: RecentEditsViewModel = v
                         title = "ログインが必要です",
                         message = "自分の編集履歴を見るにはログインしてください。",
                         actionTitle = "Googleでログイン",
-                        onAction = ::signIn
+                        onAction = { signIn() }
                     )
                 }
             } else {

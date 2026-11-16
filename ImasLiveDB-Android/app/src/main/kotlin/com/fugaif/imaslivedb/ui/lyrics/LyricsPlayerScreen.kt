@@ -292,7 +292,7 @@ fun LyricsPlayerScreen(
                     ImasIconButton(
                         icon = if (callHaptics) Icons.Filled.Vibration else ImasIcons.VibrationOff,
                         label = if (callHaptics) "コールで震わせる: オン" else "コールで震わせる: オフ",
-                        onClick = ::toggleCallHaptics,
+                        onClick = { toggleCallHaptics() },
                         size = ImasIconButtonSize.SMALL,
                         style = ImasIconButtonStyle.PLAIN
                     )

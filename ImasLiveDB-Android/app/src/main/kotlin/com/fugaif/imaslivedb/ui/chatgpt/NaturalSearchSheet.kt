@@ -159,24 +159,24 @@ fun NaturalSearchSheet(
     }
 
     ModalBottomSheet(
-        onDismissRequest = ::close,
+        onDismissRequest = { close() },
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = DS.bg,
     ) {
         ImasFormBackdrop {
             Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = DS.Space.section)) {
-                ImasSheetToolbar(ImasSheetToolbarKind.Read(onClose = ::close), title = "文で探す")
+                ImasSheetToolbar(ImasSheetToolbarKind.Read(onClose = { close() }), title = "文で探す")
                 Column(
                     Modifier.padding(horizontal = DS.Space.screen),
                     verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose),
                 ) {
-                    ImasSearchField(prompt = "文で探す", text = text, onTextChange = { text = it }, onSubmit = ::run)
+                    ImasSearchField(prompt = "文で探す", text = text, onTextChange = { text = it }, onSubmit = { run() })
                     Content(
                         canUsePlan = session.canUsePlan,
                         phase = phase,
                         onExample = { example -> text = example; run() },
-                        onCancel = ::cancel,
-                        onRetry = ::run,
+                        onCancel = { cancel() },
+                        onRetry = { run() },
                         onOpen = { kind, id -> close(); onOpen(kind, id) },
                     )
                 }

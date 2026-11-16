@@ -251,7 +251,7 @@ fun SongEditScreen(
         canSave = title.trim().isNotEmpty(),
         isSaving = isSaving,
         onCancel = onDismiss,
-        onSave = ::save
+        onSave = { save() }
     ) {
         EditSection("基本情報") {
             if (original != null) EditReadonlyRow("ID", original.id)

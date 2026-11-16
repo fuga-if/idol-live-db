@@ -315,7 +315,7 @@ fun SongLyricsTab(
                             ViewingBody(
                                 lyrics = lyrics, seed = seed, likes = likes, activeLineId = activeLineId,
                                 heatTick = heatTick, song = song, cast = partCast,
-                                onToggleLike = ::toggleLike,
+                                onToggleLike = { line -> toggleLike(line) },
                                 // 再生中の曲なら、タップした行の歌い出しへ飛ぶ (時刻の入った行だけ)。
                                 onSeekLine = { line ->
                                     val start = line.startMs
