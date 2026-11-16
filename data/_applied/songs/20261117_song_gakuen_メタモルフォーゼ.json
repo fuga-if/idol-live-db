@@ -1,0 +1,31 @@
+{
+ "title": "曲「メタモルフォーゼ」(gakuen・氷渡香名江) の追加",
+ "author": "claude (daily-data-crawl 2026-11-17)",
+ "source": [
+  "https://idolmaster-official.jp/news/01_20326 (曲名・作詞作曲 竹内アンナ・編曲 名村武・11/17 配信開始)",
+  "https://x.com/gkmas_official/status/2122155695542071427 (歌唱: 氷渡香名江 (CV. 安倍彩野夏)、ガシャ 11/16 開始でゲーム初出)",
+  "https://itunes.apple.com/lookup?id=6830446007&country=jp (メタモルフォーゼ / 初星学園 & 氷渡香名江 / メタモルフォーゼ - Single 6830445999 / isStreamable=true)"
+ ],
+ "songs": [
+  {
+   "id": "gakuen_メタモルフォーゼ",
+   "title": "メタモルフォーゼ",
+   "title_kana": "めたもるふぉーぜ",
+   "brand_id": "gakuen",
+   "song_type": "solo",
+   "release_date": "2026-11-16",
+   "streaming_date": "2026-11-17",
+   "composer": "竹内アンナ",
+   "lyricist": "竹内アンナ",
+   "arranger": "名村武",
+   "apple_music_id": "6830446007",
+   "apple_music_album_id": "6830445999",
+   "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/7a/bb/cd/7abbcd8a-5153-17f1-6c5d-f3785430f89a/PA00242657_0_258297_jacket.jpg/600x600bb.jpg",
+   "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/03/97/0d/03970d1b-824c-68c1-b100-e3e64da93a0b/mzaf_15021523197662097782.plus.aac.p.m4a",
+   "duration_sec": 205,
+   "cd_series": "メタモルフォーゼ - Single",
+   "original_singers": ["gakuen_氷渡香名江"],
+   "note": "release_date はゲーム実装 (ガシャ開始 2026-11-16)、streaming_date は配信開始 (公式ニュース 11/17)"
+  }
+ ]
+}

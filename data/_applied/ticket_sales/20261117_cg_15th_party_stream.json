@@ -1,0 +1,18 @@
+{
+ "title": "シンデレラ 15th ANNIVERSARY PARTY!!!! 配信チケットの受付",
+ "author": "daily-data-crawl",
+ "ticket_sales": [
+  {
+   "event_id": "ev_シンデレラガールズ_15周年_大型イベント",
+   "show_ids": [],
+   "kind": "first_come",
+   "name": "配信チケット",
+   "starts_at": "2026-11-12 12:00",
+   "ends_at": "2026-12-07 18:00",
+   "url": "https://asobistage.asobistore.jp/event/cinderella_15th_party/ticket",
+   "note": "ASOBI STAGE。販売期間は全券種共通（予定）。マルチアングルチケットあり。アーカイブ視聴期間 2026-11-30 18:00〜12-07 23:59（予定）。",
+   "source_url": "https://idolmaster-official.jp/live_event/cg_15th_for_your_one/",
+   "sort_order": 5
+  }
+ ]
+}
