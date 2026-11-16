@@ -60,9 +60,9 @@ class ChatGptPlanTaskRunner(private val session: ChatGptPlanService) {
                 // やり直すかどうかはコアが決めている (1 回だけ)。往復には数えない。
                 includeReasoning = false
                 continue
-            } catch (e: RetryWithoutWebSearch) {
+            } catch (e: RetryWithoutBuiltInTools) {
                 // 外したものがある仕事だけ、1 回だけやり直す (往復には数えない)。
-                val fallback = request.toolsWithoutWebSearchJson
+                val fallback = request.toolsWithoutBuiltInsJson
                 if (fallback == null || fallback == toolsJson) {
                     throw ChatGptPlanTaskException("ChatGPT とのやりとりに失敗しました")
                 }

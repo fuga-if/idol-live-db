@@ -207,6 +207,14 @@ class UserMarkRepository(
         if (showIds.isEmpty()) emptySet()
         else dao.onIdsIn(UserMark.SHOW, UserMark.ATTENDED, showIds).toSet()
 
+    /** 参加を付けた公演の id と、付いている参加形態 (チャットに渡す記録の射影用)。 */
+    data class AttendedShow(val showId: String, val types: List<AttendanceType>)
+
+    suspend fun attendedShowMarks(): List<AttendedShow> =
+        dao.attendedMarks(UserMark.SHOW, UserMark.ATTENDED).map { row ->
+            AttendedShow(row.entityId, row.textValue?.let { text -> attendanceTypes(text).mapNotNull { AttendanceType.from(it) } }.orEmpty())
+        }
+
     /** 担当アイドル一覧。 */
     suspend fun pickedIdols(): List<Idol> =
         db.songDao().let { _ -> fetchIdols(dao.idsFor(UserMark.IDOL, UserMark.PICK)) }

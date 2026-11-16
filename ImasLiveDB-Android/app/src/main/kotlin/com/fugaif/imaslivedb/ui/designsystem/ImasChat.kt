@@ -12,12 +12,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -62,6 +64,7 @@ import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 //           検索 → ImasSearchField
 // 構成      紙片: 右に寄せた角丸の四角 (地は surface2)。色を付けない。画像は字の上に小さく並べる。
 //           途中: [くるくる] [何をしているかの一言] を 1 行で。止めるのは入力欄のボタン。
+//           描いた絵: 返事の下に角丸の四角で出し、その下に「保存・共有」。
 //           入力欄: [添える (+)] [複数行の欄] [送る ↑ / 止める ■]。上に区切り線。
 //                   添えた画像は欄の上に小さく並び、× で外せる。
 // 状態      送る: 通常 / 無効 (薄く) / 考えている途中 (■ に替わり、押すと止まる)
@@ -124,6 +127,30 @@ fun ImasChatThinking(label: String, modifier: Modifier = Modifier) {
     ) {
         CircularProgressIndicator(Modifier.size(16.dp), color = DS.ink3, strokeWidth = 2.dp)
         ImasText(label, role = ImasTextRole.NOTE, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+/** 返事に付いた、描いてもらった画像。下に「保存・共有」を置く。 */
+@Composable
+fun ImasChatGeneratedImage(image: Bitmap, onShare: () -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
+        Image(
+            bitmap = image.asImageBitmap(),
+            contentDescription = "描いてもらった画像",
+            contentScale = ContentScale.Fit,
+            modifier = Modifier
+                .widthIn(max = 320.dp)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .border(BorderStroke(1.dp, DS.line), RoundedCornerShape(12.dp)),
+        )
+        ImasButton(
+            title = "保存・共有",
+            onClick = onShare,
+            icon = Icons.Filled.Share,
+            role = ImasButtonRole.PLAIN,
+            size = ImasButtonSize.SMALL,
+        )
     }
 }
 

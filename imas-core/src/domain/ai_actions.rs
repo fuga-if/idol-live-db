@@ -119,7 +119,48 @@ pub struct PlanContext<'a> {
     pub playlists: &'a [AiPlaylistRef],
     /// 習熟度の段階の名前 (LV.1 から順)。段数は利用者が決めるので端末から受ける。
     pub mastery_labels: &'a [String],
+    /// 利用者がもう付けている記録 (二重に積まないために見る)。
+    pub records: &'a AiUserRecords,
 }
+
+/// 公演 1 つぶんの、いまの参加の記録。
+#[derive(uniffi::Record, Debug, Clone, PartialEq, Eq)]
+pub struct AiAttendanceRef {
+    pub show_id: String,
+    /// "live" / "stream" / "live_viewing"。
+    pub types: Vec<String>,
+}
+
+/// 収支の 1 件 (検査と一覧に要るところだけ)。
+#[derive(uniffi::Record, Debug, Clone, PartialEq, Eq)]
+pub struct AiExpenseRef {
+    pub date: String,
+    pub category: ExpenseCategory,
+    pub amount: i64,
+    pub show_id: Option<String>,
+    pub note: Option<String>,
+}
+
+/// 利用者がこの端末に付けている記録。各 OS が 1 回射影して渡す。
+///
+/// 操作を積む前に「もう付いているか」を見るのと、モデルが `my_records` で読むのに使う。
+#[derive(uniffi::Record, Debug, Clone, Default, PartialEq, Eq)]
+pub struct AiUserRecords {
+    pub attendance: Vec<AiAttendanceRef>,
+    pub favorite_song_ids: Vec<String>,
+    pub my_pick_idol_ids: Vec<String>,
+    pub owned_release_ids: Vec<String>,
+    pub expenses: Vec<AiExpenseRef>,
+}
+
+/// 記録が何も無い端末 (既定と、テスト用)。
+pub static NO_RECORDS: AiUserRecords = AiUserRecords {
+    attendance: Vec::new(),
+    favorite_song_ids: Vec::new(),
+    my_pick_idol_ids: Vec::new(),
+    owned_release_ids: Vec::new(),
+    expenses: Vec::new(),
+};
 
 /// 端末の側の事情 (DB の外にあって、検査や頼み方に要るもの)。各 OS が 1 回射影して渡す。
 #[derive(uniffi::Record, Debug, Clone, Default, PartialEq, Eq)]
@@ -127,11 +168,13 @@ pub struct AiDeviceContext {
     pub playlists: Vec<AiPlaylistRef>,
     /// 習熟度の段階の名前 (LV.1 から順)。
     pub mastery_labels: Vec<String>,
+    /// 利用者がもう付けている記録。
+    pub records: AiUserRecords,
 }
 
 impl AiDeviceContext {
     pub fn plan_context<'a>(&'a self, today_key: &'a str) -> PlanContext<'a> {
-        PlanContext { today_key, playlists: &self.playlists, mastery_labels: &self.mastery_labels }
+        PlanContext { today_key, playlists: &self.playlists, mastery_labels: &self.mastery_labels, records: &self.records }
     }
 }
 
@@ -421,6 +464,15 @@ fn replaces_or_removes(action: &AiAction) -> bool {
     }
 }
 
+/// もうその状態になっている付け外しは積まない (モデルに「もう付いている」と返す)。
+fn already(is_on: bool, on: bool, what: &str) -> Result<(), String> {
+    match (is_on, on) {
+        (true, true) => Err(format!("{what}は、もう付いています。積まずに、利用者にそう伝える")),
+        (false, false) => Err(format!("{what}は、付いていません。積まずに、利用者にそう伝える")),
+        _ => Ok(()),
+    }
+}
+
 fn attendance_label(kind: &str) -> &'static str {
     match kind {
         "stream" => "配信",
@@ -445,15 +497,19 @@ pub fn plan(snap: &Snapshot, name: &str, args: &Value, ctx: PlanContext<'_>) -> 
                 other => return Err(format!("type は live / stream / live_viewing のどれか: {other}")),
             };
             let label = attendance_label(attendance);
+            let has = ctx.records.attendance.iter().any(|a| a.show_id == show_id && a.types.iter().any(|t| t == attendance));
+            already(has, on, &format!("{label}参加"))?;
             let title = if on { format!("{label}参加を付ける") } else { format!("{label}参加を外す") };
             Ok(planned(AiAction::SetAttendance { show_id, attendance: attendance.into(), on }, Device, title, target))
         }
         "set_favorite_song" => {
             let (song_id, target) = song_title(snap, text_arg(args, "song_id"))?;
+            already(ctx.records.favorite_song_ids.contains(&song_id), on, "お気に入り")?;
             Ok(planned(AiAction::SetFavoriteSong { song_id, on }, Device, toggled("お気に入り"), target))
         }
         "set_my_pick" => {
             let (idol_id, target) = entity(snap, "idol", text_arg(args, "idol_id"), &["idol"])?;
+            already(ctx.records.my_pick_idol_ids.contains(&idol_id), on, "担当")?;
             Ok(planned(AiAction::SetMyPick { idol_id, on }, Device, toggled("担当"), target))
         }
         "set_note" => {
@@ -530,14 +586,30 @@ pub fn plan(snap: &Snapshot, name: &str, args: &Value, ctx: PlanContext<'_>) -> 
                 }
             };
             let note = Some(clipped(text_arg(args, "note"), MAX_NOTE_CHARS, "メモ")?).filter(|n| !n.is_empty());
-            let title = format!("収支に {} {} を足す", info.label, ledger::format_yen(amount));
+            // もう入っていそうな支出は、積むが初めは選ばない (同じ額を 2 回払うこともあるので、決めるのは利用者)。
+            let same = ctx.records.expenses.iter().any(|e| {
+                e.category == info.category && e.amount == amount && e.show_id == show_id && (show_id.is_some() || e.date == date)
+            });
+            let ticket_again = info.category == ExpenseCategory::Ticket
+                && show_id.is_some()
+                && ctx.records.expenses.iter().any(|e| e.category == ExpenseCategory::Ticket && e.show_id == show_id);
+            let caution = if same {
+                " (同じ支出がもう入っています)"
+            } else if ticket_again {
+                " (この公演のチケット代はもう入っています)"
+            } else {
+                ""
+            };
+            let title = format!("収支に {} {} を足す{caution}", info.label, ledger::format_yen(amount));
             let target = show_label.map(|l| format!("{date} {l}")).unwrap_or_else(|| date.to_string());
-            Ok(planned(
+            let mut p = planned(
                 AiAction::AddExpense { date: date.into(), category: info.category, amount, show_id, event_id, note },
                 Device,
                 title,
                 target,
-            ))
+            );
+            p.preselected = caution.is_empty();
+            Ok(p)
         }
         "open" => {
             let kind = text_arg(args, "kind");
@@ -565,6 +637,7 @@ pub fn plan(snap: &Snapshot, name: &str, args: &Value, ctx: PlanContext<'_>) -> 
                 .iter()
                 .find(|r| r.id == id)
                 .ok_or_else(|| format!("円盤の id が DB にありません: {id} (get_event の releases から)"))?;
+            already(ctx.records.owned_release_ids.contains(&release.id), on, "持っている印")?;
             let title = if on { "持っている円盤に入れる" } else { "持っている円盤から外す" };
             Ok(planned(AiAction::SetOwnedRelease { release_id: release.id.clone(), on }, Device, title, release.title.clone()))
         }
@@ -664,7 +737,7 @@ mod tests {
     use super::*;
     use crate::test_support::bundle_snapshot;
 
-    const CTX: PlanContext<'static> = PlanContext { today_key: "2026-11-16", playlists: &[], mastery_labels: &[] };
+    const CTX: PlanContext<'static> = PlanContext { today_key: "2026-11-16", playlists: &[], mastery_labels: &[], records: &NO_RECORDS };
 
     fn first_ids(snap: &Snapshot) -> (String, String, String) {
         (snap.songs[0].id.clone(), snap.idols[0].id.clone(), snap.shows[0].id.clone())
@@ -696,7 +769,12 @@ mod tests {
         assert!(!p.target.is_empty());
         assert_eq!(p.action, AiAction::SetAttendance { show_id: show.clone(), attendance: "live".into(), on: true });
 
-        let off = plan(&snap, "set_attendance", &json!({ "show_id": show, "type": "stream", "on": false }), CTX).unwrap();
+        let streamed = AiUserRecords {
+            attendance: vec![AiAttendanceRef { show_id: show.clone(), types: vec!["stream".into()] }],
+            ..AiUserRecords::default()
+        };
+        let has = PlanContext { records: &streamed, ..CTX };
+        let off = plan(&snap, "set_attendance", &json!({ "show_id": show, "type": "stream", "on": false }), has).unwrap();
         assert_eq!(off.title, "配信参加を外す");
         assert!(plan(&snap, "set_attendance", &json!({ "show_id": show, "type": "online" }), CTX).is_err());
     }
@@ -748,11 +826,11 @@ mod tests {
         let snap = bundle_snapshot();
         let (song, _, show) = first_ids(&snap);
         // 予想はこれからの公演だけ (取り消しはいつでも)。
-        let future = PlanContext { today_key: "1990-01-01", playlists: &[], mastery_labels: &[] };
+        let future = PlanContext { today_key: "1990-01-01", playlists: &[], mastery_labels: &[], records: &NO_RECORDS };
         let vote = plan(&snap, "predict_song", &json!({ "show_id": show, "song_id": song }), future).unwrap();
         assert_eq!(vote.reach, AiActionReach::Shared);
         assert!(!vote.preselected);
-        let far = PlanContext { today_key: "2999-01-01", playlists: &[], mastery_labels: &[] };
+        let far = PlanContext { today_key: "2999-01-01", playlists: &[], mastery_labels: &[], records: &NO_RECORDS };
         assert!(plan(&snap, "predict_song", &json!({ "show_id": show, "song_id": song }), far).is_err());
         assert!(plan(&snap, "predict_song", &json!({ "show_id": show, "song_id": song, "on": false }), far).is_ok());
         assert!(plan(&snap, "like_setlist_song", &json!({ "show_id": show, "song_id": song }), future).is_err());
@@ -766,7 +844,9 @@ mod tests {
         let snap = bundle_snapshot();
         let (song, _, show) = first_ids(&snap);
         assert!(plan(&snap, "set_favorite_song", &json!({ "song_id": song }), CTX).unwrap().preselected);
-        assert!(!plan(&snap, "set_favorite_song", &json!({ "song_id": song, "on": false }), CTX).unwrap().preselected);
+        let liked = AiUserRecords { favorite_song_ids: vec![song.clone()], ..AiUserRecords::default() };
+        let has = PlanContext { records: &liked, ..CTX };
+        assert!(!plan(&snap, "set_favorite_song", &json!({ "song_id": song, "on": false }), has).unwrap().preselected);
         let note = plan(&snap, "set_note", &json!({ "kind": "show", "id": show, "text": "最高だった" }), CTX).unwrap();
         assert!(!note.preselected && note.title.contains("置き換わります"));
         // 真偽値でない on は、付ける側に倒さない。
@@ -782,7 +862,7 @@ mod tests {
             AiPlaylistRef { id: "p2".into(), name: "かぶり".into() },
             AiPlaylistRef { id: "p3".into(), name: "かぶり".into() },
         ];
-        let ctx = PlanContext { today_key: "2026-11-16", playlists: &lists, mastery_labels: &[] };
+        let ctx = PlanContext { today_key: "2026-11-16", playlists: &lists, mastery_labels: &[], records: &NO_RECORDS };
         let args = |name: &str| json!({ "playlist_name": name, "song_ids": [song] });
         let hit = plan(&snap, "add_to_playlist", &args("予習"), ctx).unwrap();
         assert_eq!(hit.action, AiAction::AddToPlaylist { playlist_id: "p1".into(), song_ids: vec![song.clone()] });
@@ -796,7 +876,7 @@ mod tests {
         let snap = bundle_snapshot();
         let (song, _, show) = first_ids(&snap);
         let labels = ["聴いた".to_string(), "歌える".to_string()];
-        let ctx = PlanContext { today_key: "2026-11-16", playlists: &[], mastery_labels: &labels };
+        let ctx = PlanContext { today_key: "2026-11-16", playlists: &[], mastery_labels: &labels, records: &NO_RECORDS };
         let p = plan(&snap, "set_mastery", &json!({ "song_ids": [song], "level": 2 }), ctx).unwrap();
         assert!(p.title.contains("歌える") && !p.preselected);
         assert!(plan(&snap, "set_mastery", &json!({ "song_ids": [song], "level": 3 }), ctx).is_err());
@@ -832,5 +912,33 @@ mod tests {
             // 当選・落選は抽選のある受付だけ。
             assert_eq!(plan(&snap, "set_ticket_application", &args("won"), CTX).is_ok(), ticket_sales::has_draw(sale.kind));
         }
+    }
+
+    #[test]
+    fn もう付いている記録は積まず_入っていそうな支出は選ばないで出す() {
+        let snap = bundle_snapshot();
+        let (song, _, show) = first_ids(&snap);
+        let records = AiUserRecords {
+            attendance: vec![AiAttendanceRef { show_id: show.clone(), types: vec!["live".into()] }],
+            favorite_song_ids: vec![song.clone()],
+            expenses: vec![AiExpenseRef { date: "2026-11-15".into(), category: ExpenseCategory::Ticket, amount: 9800, show_id: Some(show.clone()), note: None }],
+            ..AiUserRecords::default()
+        };
+        let ctx = PlanContext { today_key: "2026-11-16", playlists: &[], mastery_labels: &[], records: &records };
+        // もう付いているものは積まない。外すのは積める。種類が違えば積める。
+        assert!(plan(&snap, "set_attendance", &json!({ "show_id": show }), ctx).unwrap_err().contains("もう付いています"));
+        assert!(plan(&snap, "set_attendance", &json!({ "show_id": show, "on": false }), ctx).is_ok());
+        assert!(plan(&snap, "set_attendance", &json!({ "show_id": show, "type": "stream" }), ctx).is_ok());
+        assert!(plan(&snap, "set_attendance", &json!({ "show_id": show, "type": "stream", "on": false }), ctx).is_err());
+        assert!(plan(&snap, "set_favorite_song", &json!({ "song_id": song }), ctx).is_err());
+        assert!(plan(&snap, "set_favorite_song", &json!({ "song_id": song }), CTX).is_ok());
+
+        let again = |amount: i64| {
+            plan(&snap, "add_expense", &json!({ "date": "2026-11-16", "category": "ticket", "amount": amount, "show_id": show }), ctx).unwrap()
+        };
+        assert!(again(9800).title.contains("同じ支出") && !again(9800).preselected);
+        assert!(again(500).title.contains("チケット代はもう") && !again(500).preselected);
+        let goods = plan(&snap, "add_expense", &json!({ "date": "2026-11-16", "category": "goods", "amount": 9800, "show_id": show }), ctx).unwrap();
+        assert!(goods.preselected);
     }
 }

@@ -1,11 +1,18 @@
 package com.fugaif.imaslivedb.data.chatgpt
 
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.util.Base64
 import com.fugaif.imaslivedb.data.core.SnapshotStoreProvider
 import com.fugaif.imaslivedb.data.model.JstDay
+import com.fugaif.imaslivedb.data.repository.ExpenseRepository
 import com.fugaif.imaslivedb.data.repository.PlaylistRepository
+import com.fugaif.imaslivedb.data.repository.UserMarkRepository
 import com.fugaif.imaslivedb.ui.theme.AppPreferences
+import uniffi.imas_core.AiAttendanceRef
 import uniffi.imas_core.AiDeviceContext
+import uniffi.imas_core.AiExpenseRef
+import uniffi.imas_core.AiUserRecords
 import uniffi.imas_core.AiPlaylistRef
 import uniffi.imas_core.AssistantPlan
 import kotlinx.coroutines.Dispatchers
@@ -13,6 +20,7 @@ import kotlinx.coroutines.withContext
 import uniffi.imas_core.assistantFetched
 import uniffi.imas_core.assistantMaxImages
 import uniffi.imas_core.assistantRequest
+import uniffi.imas_core.expenseCategoryFromKey
 
 /**
  * アプリ内の会話 1 番ぶん。往復は [ChatGptPlanTaskRunner]、判断はコア (`agent::tools::assistant`)。iOS `AssistantRunner`。
@@ -24,23 +32,51 @@ class AssistantRunner(
     private val tasks: ChatGptPlanTaskRunner,
     private val snapshots: SnapshotStoreProvider,
     private val playlists: PlaylistRepository,
+    private val marks: UserMarkRepository,
+    private val expenses: ExpenseRepository,
 ) {
+    /** 1 番ぶんの結果。[images] はこの番で描かれた画像 (会話には残さない)。 */
+    class Outcome(val plan: AssistantPlan, val images: List<Bitmap>)
+
+    /**
+     * 利用者がもう付けている記録を射影する。二重に積まないための検査と `my_records` の答えに使う
+     * (見るのも数えるのもコア)。
+     */
+    private suspend fun userRecords(): AiUserRecords {
+        val attendance = marks.attendedShowMarks().map { mark ->
+            AiAttendanceRef(mark.showId, mark.types.map { it.raw })
+        }
+        val refs = expenses.getAll().map { e ->
+            AiExpenseRef(e.date, expenseCategoryFromKey(e.category), e.amount, e.showId, e.note)
+        }
+        return AiUserRecords(
+            attendance = attendance,
+            favoriteSongIds = marks.favoriteSongIdList(),
+            myPickIdolIds = marks.pickedIdolIdList(),
+            ownedReleaseIds = marks.ownedReleaseIds().toList(),
+            expenses = refs,
+        )
+    }
+
     /**
      * @param history 前の番の [AssistantPlan.history] (最初は空)。
      * @param images 発言に添える画像。長辺 2048px の JPEG base64 にして渡す (縮め方はコール表と同じ)。
      */
-    suspend fun run(history: List<String>, order: String, images: List<Bitmap>, onProgress: (String) -> Unit): AssistantPlan {
+    suspend fun run(history: List<String>, order: String, images: List<Bitmap>, onProgress: (String) -> Unit): Outcome {
         val today = JstDay.today()
         // 端末の側の事情 (足す先のプレイリスト・習熟度の段階の名前) を射影して渡す。決めるのはコア。
         val refs = playlists.summaries().map { AiPlaylistRef(it.playlist.id, it.playlist.name) }
-        val device = AiDeviceContext(refs, AppPreferences.masteryScale.labels)
+        val device = AiDeviceContext(refs, AppPreferences.masteryScale.labels, userRecords())
         val encoded = withContext(Dispatchers.Default) {
             images.take(assistantMaxImages().toInt()).mapNotNull(::jpegBase64)
         }
         val request = assistantRequest(history, order, encoded, today, device)
             ?: throw ChatGptPlanTaskException("会話が長くなりました。新しい会話を始めてください")
-        return tasks.run(request, onProgress) { input, items, text ->
+        // 描かれた画像は往復ごとに来る (次の往復には積み直さない)。
+        val generated = mutableListOf<String>()
+        val plan = tasks.run(request, onProgress) { input, items, text ->
             val step = snapshots.query { store -> store.assistantStep(input, items, text, today, device) }
+            generated += step.images
             val plan = step.plan
             when {
                 plan != null -> ChatGptPlanTaskRunner.Outcome.Finished(plan)
@@ -49,5 +85,12 @@ class AssistantRunner(
                 else -> ChatGptPlanTaskRunner.Outcome.Next(assistantFetched(step.nextInput, AssistantFetcher.fetch(step.fetches)))
             }
         }
+        val bitmaps = withContext(Dispatchers.Default) {
+            generated.mapNotNull { b64 ->
+                runCatching { Base64.decode(b64, Base64.DEFAULT) }.getOrNull()
+                    ?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+            }
+        }
+        return Outcome(plan, bitmaps)
     }
 }

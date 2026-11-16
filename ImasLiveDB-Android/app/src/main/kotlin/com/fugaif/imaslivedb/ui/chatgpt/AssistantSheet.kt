@@ -64,6 +64,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasChatAccessoryItem
 import com.fugaif.imaslivedb.ui.designsystem.ImasChatAccessoryMenu
 import com.fugaif.imaslivedb.ui.designsystem.ImasChatBubble
 import com.fugaif.imaslivedb.ui.designsystem.ImasChatComposer
+import com.fugaif.imaslivedb.ui.designsystem.ImasChatGeneratedImage
 import com.fugaif.imaslivedb.ui.designsystem.ImasChatReply
 import com.fugaif.imaslivedb.ui.designsystem.ImasChatThinking
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
@@ -83,6 +84,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasSelectableRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbar
 import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbarKind
 import com.fugaif.imaslivedb.ui.producercard.PaperCardCodeReader
+import com.fugaif.imaslivedb.ui.share.ShareCardFiles
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasText
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
@@ -113,6 +115,8 @@ private sealed interface Outcome {
 /** 1 番ぶんの返事と一覧、その場の選択・実行の結果。 */
 private data class Review(
     val plan: AssistantPlan,
+    /** この番で描いてもらった画像 (会話には残さない)。 */
+    val images: List<Bitmap> = emptyList(),
     val selected: Set<Int>,
     val outcomes: Map<Int, Outcome> = emptyMap(),
     val isExecuting: Boolean = false,
@@ -260,13 +264,14 @@ fun AssistantScreen(
         val before = history
         runJob = scope.launch {
             try {
-                val plan = module.assistantRunner.run(before, turn.order, turn.images) { label ->
+                val outcome = module.assistantRunner.run(before, turn.order, turn.images) { label ->
                     update(turn.key) { it.copy(state = TurnState.Running(label)) }
                 }
+                val plan = outcome.plan
                 history = plan.history
                 // サーバに届く操作は、利用者が自分で選ぶまで外しておく。
                 val selected = plan.actions.indices.filter { plan.actions[it].preselected }.toSet()
-                update(turn.key) { it.copy(state = TurnState.Done(Review(plan, selected))) }
+                update(turn.key) { it.copy(state = TurnState.Done(Review(plan, outcome.images, selected))) }
                 persist()
             } catch (e: CancellationException) {
                 // やめた。発言は cancel() が消している。
@@ -520,6 +525,11 @@ private fun ReviewView(review: Review, onToggle: (Int) -> Unit, onExecute: () ->
     val plan = review.plan
     if (plan.message.isNotEmpty()) {
         ImasChatReply(plan.message, modifier = Modifier.fillMaxWidth())
+    }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    review.images.forEach { image ->
+        ImasChatGeneratedImage(image, onShare = { scope.launch { ShareCardFiles.share(context, image, "chat_image") } })
     }
     if (plan.actions.isNotEmpty()) {
         ImasSection("これからやること", count = "${plan.actions.size}件", style = ImasSectionHeaderStyle.SMALL) {

@@ -93,7 +93,7 @@ struct ChatGPTSettingsView: View {
             }
         }
         if session.canUsePlan {
-            ImasListSection("チャット", footer: "データベースを引いて質問に答えます。参加の記録・お気に入り・プレイリスト・収支など、アプリの中で自分でできる操作も頼めます。頼んだ操作は一覧で確かめてから実行します。歌詞やコールのように人が書くものは、その画面を開くところまでです。") {
+            ImasListSection("チャット", footer: "データベースを引いて質問に答えます。参加の記録・お気に入り・プレイリスト・収支など、アプリの中で自分でできる操作も頼めます。頼んだ操作は一覧で確かめてから実行します。歌詞やコールのように人が書くものは、その画面を開くところまでです。あなたの記録 (参加・お気に入り・担当・収支など) は、訊かれたことに答えるのに要るときだけ ChatGPT に送ります。") {
                 Button {
                     AppAnalytics.tap("assistant.open")
                     assistantOrder = AssistantOrder(text: "")

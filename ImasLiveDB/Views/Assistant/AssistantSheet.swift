@@ -58,6 +58,8 @@ struct AssistantSheet: View {
     /// 1 番ぶんの返事と一覧、その場の選択・実行の結果。
     private struct Review {
         var plan: AssistantPlan
+        /// この番で描いてもらった画像 (会話には残さない)。
+        var images: [UIImage] = []
         var selected: Set<Int>
         var outcomes: [Int: Outcome] = [:]
         var isExecuting = false
@@ -217,6 +219,9 @@ struct AssistantSheet: View {
                 .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        ForEach(Array(review.images.enumerated()), id: \.offset) { _, image in
+            ImasChatGeneratedImage(image: image)
         }
         if !plan.actions.isEmpty {
             ImasSection("これからやること", count: "\(plan.actions.count)件", style: .small) {
@@ -397,14 +402,15 @@ struct AssistantSheet: View {
         let before = history
         runTask = Task {
             do {
-                let plan = try await AssistantRunner.run(history: before, order: turn.order, images: turn.images) { label in
+                let outcome = try await AssistantRunner.run(history: before, order: turn.order, images: turn.images) { label in
                     update(turn.id) { $0.state = .running(label: label) }
                 }
+                let plan = outcome.plan
                 if Task.isCancelled { return }
                 history = plan.history
                 // 初めから選んでおくかはコアが決める (サーバに届く・外す・置き換える操作は選ばない)。
                 let selected = Set(plan.actions.indices.filter { plan.actions[$0].preselected })
-                update(turn.id) { $0.state = .done(Review(plan: plan, selected: selected)) }
+                update(turn.id) { $0.state = .done(Review(plan: plan, images: outcome.images, selected: selected)) }
                 persist()
             } catch is CancellationError {
                 // やめた。発言は cancel() が消している。

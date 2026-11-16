@@ -27,7 +27,7 @@ class ChatGptFailureException(val failure: ChatGptFailure) : Exception(failure.m
 class RetryWithoutReasoning : Exception()
 
 /** Web 検索のツールを受けない経路だった。それを外してやり直す (外したものが無い仕事なら失敗)。 */
-class RetryWithoutWebSearch : Exception()
+class RetryWithoutBuiltInTools : Exception()
 
 sealed interface ChatGptStreamItem {
     data class Delta(val text: String) : ChatGptStreamItem
@@ -117,7 +117,7 @@ object ChatGptPlanClient {
                     }
                     when (val action = chatgptHttpErrorAction(status.toUShort(), text, includesReasoning)) {
                         is ChatGptHttpErrorAction.RetryWithoutReasoning -> throw RetryWithoutReasoning()
-                        is ChatGptHttpErrorAction.RetryWithoutWebSearch -> throw RetryWithoutWebSearch()
+                        is ChatGptHttpErrorAction.RetryWithoutBuiltInTools -> throw RetryWithoutBuiltInTools()
                         is ChatGptHttpErrorAction.Fail -> throw ChatGptFailureException(action.failure)
                     }
                 }

@@ -67,9 +67,15 @@ pub(super) fn web_search_tool() -> Value {
     json!({ "type": "web_search" })
 }
 
-/// `tools` から Web 検索を外したもの。この経路が Web 検索を受けなかったときのやり直しに使う。
-pub fn without_web_search(tools: &Value) -> Value {
-    Value::Array(tools.as_array().into_iter().flatten().filter(|t| t["type"] != "web_search").cloned().collect())
+/// 画像の生成 (Responses API の組み込みツール)。描くのは ChatGPT の側。
+pub(super) fn image_generation_tool() -> Value {
+    json!({ "type": "image_generation" })
+}
+
+/// `tools` から組み込みツール (Web 検索・画像の生成) を外したもの。この経路がそれらを
+/// 受けなかったときのやり直しに使う。残るのは自前の関数ツール (namespace) だけ。
+pub fn without_built_in_tools(tools: &Value) -> Value {
+    Value::Array(tools.as_array().into_iter().flatten().filter(|t| t["type"] == "namespace").cloned().collect())
 }
 
 /// MCP 用のスキーマから、Responses API の関数パラメータが受けない鍵を外す。
@@ -90,6 +96,7 @@ pub fn progress_label(name: &str) -> &'static str {
     match name {
         "resolve" | "search" => "データベースを検索しています…",
         "list_posts" | "get_post" => "X のポストを読んでいます…",
+        "my_records" => "あなたの記録を見ています…",
         n if crate::domain::ai_actions::is_action(n) => "やることをまとめています…",
         "get_idol" | "get_idol_facts" | "list_idols" => "アイドルを調べています…",
         "get_song" | "list_songs" => "曲を調べています…",

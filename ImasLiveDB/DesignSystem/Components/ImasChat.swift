@@ -8,6 +8,7 @@ import SwiftUI
 //           検索 → ImasSearchField
 // 構成      紙片: 右に寄せた角丸の四角 (地は surface2)。色を付けない。画像は字の上に小さく並べる。
 //           途中: [くるくる] [何をしているかの一言] を 1 行で。止めるのは入力欄のボタン。
+//           描いた絵: 返事の下に角丸の四角で出し、その下に「保存・共有」。
 //           入力欄: [添える (+)] [複数行の欄] [送る ↑ / 止める ■]。上に区切り線。
 //                   添えた画像は欄の上に小さく並び、× で外せる。
 // 状態      送る: 通常 / 無効 (薄く) / 考えている途中 (■ に替わり、押すと止まる)
@@ -60,6 +61,29 @@ struct ImasChatThinking: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// 返事に付いた、描いてもらった画像。下に「保存・共有」を置く。
+struct ImasChatGeneratedImage: View {
+    let image: UIImage
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DS.Space.gap) {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: 320)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(DS.line))
+                .accessibilityLabel("描いてもらった画像")
+            ShareLink(item: Image(uiImage: image), preview: SharePreview("チャットの画像", image: Image(uiImage: image))) {
+                Label("保存・共有", systemImage: "square.and.arrow.up")
+                    .font(.imasHeading(13, weight: .bold))
+                    .foregroundStyle(DS.ink)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

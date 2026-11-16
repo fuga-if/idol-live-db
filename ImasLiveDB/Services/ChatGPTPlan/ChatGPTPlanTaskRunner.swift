@@ -58,9 +58,9 @@ enum ChatGPTPlanTaskRunner {
                 // やり直すかどうかはコアが決めている (1 回だけ)。往復には数えない。
                 includeReasoning = false
                 continue
-            } catch is ChatGPTPlanClient.RetryWithoutWebSearch {
+            } catch is ChatGPTPlanClient.RetryWithoutBuiltInTools {
                 // 外したものがある仕事だけ、1 回だけやり直す (往復には数えない)。
-                guard let fallback = request.toolsWithoutWebSearchJson, fallback != toolsJson else {
+                guard let fallback = request.toolsWithoutBuiltInsJson, fallback != toolsJson else {
                     throw RunnerError(message: "ChatGPT とのやりとりに失敗しました")
                 }
                 toolsJson = fallback

@@ -28,6 +28,8 @@ pub struct AssistantStep {
     /// 端末が取りに行くもの。空でなければ、全部 GET して `assistant_fetched(next_input, 結果)` に渡し、
     /// 返った input でもう 1 往復する。
     pub fetches: Vec<AssistantFetch>,
+    /// この応答で描かれた画像 (PNG の base64)。端末がその番の返事に並べる。往復ごとに来るので足していく。
+    pub images: Vec<String>,
 }
 
 /// 端末に GET してもらう 1 件。URL はコアが組んだもの (X のポストを読む公開 API だけ)。
@@ -89,7 +91,7 @@ pub fn assistant_request(
     device: AiDeviceContext,
 ) -> Option<PlanTaskRequest> {
     a::request(&history, &order, &images_base64, device.plan_context(&today_key)).map(|r| PlanTaskRequest {
-        tools_without_web_search_json: Some(crate::agent::tools::plan_loop::without_web_search(&r.tools).to_string()),
+        tools_without_built_ins_json: Some(crate::agent::tools::plan_loop::without_built_in_tools(&r.tools).to_string()),
         too_many_rounds_message: "調べものが長くなりすぎたので止めました。短く分けて試してください".into(),
         ..r.into()
     })
@@ -117,17 +119,20 @@ impl SnapshotStore {
     ) -> Result<AssistantStep, SnapshotError> {
         let snap = self.current()?;
         let ctx = device.plan_context(&today_key);
+        let images = a::generated_images(&output_items);
         Ok(match a::step(&snap, &input, &output_items, &text, ctx) {
             a::Step::Finished(p) => AssistantStep {
                 plan: Some(AssistantPlan { message: p.message, actions: p.actions, rejected: p.rejected, history: p.history }),
                 next_input: Vec::new(),
                 fetches: Vec::new(),
+                images,
             },
-            a::Step::Continue(next_input) => AssistantStep { plan: None, next_input, fetches: Vec::new() },
+            a::Step::Continue(next_input) => AssistantStep { plan: None, next_input, fetches: Vec::new(), images },
             a::Step::Fetch { input, fetches } => AssistantStep {
                 plan: None,
                 next_input: input,
                 fetches: fetches.into_iter().map(|f| AssistantFetch { call_id: f.call_id, url: f.url }).collect(),
+                images,
             },
         })
     }

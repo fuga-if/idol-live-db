@@ -157,7 +157,7 @@ class AppModule private constructor(context: Context) {
         com.fugaif.imaslivedb.data.chatgpt.CallSheetRunner(chatGptPlanTaskRunner)
     }
     val assistantRunner: com.fugaif.imaslivedb.data.chatgpt.AssistantRunner by lazy {
-        com.fugaif.imaslivedb.data.chatgpt.AssistantRunner(chatGptPlanTaskRunner, snapshotStoreProvider, playlistRepository)
+        com.fugaif.imaslivedb.data.chatgpt.AssistantRunner(chatGptPlanTaskRunner, snapshotStoreProvider, playlistRepository, userMarkRepository, expenseRepository)
     }
     /** チャットの「これからやること」を既存の書き込み口に写す役。 */
     val assistantExecutor: com.fugaif.imaslivedb.data.chatgpt.AssistantExecutor by lazy {
