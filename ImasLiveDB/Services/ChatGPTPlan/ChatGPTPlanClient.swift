@@ -14,6 +14,9 @@ enum ChatGPTPlanClient {
     /// 推論の暗号化返却を受けない経路だった。それ無しでやり直す。
     struct RetryWithoutReasoning: Error {}
 
+    /// Web 検索のツールを受けない経路だった。それを外してやり直す (外したものが無い仕事なら失敗)。
+    struct RetryWithoutWebSearch: Error {}
+
     enum StreamEvent: Sendable {
         case delta(String)
         /// 関数呼び出しが始まった (進行表示用)。
@@ -76,6 +79,7 @@ enum ChatGPTPlanClient {
                         let text = String(decoding: data, as: UTF8.self)
                         switch chatgptHttpErrorAction(status: status, body: text, includeEncryptedReasoning: includesReasoning) {
                         case .retryWithoutReasoning: throw RetryWithoutReasoning()
+                        case .retryWithoutWebSearch: throw RetryWithoutWebSearch()
                         case .fail(let failure): throw Failure(failure: failure)
                         }
                     }

@@ -28,7 +28,11 @@ enum AssistantRunner {
         return try await ChatGPTPlanTaskRunner.run(request: request, onProgress: onProgress) { input, items, text in
             let step = try store.assistantStep(input: input, outputItems: items, text: text, todayKey: today,
                                                device: device)
-            return step.plan.map { .finished($0) } ?? .next(step.nextInput)
+            if let plan = step.plan { return .finished(plan) }
+            if step.fetches.isEmpty { return .next(step.nextInput) }
+            // X のポストは端末が取りに行く。行き先はコアが組んだものだけで、削るのもコア。
+            let results = await AssistantFetcher.fetch(step.fetches)
+            return .next(assistantFetched(input: step.nextInput, results: results))
         }
     }
 }

@@ -173,7 +173,7 @@ struct AssistantSheet: View {
     private func reviewView(_ review: Review, turnID: UUID) -> some View {
         let plan = review.plan
         if !plan.message.isEmpty {
-            Text(plan.message)
+            Text(Self.linkified(plan.message))
                 .imasText(.body)
                 .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
@@ -272,6 +272,21 @@ struct AssistantSheet: View {
 
     private var canSend: Bool {
         !isRunning && assistantAcceptsMessage(order: text, imageCount: UInt32(attachments.count))
+    }
+
+    /// 返事の中の URL を押せるようにする (Web や X の出どころ)。
+    private static func linkified(_ text: String) -> AttributedString {
+        var out = AttributedString(text)
+        guard let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) else { return out }
+        for match in detector.matches(in: text, range: NSRange(text.startIndex..., in: text)) {
+            guard let url = match.url, url.scheme == "https" || url.scheme == "http",
+                  let range = Range(match.range, in: text),
+                  let lower = AttributedString.Index(range.lowerBound, within: out),
+                  let upper = AttributedString.Index(range.upperBound, within: out) else { continue }
+            out[lower..<upper].link = url
+            out[lower..<upper].underlineStyle = .single
+        }
+        return out
     }
 
     private func trailingLabel(_ item: AiPlannedAction, outcome: Outcome?) -> String {

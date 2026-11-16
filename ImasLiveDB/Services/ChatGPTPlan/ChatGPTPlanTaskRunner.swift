@@ -26,13 +26,14 @@ enum ChatGPTPlanTaskRunner {
     static func run<Result: Sendable>(
         request: PlanTaskRequest,
         onProgress: (String) -> Void,
-        step: @escaping @Sendable (_ input: [String], _ outputItems: [String], _ text: String) throws -> Outcome<Result>
+        step: @escaping @Sendable (_ input: [String], _ outputItems: [String], _ text: String) async throws -> Outcome<Result>
     ) async throws -> Result {
         let session = ChatGPTPlanSession.shared
         // モデル一覧の失敗で「ログインし直し」になったときのトークンの始末は session がやる。
         let model = try await session.resolvedModel()
 
         var input = request.input
+        var toolsJson = request.toolsJson
         var includeReasoning = true
         var round: UInt32 = 0
 
@@ -40,7 +41,7 @@ enum ChatGPTPlanTaskRunner {
             let token = try await session.validAccessToken()
             let body = chatgptResponsesBody(
                 model: model, instructions: request.instructions, inputItems: input,
-                toolsJson: request.toolsJson, textFormatJson: request.textFormatJson,
+                toolsJson: toolsJson, textFormatJson: request.textFormatJson,
                 includeEncryptedReasoning: includeReasoning
             )
             var outputItems: [String] = []
@@ -57,6 +58,13 @@ enum ChatGPTPlanTaskRunner {
                 // やり直すかどうかはコアが決めている (1 回だけ)。往復には数えない。
                 includeReasoning = false
                 continue
+            } catch is ChatGPTPlanClient.RetryWithoutWebSearch {
+                // 外したものがある仕事だけ、1 回だけやり直す (往復には数えない)。
+                guard let fallback = request.toolsWithoutWebSearchJson, fallback != toolsJson else {
+                    throw RunnerError(message: "ChatGPT とのやりとりに失敗しました")
+                }
+                toolsJson = fallback
+                continue
             } catch let error as ChatGPTPlanClient.Failure {
                 session.settle(error.failure)
                 throw error
@@ -70,7 +78,7 @@ enum ChatGPTPlanTaskRunner {
             let items = outputItems
             let answerText = text
             let outcome = try await Task.detached(priority: .userInitiated) {
-                try step(sent, items, answerText)
+                try await step(sent, items, answerText)
             }.value
             switch outcome {
             case .finished(let result): return result

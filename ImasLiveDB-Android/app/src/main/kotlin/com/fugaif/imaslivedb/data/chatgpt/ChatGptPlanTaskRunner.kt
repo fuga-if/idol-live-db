@@ -37,13 +37,14 @@ class ChatGptPlanTaskRunner(private val session: ChatGptPlanService) {
         val model = session.resolvedModel()
 
         var input = request.input
+        var toolsJson = request.toolsJson
         var includeReasoning = true
         var round = 0u
 
         while (round < request.maxRounds) {
             val token = session.validAccessToken()
             val body = chatgptResponsesBody(
-                model, request.instructions, input, request.toolsJson, request.textFormatJson, includeReasoning,
+                model, request.instructions, input, toolsJson, request.textFormatJson, includeReasoning,
             )
             val outputItems = mutableListOf<String>()
             val text = StringBuilder()
@@ -58,6 +59,14 @@ class ChatGptPlanTaskRunner(private val session: ChatGptPlanService) {
             } catch (e: RetryWithoutReasoning) {
                 // やり直すかどうかはコアが決めている (1 回だけ)。往復には数えない。
                 includeReasoning = false
+                continue
+            } catch (e: RetryWithoutWebSearch) {
+                // 外したものがある仕事だけ、1 回だけやり直す (往復には数えない)。
+                val fallback = request.toolsWithoutWebSearchJson
+                if (fallback == null || fallback == toolsJson) {
+                    throw ChatGptPlanTaskException("ChatGPT とのやりとりに失敗しました")
+                }
+                toolsJson = fallback
                 continue
             } catch (e: ChatGptFailureException) {
                 session.settle(e.failure)

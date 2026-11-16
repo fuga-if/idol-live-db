@@ -12,6 +12,8 @@ pub struct PlanTaskRequest {
     pub input: Vec<String>,
     /// Responses API の `tools` (JSON)。
     pub tools_json: String,
+    /// Web 検索を受けない経路だったときにやり直す `tools` (JSON)。Web 検索を渡さない仕事は None。
+    pub tools_without_web_search_json: Option<String>,
     /// Responses API の `text.format` (JSON)。
     pub text_format_json: String,
     /// 関数呼び出しを何往復まで許すか。
@@ -26,6 +28,7 @@ impl From<crate::agent::tools::plan_loop::Request> for PlanTaskRequest {
             instructions: r.instructions,
             input: r.input,
             tools_json: r.tools.to_string(),
+            tools_without_web_search_json: None,
             text_format_json: r.text_format.to_string(),
             max_rounds: crate::agent::tools::plan_loop::MAX_ROUNDS,
             too_many_rounds_message: crate::agent::tools::plan_loop::TOO_MANY_ROUNDS_MESSAGE.into(),

@@ -62,6 +62,16 @@ pub(super) fn responses_tools_of(specs: Vec<super::ToolSpec>, description: &str)
     }])
 }
 
+/// Web 検索 (Responses API の組み込みツール)。実行は ChatGPT の側で、端末もコアも通信しない。
+pub(super) fn web_search_tool() -> Value {
+    json!({ "type": "web_search" })
+}
+
+/// `tools` から Web 検索を外したもの。この経路が Web 検索を受けなかったときのやり直しに使う。
+pub fn without_web_search(tools: &Value) -> Value {
+    Value::Array(tools.as_array().into_iter().flatten().filter(|t| t["type"] != "web_search").cloned().collect())
+}
+
 /// MCP 用のスキーマから、Responses API の関数パラメータが受けない鍵を外す。
 ///
 /// - `$schema`: 関数パラメータは JSON Schema の部分集合で、方言の宣言は要らない。
@@ -79,6 +89,8 @@ fn responses_parameters(mut schema: Value) -> Value {
 pub fn progress_label(name: &str) -> &'static str {
     match name {
         "resolve" | "search" => "データベースを検索しています…",
+        "list_posts" | "get_post" => "X のポストを読んでいます…",
+        n if crate::domain::ai_actions::is_action(n) => "やることをまとめています…",
         "get_idol" | "get_idol_facts" | "list_idols" => "アイドルを調べています…",
         "get_song" | "list_songs" => "曲を調べています…",
         "idol_songs" | "songs_for_cast" => "持ち歌を調べています…",

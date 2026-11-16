@@ -683,6 +683,9 @@ pub enum ChatGptHttpErrorAction {
     /// 推論の暗号化返却を受けない経路だった。それ無しで同じリクエストをやり直す
     /// (往復には数えない)。
     RetryWithoutReasoning,
+    /// Web 検索のツールを受けない経路だった。それを外した `tools` で同じリクエストをやり直す
+    /// (外したものが無い仕事なら、失敗として終える)。
+    RetryWithoutWebSearch,
     /// 失敗として終える。
     Fail { failure: ChatGptFailure },
 }
@@ -692,6 +695,9 @@ pub enum ChatGptHttpErrorAction {
 pub fn http_error_action(status: u16, body: &str, include_encrypted_reasoning: bool) -> ChatGptHttpErrorAction {
     if include_encrypted_reasoning && status == 400 && (body.contains("include") || body.contains("encrypted")) {
         return ChatGptHttpErrorAction::RetryWithoutReasoning;
+    }
+    if status == 400 && body.contains("web_search") {
+        return ChatGptHttpErrorAction::RetryWithoutWebSearch;
     }
     ChatGptHttpErrorAction::Fail { failure: http_failure(status, body) }
 }
@@ -1310,6 +1316,7 @@ mod tests {
 
         use ChatGptHttpErrorAction::*;
         assert_eq!(http_error_action(400, "unsupported include", true), RetryWithoutReasoning);
+        assert_eq!(http_error_action(400, "Unsupported tool type: web_search", false), RetryWithoutWebSearch);
         // やり直しは 1 回だけ。付けていないのに同じ理由で落ちたら失敗にする。
         assert!(matches!(http_error_action(400, "unsupported include", false), Fail { .. }));
         assert!(matches!(http_error_action(400, "bad model", true), Fail { .. }));

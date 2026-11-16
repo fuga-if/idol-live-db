@@ -25,6 +25,32 @@ pub struct AssistantPlan {
 pub struct AssistantStep {
     pub plan: Option<AssistantPlan>,
     pub next_input: Vec<String>,
+    /// 端末が取りに行くもの。空でなければ、全部 GET して `assistant_fetched(next_input, 結果)` に渡し、
+    /// 返った input でもう 1 往復する。
+    pub fetches: Vec<AssistantFetch>,
+}
+
+/// 端末に GET してもらう 1 件。URL はコアが組んだもの (X のポストを読む公開 API だけ)。
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct AssistantFetch {
+    pub call_id: String,
+    pub url: String,
+}
+
+/// 端末が取ってきた結果 1 件。通信そのものが失敗したら `status` は 0、`body` は空。
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct AssistantFetched {
+    pub call_id: String,
+    pub status: u16,
+    pub body: String,
+}
+
+/// 取ってきた結果を input に積む (モデルに渡す形に削るのもここ)。
+#[uniffi::export]
+pub fn assistant_fetched(input: Vec<String>, results: Vec<AssistantFetched>) -> Vec<String> {
+    let results: Vec<a::Fetched> =
+        results.into_iter().map(|r| a::Fetched { call_id: r.call_id, status: r.status, body: r.body }).collect();
+    a::fetched(&input, &results)
 }
 
 /// この頼みを受けてよいか (長さ)。
@@ -63,6 +89,7 @@ pub fn assistant_request(
     device: AiDeviceContext,
 ) -> Option<PlanTaskRequest> {
     a::request(&history, &order, &images_base64, device.plan_context(&today_key)).map(|r| PlanTaskRequest {
+        tools_without_web_search_json: Some(crate::agent::tools::plan_loop::without_web_search(&r.tools).to_string()),
         too_many_rounds_message: "調べものが長くなりすぎたので止めました。短く分けて試してください".into(),
         ..r.into()
     })
@@ -94,8 +121,14 @@ impl SnapshotStore {
             a::Step::Finished(p) => AssistantStep {
                 plan: Some(AssistantPlan { message: p.message, actions: p.actions, rejected: p.rejected, history: p.history }),
                 next_input: Vec::new(),
+                fetches: Vec::new(),
             },
-            a::Step::Continue(next_input) => AssistantStep { plan: None, next_input },
+            a::Step::Continue(next_input) => AssistantStep { plan: None, next_input, fetches: Vec::new() },
+            a::Step::Fetch { input, fetches } => AssistantStep {
+                plan: None,
+                next_input: input,
+                fetches: fetches.into_iter().map(|f| AssistantFetch { call_id: f.call_id, url: f.url }).collect(),
+            },
         })
     }
 }

@@ -23,6 +23,12 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -85,6 +91,28 @@ fun ImasChatBubble(text: String, modifier: Modifier = Modifier, images: List<Bit
         }
     }
 }
+
+/** 相手の返事。地の文で、中の http/https の URL は下線つきで押せる (Web や X の出どころ)。 */
+@Composable
+fun ImasChatReply(text: String, modifier: Modifier = Modifier) {
+    val linked = remember(text) {
+        buildAnnotatedString {
+            append(text)
+            URL_PATTERN.findAll(text).forEach { match ->
+                // 文末の句読点・閉じ括弧は URL に含めない。
+                val url = match.value.trimEnd('.', ',', ')', '）', '。', '、', '」')
+                addLink(
+                    LinkAnnotation.Url(url, TextLinkStyles(SpanStyle(textDecoration = TextDecoration.Underline))),
+                    match.range.first,
+                    match.range.first + url.length,
+                )
+            }
+        }
+    }
+    Text(linked, modifier = modifier, color = ImasTextRole.BODY.color, style = ImasTextRole.BODY.style)
+}
+
+private val URL_PATTERN = Regex("""https?://[\x21-\x7E]+""")
 
 /** 考えている途中の一行。 */
 @Composable

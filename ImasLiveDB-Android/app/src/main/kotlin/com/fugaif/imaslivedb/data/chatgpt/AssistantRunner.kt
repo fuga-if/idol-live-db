@@ -10,6 +10,7 @@ import uniffi.imas_core.AiPlaylistRef
 import uniffi.imas_core.AssistantPlan
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import uniffi.imas_core.assistantFetched
 import uniffi.imas_core.assistantMaxImages
 import uniffi.imas_core.assistantRequest
 
@@ -40,8 +41,13 @@ class AssistantRunner(
             ?: throw ChatGptPlanTaskException("会話が長くなりました。新しい会話を始めてください")
         return tasks.run(request, onProgress) { input, items, text ->
             val step = snapshots.query { store -> store.assistantStep(input, items, text, today, device) }
-            step.plan?.let { ChatGptPlanTaskRunner.Outcome.Finished(it) }
-                ?: ChatGptPlanTaskRunner.Outcome.Next(step.nextInput)
+            val plan = step.plan
+            when {
+                plan != null -> ChatGptPlanTaskRunner.Outcome.Finished(plan)
+                step.fetches.isEmpty() -> ChatGptPlanTaskRunner.Outcome.Next(step.nextInput)
+                // X のポストは端末が取りに行く。行き先はコアが組んだものだけで、削るのもコア。
+                else -> ChatGptPlanTaskRunner.Outcome.Next(assistantFetched(step.nextInput, AssistantFetcher.fetch(step.fetches)))
+            }
         }
     }
 }

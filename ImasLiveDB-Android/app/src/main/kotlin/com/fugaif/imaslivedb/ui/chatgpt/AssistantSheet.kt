@@ -63,6 +63,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasChatAccessoryItem
 import com.fugaif.imaslivedb.ui.designsystem.ImasChatAccessoryMenu
 import com.fugaif.imaslivedb.ui.designsystem.ImasChatBubble
 import com.fugaif.imaslivedb.ui.designsystem.ImasChatComposer
+import com.fugaif.imaslivedb.ui.designsystem.ImasChatReply
 import com.fugaif.imaslivedb.ui.designsystem.ImasChatThinking
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.designsystem.ImasFormBackdrop
@@ -420,7 +421,7 @@ private fun TurnView(
 private fun ReviewView(review: Review, onToggle: (Int) -> Unit, onExecute: () -> Unit) {
     val plan = review.plan
     if (plan.message.isNotEmpty()) {
-        ImasText(plan.message, role = ImasTextRole.BODY, modifier = Modifier.fillMaxWidth())
+        ImasChatReply(plan.message, modifier = Modifier.fillMaxWidth())
     }
     if (plan.actions.isNotEmpty()) {
         ImasSection("これからやること", count = "${plan.actions.size}件", style = ImasSectionHeaderStyle.SMALL) {

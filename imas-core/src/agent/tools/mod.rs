@@ -28,6 +28,7 @@ pub mod predict;
 pub mod scope;
 pub mod speech;
 pub mod vocab;
+pub mod web_posts;
 
 use crate::domain::snapshot::Snapshot;
 use serde_json::{json, Value};

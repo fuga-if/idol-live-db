@@ -26,6 +26,9 @@ class ChatGptFailureException(val failure: ChatGptFailure) : Exception(failure.m
 /** 推論の暗号化返却を受けない経路だった。それ無しでやり直す。 */
 class RetryWithoutReasoning : Exception()
 
+/** Web 検索のツールを受けない経路だった。それを外してやり直す (外したものが無い仕事なら失敗)。 */
+class RetryWithoutWebSearch : Exception()
+
 sealed interface ChatGptStreamItem {
     data class Delta(val text: String) : ChatGptStreamItem
 
@@ -114,6 +117,7 @@ object ChatGptPlanClient {
                     }
                     when (val action = chatgptHttpErrorAction(status.toUShort(), text, includesReasoning)) {
                         is ChatGptHttpErrorAction.RetryWithoutReasoning -> throw RetryWithoutReasoning()
+                        is ChatGptHttpErrorAction.RetryWithoutWebSearch -> throw RetryWithoutWebSearch()
                         is ChatGptHttpErrorAction.Fail -> throw ChatGptFailureException(action.failure)
                     }
                 }
