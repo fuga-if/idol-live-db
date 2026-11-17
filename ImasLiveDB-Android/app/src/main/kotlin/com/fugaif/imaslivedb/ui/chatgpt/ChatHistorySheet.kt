@@ -90,7 +90,7 @@ fun ChatHistorySheet(
                         ImasListSection(
                             "これまでの会話",
                             count = "${list.size}件",
-                            footer = "会話はこの端末の中にだけ残ります。添えた画像は残しません。行を左に引くと消せます。",
+                            footer = "会話はこの端末の中にだけ残ります (バックアップにも入れません)。添えた画像は残しません。行を左に引くと消せます。",
                         ) {
                             list.forEach { summary ->
                                 ImasSwipe(

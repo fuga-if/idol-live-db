@@ -17,8 +17,11 @@ import uniffi.imas_core.chatSessionShelf
  * ファイルを触るので、メインスレッドから呼ばない。
  */
 object ChatSessionStore {
+    /** バックアップの除外 (res/xml の backup_rules と data_extraction_rules) と同じ名前。変えるときは両方を直す (BackupRulesTest が突き合わせる)。 */
+    const val DIRECTORY_NAME = "ChatSessions"
+
     private fun directory(context: Context): File =
-        File(context.filesDir, "ChatSessions").also { it.mkdirs() }
+        File(context.filesDir, DIRECTORY_NAME).also { it.mkdirs() }
 
     private fun file(context: Context, id: String): File? {
         // id は自分で振った UUID。念のため、パスに使えない字が混ざったものは扱わない。
@@ -47,7 +50,13 @@ object ChatSessionStore {
     fun save(context: Context, session: ChatSession) {
         val f = file(context, session.id) ?: return
         try {
-            f.writeText(chatSessionEncode(session))
+            // 書いている途中で落ちても、読めないファイルが残らないよう、一時ファイルに書いてから置き換える。
+            val tmp = File(f.parentFile, "${f.name}.tmp")
+            tmp.writeText(chatSessionEncode(session))
+            if (!tmp.renameTo(f)) {
+                tmp.delete()
+                Log.e("ChatSessionStore", "chat_session_save_failed: rename")
+            }
         } catch (e: Exception) {
             Log.e("ChatSessionStore", "chat_session_save_failed: ${e.message}")
         }
@@ -58,6 +67,6 @@ object ChatSessionStore {
     }
 
     fun deleteAll(context: Context) {
-        files(context).forEach { it.delete() }
+        directory(context).listFiles()?.forEach { it.delete() }
     }
 }

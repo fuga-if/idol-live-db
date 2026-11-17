@@ -5,12 +5,17 @@ import os
 ///
 /// 保存の形・題・何本まで残すか・一覧の並びはコア (`domain::chat_sessions`)。ここはファイルを
 /// 読む・書く・消すだけ。置き場は Application Support の中で、サーバには送らない。
-@MainActor
+/// 利用者の記録を含む返事が入るので、端末のバックアップ (iCloud) にも乗せない。
+///
+/// 一覧は全ファイルを読むので、呼ぶ側はメインスレッドの外から呼ぶ (`Task.detached`)。
 enum ChatSessionStore {
     private static var directory: URL? {
         guard let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return nil }
-        let dir = base.appendingPathComponent("ChatSessions", isDirectory: true)
+        var dir = base.appendingPathComponent("ChatSessions", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        try? dir.setResourceValues(values)
         return dir
     }
 

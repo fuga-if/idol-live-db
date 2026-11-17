@@ -46,7 +46,7 @@ struct AssistantSheet: View {
             case done(Review)
             case failed(String)
             /// 履歴から読み直した番。操作は見るだけ (実行できる形では残していない)。
-            case restored(reply: String, actions: [ChatSavedAction])
+            case restored(reply: String, actions: [ChatSavedAction], imageCount: UInt32)
         }
     }
 
@@ -111,6 +111,8 @@ struct AssistantSheet: View {
                             Image(systemName: "clock.arrow.circlepath")
                         }
                         .accessibilityLabel("会話の履歴")
+                        // 返事待ち・実行中は会話を替えられないので、開かせない。
+                        .disabled(isRunning || isExecuting)
                         Button {
                             AppAnalytics.tap("assistant.new")
                             reset()
@@ -149,7 +151,9 @@ struct AssistantSheet: View {
             let limit = Int(assistantMaxOrderChars())
             if new.count > limit { text = String(new.prefix(limit)) }
         }
-        .onDisappear { runTask?.cancel() }
+        // タブとして出しているときは、別のタブへ移っても返事を待ち続ける (戻ったら出ている)。
+        // シートは閉じたら止める。
+        .onDisappear { if !isTab { runTask?.cancel() } }
         .trackScreen("assistant")
     }
 
@@ -201,7 +205,10 @@ struct AssistantSheet: View {
                 ImasChatThinking(label)
             case .done(let review):
                 reviewView(review, turnID: turn.id)
-            case .restored(let reply, let actions):
+            case .restored(let reply, let actions, let imageCount):
+                if imageCount > 0 {
+                    ImasNote("画像 \(imageCount) 枚を添えました (画像は残していません)。", systemImage: "photo")
+                }
                 restoredView(reply: reply, actions: actions)
             case .failed(let message):
                 ImasNotice(kind: .error, title: "答えられませんでした", message: message,
@@ -240,8 +247,11 @@ struct AssistantSheet: View {
                     ImasNote("「サーバ」と付いたものは送信され、数が他の人にも見えます。やるものだけ選んでください。",
                              systemImage: "arrow.up.circle")
                 }
-                if plan.actions.contains(where: { !$0.preselected && $0.reach != .shared }) {
-                    ImasNote("外す・消す・置き換える操作は、初めは選ばれていません。", systemImage: "hand.raised")
+                if plan.externalContent {
+                    ImasNote("Web や X を読んだ番の操作は、初めは 1 つも選んでいません。頼んだものだけ選んでください。",
+                             systemImage: "hand.raised")
+                } else if plan.actions.contains(where: { !$0.preselected && $0.reach != .shared }) {
+                    ImasNote("外す・消す・置き換える・もう入っていそうな操作は、初めは選ばれていません。", systemImage: "hand.raised")
                 }
                 ForEach(failures(review), id: \.self) { message in
                     ImasNote(message, systemImage: "exclamationmark.triangle")
@@ -326,15 +336,27 @@ struct AssistantSheet: View {
                 guard attachments.count < maxImages,
                       let data = try? await item.loadTransferable(type: Data.self),
                       let image = UIImage(data: data) else { continue }
-                attachments.append(image)
+                attachments.append(await Self.shrunk(image))
             }
         }
     }
 
     /// クリップボードの画像を添える (スクリーンショットをコピーして貼る流れ)。
     private func pasteImages() {
-        let images = UIPasteboard.general.images ?? []
-        attachments.append(contentsOf: images.prefix(max(0, maxImages - attachments.count)))
+        let images = (UIPasteboard.general.images ?? []).prefix(max(0, maxImages - attachments.count))
+        Task {
+            for image in images { attachments.append(await Self.shrunk(image)) }
+        }
+    }
+
+    /// 手元に持つ画像は、送る大きさ (長辺 2048) まで縮めておく。原寸の写真を番ごとに持ち続けると、
+    /// 数枚でメモリを使い切る。
+    private static func shrunk(_ image: UIImage) async -> UIImage {
+        let longest = max(image.size.width, image.size.height) * image.scale
+        guard longest > 2048 else { return image }
+        let ratio = 2048 / longest
+        let size = CGSize(width: image.size.width * image.scale * ratio, height: image.size.height * image.scale * ratio)
+        return await image.byPreparingThumbnail(ofSize: size) ?? image
     }
 
     private var canSend: Bool {
@@ -413,13 +435,24 @@ struct AssistantSheet: View {
                 update(turn.id) { $0.state = .done(Review(plan: plan, images: outcome.images, selected: selected)) }
                 persist()
             } catch is CancellationError {
-                // やめた。発言は cancel() が消している。
+                abandon(turn.id)
             } catch {
-                if Task.isCancelled { return }
+                if Task.isCancelled {
+                    abandon(turn.id)
+                    return
+                }
                 Logger.database.error("assistant_failed: \(error.localizedDescription)")
                 update(turn.id) { $0.state = .failed(error.localizedDescription) }
             }
         }
+    }
+
+    /// 止まった番が「考えています…」のまま残らないようにする。`cancel()` が先に片付けていれば何もしない。
+    private func abandon(_ id: UUID) {
+        guard let index = turns.firstIndex(where: { $0.id == id }), case .running = turns[index].state else { return }
+        let turn = turns.remove(at: index)
+        if text.isEmpty { text = turn.order }
+        if attachments.isEmpty { attachments = turn.images }
     }
 
     /// 考えている途中の番をやめる。発言は入力欄に戻す。
@@ -454,28 +487,35 @@ struct AssistantSheet: View {
                 }
                 return ChatSavedTurn(order: turn.order, imageCount: UInt32(turn.images.count),
                                      reply: review.plan.message, actions: actions)
-            case .restored(let reply, let actions):
-                return ChatSavedTurn(order: turn.order, imageCount: 0, reply: reply, actions: actions)
+            case .restored(let reply, let actions, let imageCount):
+                return ChatSavedTurn(order: turn.order, imageCount: imageCount, reply: reply, actions: actions)
             case .running, .failed:
                 return nil
             }
         }
         guard let first = saved.first else { return }
-        ChatSessionStore.save(ChatSession(
+        let session = ChatSession(
             id: sessionID, title: chatSessionTitle(firstOrder: first.order),
             updatedAt: Int64(Date().timeIntervalSince1970), history: history, turns: saved
-        ))
+        )
+        Task.detached(priority: .utility) { ChatSessionStore.save(session) }
     }
 
     /// 履歴の会話を開いて、続きから話せるようにする。
     private func open(_ id: String) {
-        guard !isRunning, !isExecuting, let saved = ChatSessionStore.load(id) else { return }
-        runTask?.cancel()
-        runTask = nil
-        sessionID = saved.id
-        history = saved.history
-        attachments = []
-        turns = saved.turns.map { Turn(order: $0.order, state: .restored(reply: $0.reply, actions: $0.actions)) }
+        guard !isRunning, !isExecuting else { return }
+        Task {
+            guard let saved = await Task.detached(priority: .userInitiated, operation: { ChatSessionStore.load(id) }).value,
+                  !isRunning, !isExecuting else { return }
+            runTask?.cancel()
+            runTask = nil
+            sessionID = saved.id
+            history = saved.history
+            attachments = []
+            turns = saved.turns.map {
+                Turn(order: $0.order, state: .restored(reply: $0.reply, actions: $0.actions, imageCount: $0.imageCount))
+            }
+        }
     }
 
     private func update(_ id: UUID, _ change: (inout Turn) -> Void) {

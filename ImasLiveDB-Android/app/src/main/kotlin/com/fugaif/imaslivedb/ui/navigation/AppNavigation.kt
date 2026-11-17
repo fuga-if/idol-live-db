@@ -137,7 +137,7 @@ fun AppNavigation() {
     var current by rememberSaveable { mutableStateOf(AppDestination.SCHEDULE) }
     // 行き先の一覧 (並び・見出し・タブバーに載るか) はコアが決める。タブバーの並びは設定で選ぶ。
     // Android には歌詞 (コールガイド) が無いので false。チャットは ChatGPT とつないだ人にだけ出て、
-    // 既定の並びではスケジュールと入れ替わる (タブバーは 5 枠まで。決めるのはコア)。
+    // タブバーに入れるかは、つないだときに利用者が入れ替え先を選ぶ (タブバーは 5 枠まで。決めるのはコア)。
     val tabKeys = AppPreferences.tabBarKeys
     val chatState by AppModule.from(LocalContext.current).chatGptPlanService.state.collectAsState()
     val chatConnected = chatState.canUsePlan
@@ -312,7 +312,7 @@ private fun DestinationNavHost(destination: AppDestination, navController: NavHo
         AppDestination.TAG_ACTIVITY -> TabNavHost(navController, NavRoutes.TagActivity.route) { produceNavGraph(navController) }
         AppDestination.GAMES -> TabNavHost(navController, NavRoutes.GamesHub.route) { produceNavGraph(navController) }
         // チャットはシートでなくタブの中身として出す (閉じるボタンなし。「開く」は NaturalSearchOpen 経由で本体が開く)。
-        AppDestination.CHAT -> AssistantScreen(initialOrder = "", isTab = true, onClose = {})
+        AppDestination.CHAT -> AssistantScreen(initialOrder = "", isTab = true, onClose = {}, controller = AppModule.from(LocalContext.current).assistantTabController)
         // Android には歌詞が無いのでコアがこの行き先を返さない。
         AppDestination.CALL_GUIDE -> Unit
     }

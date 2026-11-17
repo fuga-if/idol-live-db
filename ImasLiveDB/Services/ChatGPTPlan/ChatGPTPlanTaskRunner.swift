@@ -17,6 +17,8 @@ enum ChatGPTPlanTaskRunner {
         case finished(Result)
         /// 次のリクエストの input。
         case next([String])
+        /// 次のリクエストの input。この仕事の残りは、組み込みツール (Web 検索・画像の生成) を外して送る。
+        case nextWithoutBuiltIns([String])
     }
 
     /// - Parameters:
@@ -83,6 +85,9 @@ enum ChatGPTPlanTaskRunner {
             switch outcome {
             case .finished(let result): return result
             case .next(let next): input = next
+            case .nextWithoutBuiltIns(let next):
+                input = next
+                if let plain = request.toolsWithoutBuiltInsJson { toolsJson = plain }
             }
         }
         throw RunnerError(message: request.tooManyRoundsMessage)

@@ -16,4 +16,5 @@
     <exclude domain="file" path="producer_card_oshi/" />
     <exclude domain="file" path="producer_card_stickers/" />
     <exclude domain="file" path="profile_sheet_photo/" />
+    <exclude domain="file" path="ChatSessions/" />
 </full-backup-content>

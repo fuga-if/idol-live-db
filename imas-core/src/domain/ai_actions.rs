@@ -464,11 +464,33 @@ fn replaces_or_removes(action: &AiAction) -> bool {
     }
 }
 
+/// 操作を積めなかった理由。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Refusal {
+    /// モデルに返す文言 (読んで引き直せるように、何が違うかを書く)。
+    pub message: String,
+    /// 検査に落ちたのではなく、もうその状態になっているだけ (利用者に「外しました」と言わない)。
+    pub already: bool,
+}
+
+impl From<String> for Refusal {
+    fn from(message: String) -> Self {
+        Self { message, already: false }
+    }
+}
+
+impl From<&str> for Refusal {
+    fn from(message: &str) -> Self {
+        Self { message: message.to_string(), already: false }
+    }
+}
+
 /// もうその状態になっている付け外しは積まない (モデルに「もう付いている」と返す)。
-fn already(is_on: bool, on: bool, what: &str) -> Result<(), String> {
+fn already(is_on: bool, on: bool, what: &str) -> Result<(), Refusal> {
+    let refuse = |message: String| Err(Refusal { message, already: true });
     match (is_on, on) {
-        (true, true) => Err(format!("{what}は、もう付いています。積まずに、利用者にそう伝える")),
-        (false, false) => Err(format!("{what}は、付いていません。積まずに、利用者にそう伝える")),
+        (true, true) => refuse(format!("{what}は、もう付いています。積まずに、利用者にそう伝える")),
+        (false, false) => refuse(format!("{what}は、付いていません。積まずに、利用者にそう伝える")),
         _ => Ok(()),
     }
 }
@@ -483,8 +505,8 @@ fn attendance_label(kind: &str) -> &'static str {
 
 /// 操作ツールの呼び出し 1 件を検査して、一覧の 1 行にする。
 ///
-/// Err は**モデルに返す**文言 (読んで引き直せるように、何が違うかを書く)。
-pub fn plan(snap: &Snapshot, name: &str, args: &Value, ctx: PlanContext<'_>) -> Result<AiPlannedAction, String> {
+/// Err は**モデルに返す**理由 ([`Refusal`])。
+pub fn plan(snap: &Snapshot, name: &str, args: &Value, ctx: PlanContext<'_>) -> Result<AiPlannedAction, Refusal> {
     use AiActionReach::{Device, Screen, Shared};
     let on = on_arg(args)?;
     let toggled = |what: &str| if on { format!("{what}に入れる") } else { format!("{what}から外す") };
@@ -494,7 +516,7 @@ pub fn plan(snap: &Snapshot, name: &str, args: &Value, ctx: PlanContext<'_>) -> 
             let attendance = match text_arg(args, "type") {
                 "" => "live",
                 t @ ("live" | "stream" | "live_viewing") => t,
-                other => return Err(format!("type は live / stream / live_viewing のどれか: {other}")),
+                other => return Err(format!("type は live / stream / live_viewing のどれか: {other}").into()),
             };
             let label = attendance_label(attendance);
             let has = ctx.records.attendance.iter().any(|a| a.show_id == show_id && a.types.iter().any(|t| t == attendance));
@@ -544,7 +566,7 @@ pub fn plan(snap: &Snapshot, name: &str, args: &Value, ctx: PlanContext<'_>) -> 
             let key = if name == "create_playlist" { "name" } else { "playlist_name" };
             let list = clipped(text_arg(args, key), MAX_NAME_CHARS, "プレイリストの名前")?;
             if list.is_empty() {
-                return Err(format!("{key} が空です"));
+                return Err(format!("{key} が空です").into());
             }
             let song_ids = songs(snap, args)?;
             let target = format!("{} 曲", song_ids.len());
@@ -563,7 +585,7 @@ pub fn plan(snap: &Snapshot, name: &str, args: &Value, ctx: PlanContext<'_>) -> 
                     let title = format!("プレイリスト「{list}」に足す");
                     Ok(planned(AiAction::AddToPlaylist { playlist_id: one.id.clone(), song_ids }, Device, title, target))
                 }
-                _ => Err(format!("「{list}」という名前のプレイリストが複数あって、どれに足すか決められません。利用者にそう伝える")),
+                _ => Err(format!("「{list}」という名前のプレイリストが複数あって、どれに足すか決められません。利用者にそう伝える").into()),
             }
         }
         "add_expense" => {
@@ -670,7 +692,7 @@ pub fn plan(snap: &Snapshot, name: &str, args: &Value, ctx: PlanContext<'_>) -> 
             let steps = ctx.mastery_labels.len() as i64;
             let level = args.get("level").and_then(Value::as_i64).ok_or("level は整数で")?;
             if !(0..=steps).contains(&level) {
-                return Err(format!("level は 0 から {steps} まで"));
+                return Err(format!("level は 0 から {steps} まで").into());
             }
             let title = match level {
                 0 => "習熟度を未設定に戻す".to_string(),
@@ -692,7 +714,7 @@ pub fn plan(snap: &Snapshot, name: &str, args: &Value, ctx: PlanContext<'_>) -> 
                 k @ "live_week" => (k, "ライブの前"),
                 k @ "ticket" => (k, "チケットの受付"),
                 k @ "monday" => (k, "月曜のお知らせ"),
-                other => return Err(format!("kind が語彙にありません: {other}")),
+                other => return Err(format!("kind が語彙にありません: {other}").into()),
             };
             let title = if on { "通知をオンにする" } else { "通知をオフにする" };
             Ok(planned(AiAction::SetNotification { kind: kind.into(), on }, Device, title, label))
@@ -702,7 +724,7 @@ pub fn plan(snap: &Snapshot, name: &str, args: &Value, ctx: PlanContext<'_>) -> 
                 l @ "events" => (l, "ライブ"),
                 l @ "songs" => (l, "楽曲"),
                 l @ "idols" => (l, "アイドル"),
-                other => return Err(format!("list は events / songs / idols のどれか: {other}")),
+                other => return Err(format!("list は events / songs / idols のどれか: {other}").into()),
             };
             let query = clipped(text_arg(args, "query"), MAX_NAME_CHARS, "検索の語")?;
             let title = if query.is_empty() { "一覧を開く".to_string() } else { format!("一覧を開いて「{query}」で探す") };
@@ -728,7 +750,7 @@ pub fn plan(snap: &Snapshot, name: &str, args: &Value, ctx: PlanContext<'_>) -> 
                 Ok(planned(AiAction::LikeSetlistSong { show_id, song_id, on }, Shared, title, target))
             }
         }
-        other => Err(format!("知らない操作: {other}")),
+        other => Err(format!("知らない操作: {other}").into()),
     }
 }
 
@@ -926,7 +948,7 @@ mod tests {
         };
         let ctx = PlanContext { today_key: "2026-11-16", playlists: &[], mastery_labels: &[], records: &records };
         // もう付いているものは積まない。外すのは積める。種類が違えば積める。
-        assert!(plan(&snap, "set_attendance", &json!({ "show_id": show }), ctx).unwrap_err().contains("もう付いています"));
+        assert!(plan(&snap, "set_attendance", &json!({ "show_id": show }), ctx).unwrap_err().message.contains("もう付いています"));
         assert!(plan(&snap, "set_attendance", &json!({ "show_id": show, "on": false }), ctx).is_ok());
         assert!(plan(&snap, "set_attendance", &json!({ "show_id": show, "type": "stream" }), ctx).is_ok());
         assert!(plan(&snap, "set_attendance", &json!({ "show_id": show, "type": "stream", "on": false }), ctx).is_err());
@@ -940,5 +962,16 @@ mod tests {
         assert!(again(500).title.contains("チケット代はもう") && !again(500).preselected);
         let goods = plan(&snap, "add_expense", &json!({ "date": "2026-11-16", "category": "goods", "amount": 9800, "show_id": show }), ctx).unwrap();
         assert!(goods.preselected);
+    }
+
+    #[test]
+    fn もう済んでいる理由は_検査に落ちた理由と区別できる() {
+        let snap = bundle_snapshot();
+        let (song, _, _) = first_ids(&snap);
+        let liked = AiUserRecords { favorite_song_ids: vec![song.clone()], ..AiUserRecords::default() };
+        let has = PlanContext { records: &liked, ..CTX };
+        assert!(plan(&snap, "set_favorite_song", &json!({ "song_id": song }), has).unwrap_err().already);
+        assert!(!plan(&snap, "set_favorite_song", &json!({ "song_id": "nope" }), has).unwrap_err().already);
+        assert!(!plan(&snap, "delete_everything", &json!({}), CTX).unwrap_err().already);
     }
 }

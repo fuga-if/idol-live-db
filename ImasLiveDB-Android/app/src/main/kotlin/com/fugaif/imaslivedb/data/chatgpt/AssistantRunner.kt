@@ -68,9 +68,11 @@ class AssistantRunner(
         val refs = playlists.summaries().map { AiPlaylistRef(it.playlist.id, it.playlist.name) }
         val device = AiDeviceContext(refs, AppPreferences.masteryScale.labels, userRecords())
         val encoded = withContext(Dispatchers.Default) {
-            images.take(assistantMaxImages().toInt()).mapNotNull(::jpegBase64)
+            images.take(assistantMaxImages().toInt()).map { jpegBase64(it) }
         }
-        val request = assistantRequest(history, order, encoded, today, device)
+        // 1 枚でも変換できなかったら、黙って落とさず止める (添えたつもりの画像が無いまま答えさせない)。
+        if (encoded.any { it == null }) throw ChatGptPlanTaskException("画像を読み込めませんでした。別の画像で試してください")
+        val request = assistantRequest(history, order, encoded.filterNotNull(), today, device)
             ?: throw ChatGptPlanTaskException("会話が長くなりました。新しい会話を始めてください")
         // 描かれた画像は往復ごとに来る (次の往復には積み直さない)。
         val generated = mutableListOf<String>()
@@ -80,7 +82,10 @@ class AssistantRunner(
             val plan = step.plan
             when {
                 plan != null -> ChatGptPlanTaskRunner.Outcome.Finished(plan)
-                step.fetches.isEmpty() -> ChatGptPlanTaskRunner.Outcome.Next(step.nextInput)
+                // 利用者の記録を読んだ番は、残りの往復で外へ出る口 (Web 検索) を閉じる。決めるのはコア。
+                step.fetches.isEmpty() ->
+                    if (step.withoutBuiltIns) ChatGptPlanTaskRunner.Outcome.NextWithoutBuiltIns(step.nextInput)
+                    else ChatGptPlanTaskRunner.Outcome.Next(step.nextInput)
                 // X のポストは端末が取りに行く。行き先はコアが組んだものだけで、削るのもコア。
                 else -> ChatGptPlanTaskRunner.Outcome.Next(assistantFetched(step.nextInput, AssistantFetcher.fetch(step.fetches)))
             }

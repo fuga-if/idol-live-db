@@ -11,6 +11,7 @@
   P名刺の写真・受け取った担当の画像 (ProducerCardFiles の filesDir/producer_cards) と自分の名刺の写真
   (filesDir/producer_card_me)・自作の名刺の画像
   (filesDir/producer_card_face)・名刺だけに使う担当の画像 (filesDir/producer_card_oshi)・名刺の表に置く素材 (filesDir/producer_card_stickers)・前の版のプロフィール帳の証明写真 (filesDir/profile_sheet_photo、P名刺の画面を開くと片付ける) も同じ理由で外す。
+  チャットの会話の履歴 (filesDir/ChatSessions) は端末の中にだけ残す設計なので、バックアップにも入れない。
 -->
 <data-extraction-rules>
     <cloud-backup>
@@ -25,6 +26,7 @@
         <exclude domain="file" path="producer_card_oshi/" />
         <exclude domain="file" path="producer_card_stickers/" />
         <exclude domain="file" path="profile_sheet_photo/" />
+        <exclude domain="file" path="ChatSessions/" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="sharedpref" path="imas_auth_secure.xml" />

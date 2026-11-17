@@ -42,8 +42,11 @@ pub struct Plan {
     pub message: String,
     /// この番で積まれた、これからやること。並びはモデルが呼んだ順。
     pub actions: Vec<AiPlannedAction>,
-    /// 検査で落とした操作の件数 (DB に無い id など)。
+    /// 検査で落とした操作の件数 (DB に無い id など)。もう済んでいたものは数えない。
     pub rejected: u32,
+    /// この番で外の文 (Web 検索・X のポスト) を読んだ。読んだ番の操作は、初めは 1 つも選ばない
+    /// (外の文に誘導されて積んだかもしれないので、利用者が自分で選ぶ)。
+    pub external_content: bool,
     /// ここまでの会話 (次の番の [`follow_up`] に渡す)。
     pub history: Vec<String>,
 }
@@ -205,7 +208,9 @@ fn text_format() -> Value {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Step {
     Finished(Plan),
-    Continue(Vec<String>),
+    /// もう 1 往復する。`without_built_ins` が true なら、この番の残りは組み込みツール (Web 検索・
+    /// 画像の生成) を外して送る — 利用者の記録を読んだあとに、それを外へ持ち出させないため。
+    Continue { input: Vec<String>, without_built_ins: bool },
     /// 端末が取りに行くものがある。取ってきたら [`fetched`] に渡し、返った input でもう 1 往復する。
     Fetch { input: Vec<String>, fetches: Vec<Fetch> },
 }
@@ -261,12 +266,40 @@ fn parse_args(arguments: &str) -> Result<Value, String> {
 
 /// 操作ツールの呼び出し 1 件を検査して、モデルに返す文字列にする。
 fn queue(snap: &Snapshot, name: &str, arguments: &str, ctx: PlanContext<'_>) -> String {
-    match parse_args(arguments).and_then(|args| actions::plan(snap, name, &args, ctx)) {
+    match checked(snap, name, arguments, ctx).map_err(|r| r.message) {
         Ok(p) => json!({ "queued": true, "will": p.title, "target": p.target,
                          "note": "まだ実行していない。利用者が確かめてから実行される。" })
         .to_string(),
         Err(e) => json!({ "queued": false, "error": e }).to_string(),
     }
+}
+
+/// 操作ツールの検査。引数が読めないのは「検査に落ちた」。
+fn checked(snap: &Snapshot, name: &str, arguments: &str, ctx: PlanContext<'_>) -> Result<AiPlannedAction, actions::Refusal> {
+    let args = parse_args(arguments).map_err(actions::Refusal::from)?;
+    actions::plan(snap, name, &args, ctx)
+}
+
+/// 外から来た文か (Web 検索の結果・X のポスト)。モデルを誘導しうる。
+fn is_external(item: &Value) -> bool {
+    item["type"] == "web_search_call" || (item["type"] == "function_call" && web_posts::is_fetch(item["name"].as_str().unwrap_or("")))
+}
+
+/// 外の文が実際に届いたか。止めた・取れなかった読み取りは数えない。
+fn delivered_external(item: &Value) -> bool {
+    item["type"] == "web_search_call"
+        || (item["type"] == "function_call_output" && item["output"].as_str().is_some_and(|o| o.contains("\"posts\":")))
+}
+
+/// 利用者の記録を読んだか。
+fn is_private_read(item: &Value) -> bool {
+    item["type"] == "function_call" && item["name"] == my_records::NAME
+}
+
+/// この番 (最後の利用者の発言より後) の項目。
+fn turn_items(items: &[Value]) -> &[Value] {
+    let start = items.iter().rposition(|i| i["role"] == "user").map(|i| i + 1).unwrap_or(0);
+    &items[start..]
 }
 
 /// 返事を上限の字数で切る。改行は残す (段落のある返事を 1 行に潰さない)。
@@ -291,6 +324,13 @@ pub fn step(snap: &Snapshot, input: &[String], output_items: &[String], text: &s
     if calls.is_empty() {
         return Step::Finished(resolve(snap, input, text, ctx));
     }
+    // この番でここまでに、外の文を読んだか・利用者の記録を読んだか (この応答のぶんも含める)。
+    // 両方を同じ番でやらせない: 外の文に誘導されたモデルが、記録を Web 検索の語に載せて持ち出せるため。
+    let sent: Vec<Value> = input.iter().filter_map(|s| serde_json::from_str::<Value>(s).ok()).collect();
+    let earlier = turn_items(&sent);
+    let external = earlier.iter().any(delivered_external) || items.iter().any(is_external);
+    let private = earlier.iter().chain(items.iter()).any(is_private_read);
+
     let mut next: Vec<String> = input.to_vec();
     // 描いた画像 (base64 で数 MB) は積み直さない。端末にはこの応答のぶんを別に渡してある。
     next.extend(items.iter().filter(|i| i["type"] != "image_generation_call").filter_map(replayable).map(|v| v.to_string()));
@@ -302,18 +342,26 @@ pub fn step(snap: &Snapshot, input: &[String], output_items: &[String], text: &s
         let output = if actions::is_action(name) {
             queue(snap, name, arguments, ctx)
         } else if name == my_records::NAME {
-            match parse_args(arguments) {
-                Ok(args) => my_records::call(snap, ctx.records, &args),
-                Err(e) => json!({ "error": e }).to_string(),
+            if external {
+                json!({ "error": "Web や X を読んだ番では、利用者の記録は読めない。記録のことは、次の発言で頼み直してもらう" }).to_string()
+            } else {
+                match parse_args(arguments) {
+                    Ok(args) => my_records::call(snap, ctx.records, &args),
+                    Err(e) => json!({ "error": e }).to_string(),
+                }
             }
         } else if web_posts::is_fetch(name) {
-            // 取りに行くのは端末。行き先が組めたものは結果を待ち、組めなければ理由をすぐ返す。
-            match parse_args(arguments).and_then(|args| web_posts::fetch_url(name, &args)) {
-                Ok(url) => {
-                    fetches.push(Fetch { call_id: call_id.to_string(), url });
-                    continue;
+            if private {
+                json!({ "error": "利用者の記録を読んだ番では、X は読めない。次の発言で頼み直してもらう" }).to_string()
+            } else {
+                // 取りに行くのは端末。行き先が組めたものは結果を待ち、組めなければ理由をすぐ返す。
+                match parse_args(arguments).and_then(|args| web_posts::fetch_url(name, &args)) {
+                    Ok(url) => {
+                        fetches.push(Fetch { call_id: call_id.to_string(), url });
+                        continue;
+                    }
+                    Err(e) => json!({ "error": e }).to_string(),
                 }
-                Err(e) => json!({ "error": e }).to_string(),
             }
         } else {
             plan_loop::call(snap, name, arguments, today_key)
@@ -321,9 +369,21 @@ pub fn step(snap: &Snapshot, input: &[String], output_items: &[String], text: &s
         next.push(json!({ "type": "function_call_output", "call_id": call_id, "output": output }).to_string());
     }
     if fetches.is_empty() {
-        Step::Continue(next)
+        Step::Continue { input: next, without_built_ins: private }
     } else {
         Step::Fetch { input: next, fetches }
+    }
+}
+
+/// 同じ支出か (メモは見ない。公演に紐づかない支出は日付も見る)。
+fn same_expense(a: &actions::AiAction, b: &actions::AiAction) -> bool {
+    use actions::AiAction::AddExpense;
+    match (a, b) {
+        (
+            AddExpense { date: d1, category: c1, amount: a1, show_id: s1, .. },
+            AddExpense { date: d2, category: c2, amount: a2, show_id: s2, .. },
+        ) => c1 == c2 && a1 == a2 && s1 == s2 && (s1.is_some() || d1 == d2),
+        _ => false,
     }
 }
 
@@ -339,7 +399,6 @@ pub fn resolve(snap: &Snapshot, input: &[String], text: &str, ctx: PlanContext<'
         .unwrap_or_else(|| text.to_string());
     let message = clip_reply(&message);
     let items: Vec<Value> = input.iter().filter_map(|s| serde_json::from_str::<Value>(s).ok()).collect();
-    let turn_start = items.iter().rposition(|i| i["role"] == "user").map(|i| i + 1).unwrap_or(0);
     // 次の番に持ち越すのは発言と返事だけ。ツールの呼び出しと結果 (DB の JSON) は番ごとに捨てる
     // (毎番ぜんぶ送り直すと、数番でモデルの文脈を使い切る)。
     let mut history: Vec<String> = items
@@ -348,18 +407,32 @@ pub fn resolve(snap: &Snapshot, input: &[String], text: &str, ctx: PlanContext<'
         .map(|i| if i["role"] == "user" { carried_user_item(i).to_string() } else { i.to_string() })
         .collect();
     history.push(json!({ "role": "assistant", "content": message }).to_string());
-    let mut plan = Plan { message, history, ..Plan::default() };
-    for item in &items[turn_start..] {
+    let turn = turn_items(&items);
+    let external_content = turn.iter().any(delivered_external);
+    let mut plan = Plan { message, history, external_content, ..Plan::default() };
+    for item in turn {
         let name = item["name"].as_str().unwrap_or("");
         if item["type"] != "function_call" || !actions::is_action(name) {
             continue;
         }
-        let planned = parse_args(item["arguments"].as_str().unwrap_or("")).and_then(|args| actions::plan(snap, name, &args, ctx));
-        match planned {
+        match checked(snap, name, item["arguments"].as_str().unwrap_or(""), ctx) {
             Ok(p) if plan.actions.iter().any(|a| a.action == p.action) => {}
-            Ok(p) if plan.actions.len() < MAX_ACTIONS => plan.actions.push(p),
+            Ok(mut p) if plan.actions.len() < MAX_ACTIONS => {
+                // 同じ支出がこの一覧にもう在れば、2 つ目は選ばないで出す (メモだけ違う二重を防ぐ)。
+                if plan.actions.iter().any(|a| same_expense(&a.action, &p.action)) {
+                    p.title.push_str(" (同じ支出がこの一覧にもあります)");
+                    p.preselected = false;
+                }
+                // 外の文を読んだ番の操作は、初めは 1 つも選ばない。
+                if external_content {
+                    p.preselected = false;
+                }
+                plan.actions.push(p);
+            }
             // 上限を越えたぶんは黙って切る (検査に落ちたわけではない)。
             Ok(_) => {}
+            // もう済んでいたものは「外した」に数えない (返事で「もう付いています」と伝えてある)。
+            Err(refusal) if refusal.already => {}
             Err(_) => plan.rejected += 1,
         }
     }
@@ -414,7 +487,7 @@ mod tests {
             call("c2", "set_favorite_song", json!({ "song_id": "no-such-song" })),
             call("c3", "search", json!({ "query": "READY" })),
         ];
-        let Step::Continue(next) = step(snap, &req.input, &items, "", CTX) else { panic!("続くはず") };
+        let Step::Continue { input: next, .. } = step(snap, &req.input, &items, "", CTX) else { panic!("続くはず") };
         assert_eq!(next.len(), req.input.len() + 6);
         let outputs: Vec<Value> = next.iter().filter_map(|s| serde_json::from_str::<Value>(s).ok())
             .filter(|v| v["type"] == "function_call_output").collect();
@@ -439,7 +512,7 @@ mod tests {
         let snap = bundle_snapshot();
         let idol = snap.idols[0].id.clone();
         let first = request(&[], "担当にして", &[], CTX).unwrap();
-        let Step::Continue(next) = step(snap, &first.input, &[call("c1", "set_my_pick", json!({ "idol_id": idol }))], "", CTX) else {
+        let Step::Continue { input: next, .. } = step(snap, &first.input, &[call("c1", "set_my_pick", json!({ "idol_id": idol }))], "", CTX) else {
             panic!("続くはず")
         };
         let Step::Finished(one) = step(snap, &next, &[], r#"{"message":"どうぞ"}"#, CTX) else { panic!("終わるはず") };
@@ -525,9 +598,68 @@ mod tests {
         assert_eq!(generated_images(&items), vec!["PNGDATA".to_string()]);
         assert!(generated_images(&[call("c1", "search", json!({}))]).is_empty());
 
-        let Step::Continue(next) = step(snap, &req.input, &items, "", CTX) else { panic!("続くはず") };
+        let Step::Continue { input: next, .. } = step(snap, &req.input, &items, "", CTX) else { panic!("続くはず") };
         assert!(next.iter().all(|s| !s.contains("PNGDATA")));
         let Step::Finished(plan) = step(snap, &next, &[], r#"{"message":"描きました"}"#, CTX) else { panic!("終わるはず") };
         assert!(plan.history.iter().all(|s| !s.contains("PNGDATA")));
+    }
+
+    #[test]
+    fn 外の文を読んだ番の操作は1つも選ばず_記録と外の文は同じ番で混ぜない() {
+        let snap = bundle_snapshot();
+        let song = snap.songs[0].id.clone();
+        let req = request(&[], "公式の告知を見て、この曲をお気に入りに", &[], CTX).unwrap();
+
+        // Web 検索のあとに積んだ操作は、初めは選ばれていない。
+        let search = json!({ "type": "web_search_call", "id": "ws_1", "status": "completed" }).to_string();
+        let items = vec![search, call("c1", "set_favorite_song", json!({ "song_id": song }))];
+        let Step::Continue { input: next, without_built_ins } = step(snap, &req.input, &items, "", CTX) else { panic!("続くはず") };
+        assert!(!without_built_ins);
+        let Step::Finished(plan) = step(snap, &next, &[], r#"{"message":"どうぞ"}"#, CTX) else { panic!("終わるはず") };
+        assert!(plan.external_content && plan.actions.len() == 1 && !plan.actions[0].preselected);
+
+        // 外の文を読んだあとは、記録を読ませない。
+        let Step::Continue { input: after, .. } = step(snap, &next, &[call("c2", "my_records", json!({ "kind": "expenses" }))], "", CTX) else {
+            panic!("続くはず")
+        };
+        assert!(after.last().unwrap().contains("読めない"));
+
+        // 記録を読んだら、その番の残りは組み込みツールを外し、X も読ませない。
+        let plain = request(&[], "いくら使った？", &[], CTX).unwrap();
+        let Step::Continue { input: read, without_built_ins } =
+            step(snap, &plain.input, &[call("c1", "my_records", json!({ "kind": "expenses" }))], "", CTX)
+        else {
+            panic!("続くはず")
+        };
+        assert!(without_built_ins && read.last().unwrap().contains("total_amount"));
+        let Step::Continue { input: blocked, without_built_ins } =
+            step(snap, &read, &[call("c2", "list_posts", json!({ "handle": "imas_official" }))], "", CTX)
+        else {
+            panic!("取りに行かせないはず")
+        };
+        assert!(without_built_ins && blocked.last().unwrap().contains("X は読めない"));
+        let Step::Finished(done) = step(snap, &blocked, &[], r#"{"message":"合計です"}"#, CTX) else { panic!("終わるはず") };
+        assert!(!done.external_content);
+    }
+
+    #[test]
+    fn 同じ支出が一覧に2つあれば2つ目は選ばない_もう済んでいた操作は外したに数えない() {
+        let snap = bundle_snapshot();
+        let song = snap.songs[0].id.clone();
+        let liked = crate::domain::ai_actions::AiUserRecords { favorite_song_ids: vec![song.clone()], ..Default::default() };
+        let ctx = PlanContext { records: &liked, ..CTX };
+        let input = vec![
+            user_item("グッズ代を入れて、この曲をお気に入りに"),
+            call("c1", "add_expense", json!({ "date": "2026-11-16", "category": "goods", "amount": 3000, "note": "タオル" })),
+            call("c2", "add_expense", json!({ "date": "2026-11-16", "category": "goods", "amount": 3000 })),
+            call("c3", "set_favorite_song", json!({ "song_id": song })),
+            call("c4", "set_favorite_song", json!({ "song_id": "no-such-song" })),
+        ];
+        let plan = resolve(snap, &input, r#"{"message":"お気に入りはもう付いています"}"#, ctx);
+        assert_eq!(plan.actions.len(), 2);
+        assert!(plan.actions[0].preselected && !plan.actions[1].preselected);
+        assert!(plan.actions[1].title.contains("この一覧にも"));
+        // 「もう付いている」は数えず、DB に無い id だけ数える。
+        assert_eq!(plan.rejected, 1);
     }
 }

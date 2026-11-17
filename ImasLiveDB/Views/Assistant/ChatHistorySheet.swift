@@ -24,7 +24,7 @@ struct ChatHistorySheet: View {
                     }
                 } else {
                     ImasListSection("これまでの会話", count: "\(sessions.count)件",
-                                    footer: "会話はこの端末の中にだけ残ります。添えた画像は残しません。行を左にスワイプすると消せます。") {
+                                    footer: "会話はこの端末の中にだけ残ります (バックアップにも入れません)。添えた画像は残しません。行を左にスワイプすると消せます。") {
                         ForEach(sessions, id: \.id) { summary in
                             Button {
                                 AppAnalytics.tap("assistant.history_open")
@@ -68,7 +68,8 @@ struct ChatHistorySheet: View {
                 Button("やめる", role: .cancel) {}
             }
         }
-        .onAppear { sessions = ChatSessionStore.list() }
+        // 全ファイルを読むので、メインスレッドの外で。
+        .task { sessions = await Task.detached(priority: .userInitiated) { ChatSessionStore.list() }.value }
         .trackScreen("assistant_history")
     }
 

@@ -16,6 +16,9 @@ pub struct AssistantPlan {
     pub actions: Vec<AiPlannedAction>,
     /// 検査で落とした操作の件数。
     pub rejected: u32,
+    /// この番で外の文 (Web 検索・X のポスト) を読んだ。読んだ番の操作は初めは選ばれていないので、
+    /// 画面はそう一言添える。
+    pub external_content: bool,
     /// ここまでの会話。次の番の `assistant_request` に渡す。
     pub history: Vec<String>,
 }
@@ -28,6 +31,9 @@ pub struct AssistantStep {
     /// 端末が取りに行くもの。空でなければ、全部 GET して `assistant_fetched(next_input, 結果)` に渡し、
     /// 返った input でもう 1 往復する。
     pub fetches: Vec<AssistantFetch>,
+    /// true なら、この番の残りの往復は組み込みツール (Web 検索・画像の生成) を外して送る
+    /// (`PlanTaskRequest::tools_without_built_ins_json`)。利用者の記録を読んだあとの持ち出しを防ぐ。
+    pub without_built_ins: bool,
     /// この応答で描かれた画像 (PNG の base64)。端末がその番の返事に並べる。往復ごとに来るので足していく。
     pub images: Vec<String>,
 }
@@ -122,16 +128,20 @@ impl SnapshotStore {
         let images = a::generated_images(&output_items);
         Ok(match a::step(&snap, &input, &output_items, &text, ctx) {
             a::Step::Finished(p) => AssistantStep {
-                plan: Some(AssistantPlan { message: p.message, actions: p.actions, rejected: p.rejected, history: p.history }),
+                plan: Some(AssistantPlan { message: p.message, actions: p.actions, rejected: p.rejected, external_content: p.external_content, history: p.history }),
                 next_input: Vec::new(),
                 fetches: Vec::new(),
+                without_built_ins: false,
                 images,
             },
-            a::Step::Continue(next_input) => AssistantStep { plan: None, next_input, fetches: Vec::new(), images },
+            a::Step::Continue { input, without_built_ins } => {
+                AssistantStep { plan: None, next_input: input, fetches: Vec::new(), without_built_ins, images }
+            }
             a::Step::Fetch { input, fetches } => AssistantStep {
                 plan: None,
                 next_input: input,
                 fetches: fetches.into_iter().map(|f| AssistantFetch { call_id: f.call_id, url: f.url }).collect(),
+                without_built_ins: false,
                 images,
             },
         })

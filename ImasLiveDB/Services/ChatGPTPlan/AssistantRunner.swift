@@ -50,6 +50,10 @@ enum AssistantRunner {
             images.compactMap(CallSheetRunner.jpegBase64)
         }.value
         try Task.checkCancellation()
+        // 縮められなかった画像を黙って落とさない (画像だけの発言だと、別の理由の文言が出てしまう)。
+        guard encoded.count == images.count else {
+            throw ChatGPTPlanTaskRunner.RunnerError(message: "画像を読み込めませんでした。別の画像で試してください")
+        }
         // 端末の側の事情 (足す先のプレイリスト・習熟度の段階の名前) を射影して渡す。決めるのはコア。
         let playlists = try await AppContainer.shared.playlists.summaries()
             .map { AiPlaylistRef(id: $0.playlist.id, name: $0.playlist.name) }
@@ -66,7 +70,10 @@ enum AssistantRunner {
             // 描かれた画像は往復ごとに来る (次の往復には積み直さない)。
             if !step.images.isEmpty { await generated.add(step.images) }
             if let plan = step.plan { return .finished(plan) }
-            if step.fetches.isEmpty { return .next(step.nextInput) }
+            if step.fetches.isEmpty {
+                // 利用者の記録を読んだ番は、残りの往復で外へ出る口 (Web 検索) を閉じる。決めるのはコア。
+                return step.withoutBuiltIns ? .nextWithoutBuiltIns(step.nextInput) : .next(step.nextInput)
+            }
             // X のポストは端末が取りに行く。行き先はコアが組んだものだけで、削るのもコア。
             let results = await AssistantFetcher.fetch(step.fetches)
             return .next(assistantFetched(input: step.nextInput, results: results))

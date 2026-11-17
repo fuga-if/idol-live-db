@@ -159,6 +159,15 @@ class AppModule private constructor(context: Context) {
     val assistantRunner: com.fugaif.imaslivedb.data.chatgpt.AssistantRunner by lazy {
         com.fugaif.imaslivedb.data.chatgpt.AssistantRunner(chatGptPlanTaskRunner, snapshotStoreProvider, playlistRepository, userMarkRepository, expenseRepository)
     }
+    /**
+     * タブとして出すチャットの状態の持ち主。画面より長く生きるので、タブを離れても返事待ちと実行は続く。
+     * シートで出すチャットは、これとは別に [newAssistantController] で作る (閉じたら止める)。
+     */
+    val assistantTabController: com.fugaif.imaslivedb.ui.chatgpt.AssistantController by lazy { newAssistantController() }
+
+    fun newAssistantController(): com.fugaif.imaslivedb.ui.chatgpt.AssistantController =
+        com.fugaif.imaslivedb.ui.chatgpt.AssistantController(appContext, assistantRunner, assistantExecutor, chatGptPlanService)
+
     /** チャットの「これからやること」を既存の書き込み口に写す役。 */
     val assistantExecutor: com.fugaif.imaslivedb.data.chatgpt.AssistantExecutor by lazy {
         com.fugaif.imaslivedb.data.chatgpt.AssistantExecutor(

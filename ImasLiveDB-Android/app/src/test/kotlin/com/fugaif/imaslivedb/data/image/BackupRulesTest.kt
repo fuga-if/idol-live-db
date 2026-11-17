@@ -2,6 +2,7 @@ package com.fugaif.imaslivedb.data.image
 
 import android.content.Context
 import com.fugaif.imaslivedb.R
+import com.fugaif.imaslivedb.data.chatgpt.ChatSessionStore
 import com.fugaif.imaslivedb.data.producercard.ProducerCardFiles
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -23,7 +24,8 @@ class BackupRulesTest {
             ProducerCardFiles.DIRECTORY_NAME + ProducerCardFiles.MY_DIRECTORY_NAME +
             ProducerCardFiles.MY_FACE_DIRECTORY_NAME + ProducerCardFiles.MY_OSHI_DIRECTORY_NAME +
             ProducerCardFiles.MY_STICKER_DIRECTORY_NAME +
-            ProducerCardFiles.LEGACY_PROFILE_SHEET_DIRECTORY_NAME)
+            ProducerCardFiles.LEGACY_PROFILE_SHEET_DIRECTORY_NAME +
+            ChatSessionStore.DIRECTORY_NAME)
             .map { "$it/" }.toSet()
 
     @Test

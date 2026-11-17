@@ -147,6 +147,7 @@ sealed interface ImasSheetToolbarKind {
         val onHistory: (() -> Unit)?,
         val onNew: (() -> Unit)?,
         val canStartNew: Boolean = true,
+        val canOpenHistory: Boolean = true,
         val onClose: (() -> Unit)?
     ) : ImasSheetToolbarKind
 
@@ -223,7 +224,7 @@ fun ImasSheetToolbar(kind: ImasSheetToolbarKind, modifier: Modifier = Modifier, 
             is ImasSheetToolbarKind.Chat -> {
                 leading = if (kind.onHistory == null && kind.onNew == null) null else ({
                     Row {
-                        kind.onHistory?.let { SheetButton("会話の履歴", SheetButtonRole.CANCEL, icon = Icons.Filled.History, onClick = it) }
+                        kind.onHistory?.let { SheetButton("会話の履歴", SheetButtonRole.CANCEL, enabled = kind.canOpenHistory, icon = Icons.Filled.History, onClick = it) }
                         kind.onNew?.let {
                             SheetButton("新しい会話", SheetButtonRole.CANCEL, enabled = kind.canStartNew, icon = Icons.Filled.Edit, onClick = it)
                         }

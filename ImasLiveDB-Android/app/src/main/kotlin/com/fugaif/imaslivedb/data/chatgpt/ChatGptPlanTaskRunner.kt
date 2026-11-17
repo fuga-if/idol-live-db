@@ -23,6 +23,9 @@ class ChatGptPlanTaskRunner(private val session: ChatGptPlanService) {
 
         /** 次のリクエストの input。 */
         data class Next(val input: List<String>) : Outcome<Nothing>
+
+        /** 次のリクエストの input。この仕事の残りは、組み込みツール (Web 検索・画像の生成) を外して送る。 */
+        data class NextWithoutBuiltIns(val input: List<String>) : Outcome<Nothing>
     }
 
     /**
@@ -80,6 +83,10 @@ class ChatGptPlanTaskRunner(private val session: ChatGptPlanService) {
             when (val outcome = step(input, outputItems.toList(), text.toString())) {
                 is Outcome.Finished -> return outcome.result
                 is Outcome.Next -> input = outcome.input
+                is Outcome.NextWithoutBuiltIns -> {
+                    input = outcome.input
+                    request.toolsWithoutBuiltInsJson?.let { toolsJson = it }
+                }
             }
         }
         throw ChatGptPlanTaskException(request.tooManyRoundsMessage)
