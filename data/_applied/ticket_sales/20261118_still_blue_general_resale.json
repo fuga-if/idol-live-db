@@ -1,0 +1,41 @@
+{
+ "title": "Still blue 一般発売（先着）と公式リセール",
+ "author": "daily-data-crawl",
+ "ticket_sales": [
+  {
+   "event_id": "ev_shiny_the_first_refrac7ions_still_blue",
+   "kind": "first_come",
+   "name": "一般発売",
+   "starts_at": "2026-11-21 12:00",
+   "ends_at": "2026-12-12 23:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/4a872893-f64d-4537-af95-38c7ef13699b",
+   "note": "お一人様1公演につき2枚まで(複数公演申込可)。予定枚数に達し次第終了。12月10日00:00以降の支払いはクレジットカードのみ。",
+   "source_url": "https://idolmaster-official.jp/live_event/REFRAC7IONS_Still_blue/ticket/",
+   "sort_order": 4
+  },
+  {
+   "event_id": "ev_shiny_the_first_refrac7ions_still_blue",
+   "show_ids": ["sh_shiny_the_first_refrac7ions_still_blue_1"],
+   "kind": "resale",
+   "name": "公式リセール（12月19日公演）",
+   "starts_at": "2026-12-05 15:00",
+   "ends_at": "2026-12-13 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/0959c905-0c22-490c-9c49-a3d9a4a11f7f",
+   "note": "ASOBI TICKET 公式リセール。12月11日00:00以降の支払いはクレジットカードのみ。",
+   "source_url": "https://idolmaster-official.jp/live_event/REFRAC7IONS_Still_blue/ticket/",
+   "sort_order": 5
+  },
+  {
+   "event_id": "ev_shiny_the_first_refrac7ions_still_blue",
+   "show_ids": ["sh_shiny_the_first_refrac7ions_still_blue_2"],
+   "kind": "resale",
+   "name": "公式リセール（12月20日公演）",
+   "starts_at": "2026-12-05 15:00",
+   "ends_at": "2026-12-13 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/75a6c581-a595-423d-9028-aecd26a8348e",
+   "note": "ASOBI TICKET 公式リセール。12月11日00:00以降の支払いはクレジットカードのみ。",
+   "source_url": "https://idolmaster-official.jp/live_event/REFRAC7IONS_Still_blue/ticket/",
+   "sort_order": 6
+  }
+ ]
+}
