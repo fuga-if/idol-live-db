@@ -33,6 +33,21 @@ struct ChatGPTSettingsView: View {
     @State private var confirmSignOut = false
     @State private var searchQuery: NaturalSearchQuery?
     @State private var assistantOrder: AssistantOrder?
+    /// タブバーの並び (設定の「タブバー」と同じ保存先)。
+    @AppStorage(TabBarSettings.storageKey) private var tabBarOrder: String = ""
+    @State private var offersChatTab = false
+
+    /// チャットをタブバーにどう入れられるか (入れ替えられる枠・空きの有無はコアが決める)。
+    private var chatTab: ChatTabOffer {
+        chatTabOffer(lyricsAvailable: LyricsFeature.isAvailable, tabKeys: TabBarSettings.keys(tabBarOrder))
+    }
+
+    private func putChatInTabBar(replacing key: String?) {
+        AppAnalytics.tap(key == nil ? "assistant.tab_add" : "assistant.tab_replace")
+        tabBarOrder = tabBarKeysWithChat(lyricsAvailable: LyricsFeature.isAvailable,
+                                         tabKeys: TabBarSettings.keys(tabBarOrder), replaceKey: key)
+            .joined(separator: ",")
+    }
 
     private static let usageURL = URL(string: "https://chatgpt.com/#settings")!
 
@@ -52,6 +67,21 @@ struct ChatGPTSettingsView: View {
         .sheet(item: $searchQuery) { NaturalSearchSheet(initialQuery: $0.text) }
         .sheet(item: $assistantOrder) { AssistantSheet(initialOrder: $0.text) }
         .task { try? await session.loadModelsIfNeeded() }
+        // つないだら 1 回、チャットをタブバーに入れるかを訊く (勝手には入れ替えない)。
+        .onChange(of: session.canUsePlan) { old, new in
+            if !old, new, !chatTab.alreadyIn { offersChatTab = true }
+        }
+        .confirmationDialog("チャットをタブバーに入れますか？", isPresented: $offersChatTab, titleVisibility: .visible) {
+            if chatTab.hasRoom {
+                Button("空いている枠に入れる") { putChatInTabBar(replacing: nil) }
+            }
+            ForEach(chatTab.replaceable, id: \.analyticsKey) { item in
+                Button("「\(item.label)」と入れ替える") { putChatInTabBar(replacing: item.analyticsKey) }
+            }
+            Button("入れない", role: .cancel) {}
+        } message: {
+            Text("タブバーに置けるのは 5 つまでです。入れ替えた画面は、プロデュースの「そのほか」から開けます。あとで設定の「タブバー」で変えられます。")
+        }
         .trackScreen("chatgpt_settings")
     }
 
@@ -101,6 +131,11 @@ struct ChatGPTSettingsView: View {
                     ImasNavRow(title: "チャットを開く", systemImage: "bubble.left.and.text.bubble.right", iconTone: .neutral)
                 }
                 .buttonStyle(.plain)
+                if !chatTab.alreadyIn {
+                    ImasActionRow(title: "チャットをタブバーに入れる", systemImage: "dock.rectangle") {
+                        offersChatTab = true
+                    }
+                }
             }
         }
         ImasListSection(footer: "探すたび・話すたびに ChatGPT のプランの利用量を使います。このアプリからの請求はありません。") {

@@ -384,6 +384,8 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_chatgpt_sign_in_expired_message,
     uniffi_imas_core_checksum_func_chatgpt_stream_cut_off,
     uniffi_imas_core_checksum_func_assistant_accepts,
+    uniffi_imas_core_checksum_func_chat_tab_offer,
+    uniffi_imas_core_checksum_func_tab_bar_keys_with_chat,
     uniffi_imas_core_checksum_func_chat_session_title,
     uniffi_imas_core_checksum_func_chat_session_encode,
     uniffi_imas_core_checksum_func_chat_session_decode,

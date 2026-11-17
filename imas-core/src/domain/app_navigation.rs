@@ -31,8 +31,8 @@ pub enum AppDestination {
     CommunityActivity,
     TagActivity,
     Games,
-    /// チャット。ChatGPT とつないだ人にだけ出す ([`is_available`])。つないだ人の既定のタブバーでは
-    /// スケジュールと入れ替わる ([`default_tab_bar`])。
+    /// チャット。ChatGPT とつないだ人にだけ出す ([`is_available`])。タブバーには勝手に入れず、
+    /// つないだときに利用者が入れ替え先を選ぶ ([`chat_tab_offer`] / [`tab_bar_with_chat`])。
     Chat,
 }
 
@@ -146,19 +146,65 @@ const SECONDARY: [(&str, &[AppDestination]); 3] = [
     ("あそぶ", &[AppDestination::Games]),
 ];
 
-/// ChatGPT とつないだ人の既定のタブバー。iPhone のタブバーは 5 枠まで (6 つ目は OS が「その他」に
-/// 畳む) なので、チャットはスケジュールと入れ替える。スケジュールは「そのほか」から開ける。
-const PRIMARY_WITH_CHAT: [AppDestination; 5] = [
-    AppDestination::Events,
-    AppDestination::Songs,
-    AppDestination::Idols,
-    AppDestination::Chat,
-    AppDestination::Produce,
-];
-
 /// 既定のタブバー。自分で並びを選んでいない人に使う。
-pub fn default_tab_bar(chat_connected: bool) -> Vec<AppDestination> {
-    if chat_connected { PRIMARY_WITH_CHAT.to_vec() } else { PRIMARY.to_vec() }
+pub fn default_tab_bar() -> Vec<AppDestination> {
+    PRIMARY.to_vec()
+}
+
+/// チャットをタブバーに入れるときの選択肢。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct ChatTabOffer {
+    /// もうタブバーに入っている (訊かない)。
+    pub already_in: bool,
+    /// 空きがあって、入れ替えずに足せる。
+    pub has_room: bool,
+    /// 入れ替えられるタブ (いまの並びの順。プロデュースは外せないので出さない)。
+    pub replaceable: Vec<NavItem>,
+}
+
+/// いまのタブバーに、チャットをどう入れられるか。
+///
+/// iPhone のタブバーは 5 枠まで (6 つ目は OS が「その他」に畳む) なので、埋まっていたら
+/// どれかと入れ替える。どれと入れ替えるかは利用者が選ぶ。
+pub fn chat_tab_offer(tabs: &[AppDestination], lyrics_available: bool) -> ChatTabOffer {
+    let tabs = normalize_tab_bar(tabs, lyrics_available, true);
+    ChatTabOffer {
+        already_in: tabs.contains(&AppDestination::Chat),
+        has_room: tabs.len() < MAX_TABS,
+        replaceable: tabs
+            .iter()
+            .copied()
+            .filter(|&d| d != AppDestination::Produce && d != AppDestination::Chat)
+            .map(|d| item(d, true, None))
+            .collect(),
+    }
+}
+
+/// チャットを入れたタブバー。`replace` があればその枠に入れ (同じ位置)、無ければプロデュースの手前に足す。
+/// もう入っている・入れ替え先が並びに無い・足す空きが無い、なら並びは変えない。
+pub fn tab_bar_with_chat(
+    tabs: &[AppDestination],
+    replace: Option<AppDestination>,
+    lyrics_available: bool,
+) -> Vec<AppDestination> {
+    let mut out = normalize_tab_bar(tabs, lyrics_available, true);
+    if out.contains(&AppDestination::Chat) {
+        return out;
+    }
+    match replace {
+        Some(target) if target != AppDestination::Produce => {
+            if let Some(at) = out.iter().position(|&d| d == target) {
+                out[at] = AppDestination::Chat;
+            }
+        }
+        Some(_) => {}
+        None if out.len() < MAX_TABS => {
+            let at = out.iter().position(|&d| d == AppDestination::Produce).unwrap_or(out.len());
+            out.insert(at, AppDestination::Chat);
+        }
+        None => {}
+    }
+    out
 }
 
 /// いま出せる行き先か。
@@ -210,7 +256,7 @@ pub fn normalize_tab_bar(
 /// `lyrics_available`: 歌詞を出せるビルドか。出せないビルドではコールガイドを
 /// 書く場所そのものが無いので、行き先ごと出さない (プロデュースの入口と同じ根拠)。
 pub fn app_navigation(lyrics_available: bool, chat_connected: bool) -> Vec<NavSection> {
-    app_navigation_with_tabs(lyrics_available, chat_connected, &default_tab_bar(chat_connected))
+    app_navigation_with_tabs(lyrics_available, chat_connected, &PRIMARY)
 }
 
 /// タブバーから外した主な画面を置く見出し。
@@ -346,22 +392,42 @@ mod tests {
     }
 
     #[test]
-    fn つないだ人の既定はスケジュールとチャットが入れ替わる() {
+    fn チャットは勝手に入れず_選んだ枠と入れ替える() {
+        // つないでも既定のタブバーは変わらない。チャットは「そのほか」から開ける。
         let nav = app_navigation(true, true);
         let tabs: Vec<AppDestination> = all_items(&nav).into_iter().filter(|i| i.in_tab_bar).map(|i| i.destination).collect();
-        assert_eq!(tabs, PRIMARY_WITH_CHAT.to_vec());
-        assert!(tabs.len() <= MAX_TABS);
-        // スケジュールは「そのほか」から開ける。
+        assert_eq!(tabs, PRIMARY.to_vec());
         let others = nav.iter().find(|s| s.title.as_deref() == Some(OTHERS_TITLE)).unwrap();
-        assert_eq!(others.items.iter().map(|i| i.destination).collect::<Vec<_>>(), vec![AppDestination::Schedule]);
-        // つないでいなければ、チャットは選べる並びにもタブにも出ない。保存した並びに残っていても落ちる。
+        assert_eq!(others.items.iter().map(|i| i.destination).collect::<Vec<_>>(), vec![AppDestination::Chat]);
+
+        // 埋まっているタブバー: 入れ替え先を選ぶ (プロデュースは出さない)。
+        let offer = chat_tab_offer(&PRIMARY, true);
+        assert!(!offer.already_in && !offer.has_room);
+        assert_eq!(
+            offer.replaceable.iter().map(|i| i.destination).collect::<Vec<_>>(),
+            vec![AppDestination::Schedule, AppDestination::Events, AppDestination::Songs, AppDestination::Idols]
+        );
+        let swapped = tab_bar_with_chat(&PRIMARY, Some(AppDestination::Schedule), true);
+        assert_eq!(swapped, vec![AppDestination::Chat, AppDestination::Events, AppDestination::Songs, AppDestination::Idols, AppDestination::Produce]);
+        // 外された画面は「そのほか」へ。
+        let nav = app_navigation_with_tabs(true, true, &swapped);
+        let others = nav.iter().find(|s| s.title.as_deref() == Some(OTHERS_TITLE)).unwrap();
+        assert_eq!(others.items[0].destination, AppDestination::Schedule);
+
+        // プロデュースとは入れ替えない・埋まっているのに足さない・もう入っていれば変えない。
+        assert_eq!(tab_bar_with_chat(&PRIMARY, Some(AppDestination::Produce), true), PRIMARY.to_vec());
+        assert_eq!(tab_bar_with_chat(&PRIMARY, None, true), PRIMARY.to_vec());
+        assert_eq!(tab_bar_with_chat(&swapped, Some(AppDestination::Events), true), swapped);
+        assert!(chat_tab_offer(&swapped, true).already_in);
+        // 空きがあれば、入れ替えずにプロデュースの手前に足せる。
+        let four = [AppDestination::Events, AppDestination::Songs, AppDestination::Produce];
+        assert!(chat_tab_offer(&four, true).has_room);
+        assert_eq!(tab_bar_with_chat(&four, None, true), vec![AppDestination::Events, AppDestination::Songs, AppDestination::Chat, AppDestination::Produce]);
+
+        // つないでいなければ、選べる並びにもタブにも出ない。保存した並びに残っていても落ちる。
         assert!(tab_bar_choices(true, false).iter().all(|i| i.destination != AppDestination::Chat));
         assert!(tab_bar_choices(true, true).iter().any(|i| i.destination == AppDestination::Chat));
-        assert_eq!(normalize_tab_bar(&PRIMARY_WITH_CHAT, true, false), vec![AppDestination::Events, AppDestination::Songs, AppDestination::Idols, AppDestination::Produce]);
-        // 自分で並べた人がチャットを外していたら、「そのほか」に出る。
-        let custom = app_navigation_with_tabs(true, true, &PRIMARY);
-        let others = custom.iter().find(|s| s.title.as_deref() == Some(OTHERS_TITLE)).unwrap();
-        assert_eq!(others.items[0].destination, AppDestination::Chat);
+        assert_eq!(normalize_tab_bar(&swapped, true, false), vec![AppDestination::Events, AppDestination::Songs, AppDestination::Idols, AppDestination::Produce]);
         assert_eq!(AppDestination::from_key("chat"), Some(AppDestination::Chat));
     }
 }

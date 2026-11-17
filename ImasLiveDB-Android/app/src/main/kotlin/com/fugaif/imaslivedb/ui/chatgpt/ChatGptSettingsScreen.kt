@@ -55,11 +55,14 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasPoint
 import com.fugaif.imaslivedb.ui.designsystem.ImasPointList
 import com.fugaif.imaslivedb.ui.designsystem.ImasRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasRowLeading
+import com.fugaif.imaslivedb.ui.theme.AppPreferences
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasText
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import kotlinx.coroutines.launch
 import uniffi.imas_core.ChatGptSignInIntent
+import uniffi.imas_core.chatTabOffer
+import uniffi.imas_core.tabBarKeysWithChat
 import uniffi.imas_core.naturalSearchExamples
 import uniffi.imas_core.naturalSearchPickModel
 
@@ -139,6 +142,16 @@ private fun ConnectedSections(onExample: (String) -> Unit, onOpenAssistant: () -
     var signOutNote by remember { mutableStateOf<String?>(null) }
     var confirmSignOut by remember { mutableStateOf(false) }
     var savedModel by remember { mutableStateOf(service.savedModel) }
+    var offersChatTab by remember { mutableStateOf(false) }
+    // タブバーの並び (設定の「タブバー」と同じ保存先)。入れ替えられる枠・空きの有無はコアが決める。
+    val chatTab = chatTabOffer(lyricsAvailable = false, tabKeys = AppPreferences.tabBarKeys)
+
+    // つないだ瞬間 (許可されていない → 使える) に 1 回、まだ入っていなければ訊く (勝手には入れ替えない)。
+    var wasUsable by remember { mutableStateOf(state.canUsePlan) }
+    LaunchedEffect(state.canUsePlan) {
+        if (!wasUsable && state.canUsePlan && !chatTab.alreadyIn) offersChatTab = true
+        wasUsable = state.canUsePlan
+    }
 
     ImasListSection("ChatGPT", footer = signOutNote) {
         ImasRow(
@@ -193,8 +206,31 @@ private fun ConnectedSections(onExample: (String) -> Unit, onOpenAssistant: () -
                 iconTone = ImasIconTileTone.NEUTRAL,
                 onClick = onOpenAssistant,
             )
+            if (!chatTab.alreadyIn) {
+                ImasActionRow(
+                    title = "チャットをタブバーに入れる",
+                    onClick = { offersChatTab = true },
+                    icon = Icons.Outlined.ChatBubbleOutline,
+                )
+            }
         }
     }
+    ImasChoiceDialog(
+        title = "チャットをタブバーに入れますか？",
+        isPresented = offersChatTab,
+        options = buildList {
+            if (chatTab.hasRoom) add("" to "空いている枠に入れる")
+            chatTab.replaceable.forEach { add(it.analyticsKey to "「${it.label}」と入れ替える") }
+        },
+        onPick = { key ->
+            AppPreferences.setTabBarKeys(
+                tabBarKeysWithChat(lyricsAvailable = false, tabKeys = AppPreferences.tabBarKeys, replaceKey = key.ifEmpty { null })
+            )
+        },
+        onDismiss = { offersChatTab = false },
+        message = "タブバーに置けるのは 5 つまでです。入れ替えた画面は、プロデュースの「そのほか」から開けます。あとで設定の「タブバー」で変えられます。",
+        dismissTitle = "入れない",
+    )
     ImasListSection(footer = "探すたび・話すたびに ChatGPT のプランの利用量を使います。このアプリからの請求はありません。") {
         ImasNavRow(
             title = "ChatGPT の設定を開く",
