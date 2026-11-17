@@ -72,3 +72,7 @@ Play への上げは `tools/play_release.py` (Android Publisher API v3) で行�
 - 再生中バーを押すと落ちる不具合 (Play の最多クラッシュ。楽曲タブを一度も開いていないと NavHost のグラフが無く navigate が IllegalArgumentException) を直した。
 - develop の修正 (29546ff6) を 2.9.1 (d389dbbf) に当てたブランチ `android-hotfix-2.9.2` からビルド。develop の未公開機能は入れていない。
 - 本番に下書きで置いた。公開はオーナーの go のあと `promote`。develop の次の Android リリースは versionCode 22 以上にする。
+- 2026-11-18 追記: 公開済みの 2.9.1 は起動直後に落ちていた (UnsatisfiedLinkError、257 人以上)。Play から取り寄せた APK では、
+  dex のバインディングが develop の新しいコア (チャット・コール表) を呼ぶのに、同梱の libimas_core.so は古く関数が 106 個足りなかった。
+  .so とバインディングはどちらも gitignore の生成物で、共有の CARGO_TARGET_DIR を他の worktree のビルドと取り合うと食い違い得る。
+  以後は `checkCoreBindings` (merge*NativeLibs の前に走る) が食い違いでビルドを止める。2.9.2 は 1397 個すべて一致を確認済み。

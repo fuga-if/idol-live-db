@@ -199,6 +199,38 @@ androidComponents {
 // 載るよう、assets の統合を KSP の後にする。
 tasks.matching { it.name == "mergeDebugAssets" }.configureEach { dependsOn("kspDebugKotlin") }
 
+// jniLibs の libimas_core.so と、UniFFI のバインディング (imas_core.kt) が同じコアから作られたかを確かめる。
+// .so は gitignore なので、コアを作り直さずにビルドすると古い .so が新しいバインディングと組まれ、
+// 起動時に JNA が関数を見つけられず全員が落ちる (2.9.1 で 257 人以上)。
+// バインディングが呼ぶ uniffi_/ffi_ の記号が 1 つでも .so に無ければビルドを止める。
+val checkCoreBindings = tasks.register("checkCoreBindings") {
+    description = "jniLibs の libimas_core.so が imas_core.kt の呼ぶ関数をすべて持つか確かめる"
+    val bindings = file("src/main/kotlin/uniffi/imas_core/imas_core.kt")
+    val libs = fileTree("src/main/jniLibs") { include("**/libimas_core.so") }
+    inputs.file(bindings)
+    inputs.files(libs)
+    doLast {
+        val symbol = Regex("""\b(?:uniffi|ffi)_imas_core_[a-z0-9_]+""")
+        val wanted = symbol.findAll(bindings.readText()).map { it.value }.toSortedSet()
+        val soFiles = libs.files
+        if (soFiles.isEmpty()) {
+            logger.warn("checkCoreBindings: jniLibs に libimas_core.so が無い (imas-core/build.sh --android-only を先に)")
+            return@doLast
+        }
+        for (so in soFiles) {
+            val text = String(so.readBytes(), Charsets.ISO_8859_1)
+            val missing = wanted.filterNot { text.contains("$it\u0000") }
+            if (missing.isNotEmpty()) {
+                throw GradleException(
+                    "${so.parentFile.name}/libimas_core.so が imas_core.kt と食い違う (無い関数 ${missing.size} 個: " +
+                        "${missing.take(5).joinToString()} …)。cd imas-core && ./build.sh --android-only で作り直す"
+                )
+            }
+        }
+    }
+}
+tasks.matching { it.name.startsWith("merge") && it.name.endsWith("NativeLibs") }.configureEach { dependsOn(checkCoreBindings) }
+
 dependencies {
     // imas-core (Rust) の UniFFI バインディング用 JNA。
     // @aar は実機/エミュ (jniLibs の libimas_core.so をロード)、
