@@ -1,0 +1,8 @@
+{
+ "title": "世界滅亡 or KISS の補足 (#423)",
+ "author": "claude (daily-data-crawl 2026-11-19)",
+ "source": "GitHub issue #423 (アプリからの修正リクエスト)。公式の呼び方は見つからず、LITTLE STARS EXTRA! がシンデレラガールズ劇場 Extra Stage のエンディングテーマのシリーズであることは https://ototoy.jp/_/default/p/2886275 ・ https://dic.nicovideo.jp/t/a/%E3%82%B7%E3%83%B3%E3%83%87%E3%83%AC%E3%83%A9%E3%82%AC%E3%83%BC%E3%83%AB%E3%82%BA%E5%8A%87%E5%A0%B4 で確認",
+ "fixes": [
+  {"table": "songs", "id": "cg_世界滅亡_or_kiss", "fields": {"note": "シンデレラガールズ劇場EXTRA Stageキャラクターエンディングテーマ"}, "note": "投稿どおり"}
+ ]
+}

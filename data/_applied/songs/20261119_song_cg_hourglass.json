@@ -1,0 +1,32 @@
+{
+ "title": "曲「HOURGLASS」(cg・15 周年記念楽曲) の追加 (#415)",
+ "author": "claude (daily-data-crawl 2026-11-19)",
+ "source": [
+  "https://shop.columbia.jp/shop/g/gS6090/ (THE IDOLM@STER CINDERELLA GIRLS 15th ANNIVERSARY SONG THE IDOLM@STER CINDERELLA MASTER HOURGLASS / Tr.01 HOURGLASS 作詞：烏屋茶房 作曲・編曲：Powerless 歌：乙倉悠貴、喜多見柚、桐生つかさ、望月聖、関裕美)",
+  "https://x.com/imas_columbia/status/2122706576142381264 (2026-11-18 発売・15周年記念曲)",
+  "https://itunes.apple.com/lookup?id=6828680293&country=jp (HOURGLASS / Hourglass - Single 6828680292 / 2026-11-18 / isStreamable=true)"
+ ],
+ "songs": [
+  {
+   "id": "cg_hourglass",
+   "title": "HOURGLASS",
+   "title_kana": "あわーぐらす",
+   "brand_id": "cg",
+   "song_type": "unit",
+   "release_date": "2026-11-18",
+   "streaming_date": "2026-11-18",
+   "composer": "Powerless",
+   "lyricist": "烏屋茶房",
+   "arranger": "Powerless",
+   "apple_music_id": "6828680293",
+   "apple_music_album_id": "6828680292",
+   "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/0c/49/66/0c496643-cd8c-f76e-0fd1-b52981447ea4/COKM-46921.jpg/600x600bb.jpg",
+   "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/08/36/73/0836732b-8eba-6e53-aaa0-a1b8cafae9b9/mzaf_12084196452100213751.plus.aac.p.m4a",
+   "duration_sec": 253,
+   "cd_series": "THE IDOLM@STER CINDERELLA GIRLS 15th ANNIVERSARY SONG THE IDOLM@STER CINDERELLA MASTER HOURGLASS",
+   "singer_label": "乙倉悠貴、喜多見柚、桐生つかさ、望月聖、関裕美",
+   "original_singers": ["cg_乙倉悠貴", "cg_喜多見柚", "cg_桐生つかさ", "cg_望月聖", "cg_関裕美"],
+   "note": "シンデレラガールズ 15 周年記念楽曲"
+  }
+ ]
+}

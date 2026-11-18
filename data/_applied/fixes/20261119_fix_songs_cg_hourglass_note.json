@@ -1,0 +1,8 @@
+{
+ "title": "HOURGLASS の補足 (15 周年記念楽曲)",
+ "author": "claude (daily-data-crawl 2026-11-19)",
+ "source": "https://x.com/imas_columbia/status/2122706576142381264 (15周年記念曲「HOURGLASS」)、https://x.com/imas_CGofficial/status/2123025408656646291 (#シンデレラガールズ15周年 記念楽曲)",
+ "fixes": [
+  {"table": "songs", "id": "cg_hourglass", "fields": {"note": "シンデレラガールズ 15 周年記念楽曲"}, "note": "公式の呼び方。デレステ 10 周年記念楽曲 (cg_everafter) と表記を揃える"}
+ ]
+}

@@ -1,0 +1,37 @@
+{
+ "title": "THE IDOLM@STER 20th ANNIVERSARY NEW YEAR MEETING & DJ PARTY の大阪・名古屋公演の追加 (#426 / #425)",
+ "author": "claude (daily-data-crawl 2026-11-19)",
+ "source": "https://idolmaster-official.jp/live_event/newyear2026/ (大阪公演 2026/1/3・1/4 Zepp Osaka Bayside、名古屋公演 2026/1/17・1/18 Zepp Nagoya、各日 16:00 開場 17:00 開演)",
+ "events": [
+  {
+   "id": "ev_the_idolm@ster_20th_anniversary_new_year_meeting_dj_party@osaka",
+   "brand_id": "765as",
+   "name": "THE IDOLM@STER 20th ANNIVERSARY NEW YEAR MEETING & DJ PARTY@OSAKA",
+   "event_type": "",
+   "kind": "live",
+   "is_streaming": 0,
+   "is_solo": 0,
+   "ticket_url": "https://idolmaster-official.jp/live_event/newyear2026/",
+   "joint_brand_ids": "cg,ml,sidem,sc,gakuen",
+   "shows": [
+    {"id": "sh_the_idolm@ster_20th_anniversary_new_year_meeting_dj_party@osaka_1", "name": "DAY1", "date": "2026-01-03", "venue": "Zepp Osaka Bayside", "venue_city": "大阪", "venue_id": "venue_zepposakabayside", "start_time": "17:00", "sort_order": 1, "performer_type": "cast"},
+    {"id": "sh_the_idolm@ster_20th_anniversary_new_year_meeting_dj_party@osaka_2", "name": "DAY2", "date": "2026-01-04", "venue": "Zepp Osaka Bayside", "venue_city": "大阪", "venue_id": "venue_zepposakabayside", "start_time": "17:00", "sort_order": 2, "performer_type": "cast"}
+   ]
+  },
+  {
+   "id": "ev_the_idolm@ster_20th_anniversary_new_year_meeting_dj_party@nagoya",
+   "brand_id": "765as",
+   "name": "THE IDOLM@STER 20th ANNIVERSARY NEW YEAR MEETING & DJ PARTY@NAGOYA",
+   "event_type": "",
+   "kind": "live",
+   "is_streaming": 0,
+   "is_solo": 0,
+   "ticket_url": "https://idolmaster-official.jp/live_event/newyear2026/",
+   "joint_brand_ids": "cg,ml,sidem,sc,gakuen",
+   "shows": [
+    {"id": "sh_the_idolm@ster_20th_anniversary_new_year_meeting_dj_party@nagoya_1", "name": "DAY1", "date": "2026-01-17", "venue": "Zepp Nagoya", "venue_city": "名古屋", "venue_id": "venue_zeppnagoya", "start_time": "17:00", "sort_order": 1, "performer_type": "cast"},
+    {"id": "sh_the_idolm@ster_20th_anniversary_new_year_meeting_dj_party@nagoya_2", "name": "DAY2", "date": "2026-01-18", "venue": "Zepp Nagoya", "venue_city": "名古屋", "venue_id": "venue_zeppnagoya", "start_time": "17:00", "sort_order": 2, "performer_type": "cast"}
+   ]
+  }
+ ]
+}
