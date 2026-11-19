@@ -76,3 +76,11 @@ Play への上げは `tools/play_release.py` (Android Publisher API v3) で行�
   dex のバインディングが develop の新しいコア (チャット・コール表) を呼ぶのに、同梱の libimas_core.so は古く関数が 106 個足りなかった。
   .so とバインディングはどちらも gitignore の生成物で、共有の CARGO_TARGET_DIR を他の worktree のビルドと取り合うと食い違い得る。
   以後は `checkCoreBindings` (merge*NativeLibs の前に走る) が食い違いでビルドを止める。2.9.2 は 1397 個すべて一致を確認済み。
+
+## 2026-11-20: 2.9.3 (versionCode 22) 修正版
+
+- お題の投稿で題が 1 文字目だけ送られる不具合 (ff8cdb32 / d351022d) を直した。2.9.2 までの端末からは 11/19 にも題 1 文字のお題が届いていた。
+- `android-hotfix-2.9.2` から切った `android-hotfix-2.9.3` に修正 2 件だけを cherry-pick してビルド (develop にしか無い NaturalSearchSheet の分は外した)。develop の未公開機能は入れていない。
+- この枝には `checkCoreBindings` が無いので、バインディングが呼ぶ uniffi 関数 1344 個が AAB 内の両 ABI の .so にあることを nm で突き合わせた (欠け 0)。
+- 本番に下書きで置き、オーナーの go で `promote` (completed)。枝の `play_release.py` には promote が無いので develop 版で実行した。
+- develop の版も 2.9.3 / 22 に揃えた。develop の次の Android リリースは versionCode 23 以上。

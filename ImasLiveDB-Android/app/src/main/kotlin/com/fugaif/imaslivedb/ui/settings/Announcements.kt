@@ -52,6 +52,17 @@ object AnnouncementCatalog {
     /** 新しいものほど上 (表示順)。 */
     val all: List<Announcement> = listOf(
         Announcement(
+            id = "v2.9.3_poll_title_fix",
+            date = "2026-11-20",
+            title = "お題の題が 1 文字になる不具合を直しました",
+            summary = "お題を投稿すると、題が 1 文字目だけになることがあったのを直しました。",
+            body = listOf(
+                "お題を投稿すると、題が 1 文字目だけになることがあったのを直しました。"
+            ),
+            icon = Icons.Filled.Poll,
+            tint = "#3373BF"
+        ),
+        Announcement(
             id = "v2.9.1_performance",
             date = "2026-11-15",
             title = "起動・同期・一覧を軽くしました",
