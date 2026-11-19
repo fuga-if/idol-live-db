@@ -90,7 +90,6 @@ fun PollCreateSheet(
     val targetType = TARGET_TYPES[targetIndex]
     val targetNoun = TARGET_LABELS[targetIndex]
     val scope = SCOPES[scopeIndex]
-    val trimmedTitle = title.trim()
 
     // iOS canSubmit と同じ条件。ブランド限定は 1 つ以上、候補指定は 2 件以上ないとサーバが弾く。
     val canSubmit = inputIsAcceptable(InputField.POLL_TITLE, title) && !state.isSubmitting && when (scope) {
@@ -99,13 +98,15 @@ fun PollCreateSheet(
         CommunityApi.PollCandidateScope.MANUAL -> state.candidates.size >= 2
     }
 
+    // 送る値は押した瞬間の状態 (remember の State) から読む。組み立て時に計算した値を
+    // 閉じ込めると、ボタンが古い送信処理を持ったときに古い題が送られる (題が「あ」になった件)。
     fun submit() {
         viewModel.submit(
-            title = trimmedTitle,
+            title = title.trim(),
             description = description.trim().ifEmpty { null },
-            targetType = targetType,
+            targetType = TARGET_TYPES[targetIndex],
             days = DAY_OPTIONS[dayIndex],
-            scope = scope,
+            scope = SCOPES[scopeIndex],
             brandIds = selectedBrandIds,
             onCreated = { poll -> onCreated(poll); onDismiss() }
         )

@@ -107,13 +107,16 @@ import com.fugaif.imaslivedb.ui.theme.rememberImasHaptics
 
 // MARK: - シートのボタン
 
-/** シートの種類 (iOS `ImasSheetToolbarKind`)。種類ごとに左右のボタンの意味が決まっている (§16)。 */
+/** シートの種類 (iOS `ImasSheetToolbarKind`)。種類ごとに左右のボタンの意味が決まっている (§16)。
+ * data class にしない: 等しいと判定されると帯が描き直されず、ボタンが古い送信処理を持ち続ける
+ * (ローカル関数の参照は中の値が違っても等しい。お題の題が「あ」だけで送られた件)。
+ */
 sealed interface ImasSheetToolbarKind {
     /**
      * 編集・追加。左 = キャンセル、右 = 保存。
      * [isSaving] の間は保存の記号の代わりにくるくるを出し、連打できないようにする ([Submit] と同じ扱い)。
      */
-    data class Edit(
+    class Edit(
         val canSave: Boolean = true,
         val isSaving: Boolean = false,
         val onCancel: () -> Unit,
@@ -124,7 +127,7 @@ sealed interface ImasSheetToolbarKind {
      * 投稿・投票・修正リクエスト (みんなに見える)。左 = キャンセル、右 = 送信。
      * [isSubmitting] の間は送信の記号の代わりにくるくるを出し、連打できないようにする。
      */
-    data class Submit(
+    class Submit(
         val canSubmit: Boolean = true,
         val isSubmitting: Boolean = false,
         val onCancel: () -> Unit,
@@ -132,13 +135,13 @@ sealed interface ImasSheetToolbarKind {
     ) : ImasSheetToolbarKind
 
     /** 複数を選ぶ。左 = キャンセル、右 = 完了。 */
-    data class Select(val canFinish: Boolean = true, val onCancel: () -> Unit, val onFinish: () -> Unit) : ImasSheetToolbarKind
+    class Select(val canFinish: Boolean = true, val onCancel: () -> Unit, val onFinish: () -> Unit) : ImasSheetToolbarKind
 
     /** 読むだけ。右 = 閉じる。 */
-    data class Read(val onClose: () -> Unit) : ImasSheetToolbarKind
+    class Read(val onClose: () -> Unit) : ImasSheetToolbarKind
 
     /** 後で答えてよい問いかけ (チケット代の記録など)。左 = あとで、右 = 記録する (§16)。 */
-    data class Prompt(val canRecord: Boolean = true, val onLater: () -> Unit, val onRecord: () -> Unit) : ImasSheetToolbarKind
+    class Prompt(val canRecord: Boolean = true, val onLater: () -> Unit, val onRecord: () -> Unit) : ImasSheetToolbarKind
 }
 
 private enum class SheetButtonRole { CANCEL, CONFIRM, CLOSE }
