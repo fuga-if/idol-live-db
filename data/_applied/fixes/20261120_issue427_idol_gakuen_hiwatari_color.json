@@ -1,0 +1,13 @@
+{
+ "title": "氷渡香名江の担当色を追加 (#427)",
+ "author": "daily-data-crawl",
+ "source": "https://github.com/fuga-if/idol-live-db/issues/427 (アプリからの修正リクエスト。公式サイト・Web 検索で出典が見つからなかったため投稿内容で登録)",
+ "fixes": [
+  {
+   "table": "idols",
+   "id": "gakuen_氷渡香名江",
+   "fields": {"color": "#007E66"},
+   "note": "投稿の他の項目は現行と同じ。color のみ空欄だったため投稿値で埋める"
+  }
+ ]
+}
