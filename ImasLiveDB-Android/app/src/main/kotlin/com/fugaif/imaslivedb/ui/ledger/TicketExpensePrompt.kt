@@ -36,8 +36,6 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbar
 import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbarKind
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
-import java.time.Instant
-import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.launch
 import uniffi.imas_core.ExpenseCategory
@@ -90,7 +88,7 @@ fun TicketExpensePrompt() {
                     scope.launch {
                         val note = ticketExpenseNote(ticket)
                         val expense = Expense.make(
-                            date = req.date.ifEmpty { DATE_FORMAT.format(Instant.now().atZone(ZoneOffset.UTC)) },
+                            date = req.date.ifEmpty { DATE_FORMAT.format(java.time.LocalDate.now()) },
                             category = ExpenseCategory.TICKET,
                             amount = amount,
                             showId = req.showId,

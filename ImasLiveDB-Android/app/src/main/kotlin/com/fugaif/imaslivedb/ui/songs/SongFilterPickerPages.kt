@@ -99,22 +99,22 @@ fun IdolMultiPickerPage(
     onClear: () -> Unit
 ) {
     var query by remember { mutableStateOf("") }
-    var brandId by remember { mutableStateOf<String?>(null) }
+    var brandIds by remember { mutableStateOf(emptySet<String>()) }
     // 語で絞ってからブランドで絞る (索引は idols 全体で組んであるため)。並びは入力順のまま。
-    val matched = rememberSearchFiltered(idols, query) { listOf(it.name, it.nameKana, it.aliases) }
-    val visible = remember(matched, brandId) {
-        matched.filter { brandId == null || it.brandId == brandId }
+    // CV 名でも引ける・ブランドは複数選べる (iOS IdolPickerView と同じ)。
+    val matched = rememberSearchFiltered(idols, query) { listOf(it.name, it.nameKana, it.currentVoiceActor, it.aliases) }
+    val visible = remember(matched, brandIds) {
+        matched.filter { brandIds.isEmpty() || it.brandId in brandIds }
     }
 
     FilterPickerPage(title = "アイドル (${selected.size})", onBack = onBack) {
         ImasBrandPicker(
             brands = brands,
-            selection = brandId?.let { setOf(it) } ?: emptySet(),
-            onSelectionChange = { brandId = it.firstOrNull() },
-            allowsMultiple = false,
+            selection = brandIds,
+            onSelectionChange = { brandIds = it },
             modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.screen, vertical = DS.Space.gap)
         )
-        NameFilterField(prompt = "アイドル名で絞り込み", value = query, onValueChange = { query = it })
+        NameFilterField(prompt = "アイドル名 / CV名で絞り込み", value = query, onValueChange = { query = it })
         if (selected.isNotEmpty()) {
             ImasCardList {
                 ImasActionRow(title = "選択をすべて解除", onClick = onClear)

@@ -77,6 +77,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasBadgeKind
 import com.fugaif.imaslivedb.ui.designsystem.ImasCard
 import com.fugaif.imaslivedb.ui.designsystem.ImasCardList
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
+import com.fugaif.imaslivedb.ui.components.safeHttp
 import com.fugaif.imaslivedb.ui.designsystem.ImasFullScreenDialog
 import com.fugaif.imaslivedb.ui.designsystem.ImasLabeledRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasLoadingState
@@ -693,7 +694,7 @@ private fun LazyListScope.infoSection(
     state.stats?.let { stats ->
         item { StatsGrid(stats, seed, brand) }
     }
-    if (state.ticketSales.isNotEmpty() || state.ticketUrl != null || state.isFutureEvent) {
+    if (state.ticketSales.isNotEmpty() || safeHttp(state.ticketUrl) != null || state.isFutureEvent) {
         item { TicketInfoSection(state, seed, brand) }
     }
     // 衣装。行は衣装単位で、押すとイベントをまたいだ着用公演へ。
@@ -724,7 +725,7 @@ private fun TicketInfoSection(state: EventDetailUiState, seed: String?, brand: S
     // 自分の申込の記録 (端末ローカル)。付け替えたらその場で読み直す。
     var applications by remember { mutableStateOf<Map<String, TicketApplication>>(emptyMap()) }
     LaunchedEffect(state.ticketSales) { applications = marks.ticketApplications() }
-    val hasAny = state.ticketSales.isNotEmpty() || state.ticketUrl != null
+    val hasAny = state.ticketSales.isNotEmpty() || safeHttp(state.ticketUrl) != null
     Column(verticalArrangement = Arrangement.spacedBy(DS.Space.header)) {
         // ImasSectionHeader は左右の余白を自分で持つので、追加の padding は付けない (二重になる)。
         ImasSectionHeader(title = "チケット情報", tight = true)
@@ -740,7 +741,7 @@ private fun TicketInfoSection(state: EventDetailUiState, seed: String?, brand: S
                 }
                 shown = true
             }
-            state.ticketUrl?.let { url ->
+            safeHttp(state.ticketUrl)?.let { url ->
                 if (shown) ImasRowDivider(inset = DS.Space.rowH)
                 TicketUrlRow(url, seed, brand) { uriHandler.openUri(url) }
                 shown = true
@@ -801,7 +802,7 @@ private fun TicketSaleRow(
         }
         sale.periodLabel?.let { ImasText(it, role = ImasTextRole.NOTE) }
         sale.resultLabel?.let { ImasText("当落発表 $it", role = ImasTextRole.NOTE) }
-        sale.url?.let { url ->
+        safeHttp(sale.url)?.let { url ->
             Row(
                 modifier = Modifier.imasRowPress(onClick = { uriHandler.openUri(url) }),
                 verticalAlignment = Alignment.CenterVertically,

@@ -41,6 +41,12 @@ class LocalPollVoteLog(context: Context) {
         save(updated)
     }
 
+    /** サインアウトで前のアカウントの投票履歴を捨てる (アカウントを切り替えたときに混ざらないように。iOS と同じ)。 */
+    fun clear() {
+        _votes.value = emptyMap()
+        save(emptyMap())
+    }
+
     /** バックアップエクスポート用の全件取得。 */
     fun allEntries(): Map<String, Set<String>> = _votes.value
 

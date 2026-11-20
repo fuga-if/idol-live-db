@@ -145,9 +145,12 @@ class SongRepository(
         // collectionAttendedShows) に一本化してある。以前はここが SongDao.fetchAttendedLiveShowIds
         // という別 SQL (常に現地のみ固定で、設定「配信参加も回収に含める」を無視していた) を
         // 使っていて、セトリ側の回収表示と条件が食い違う元だった。
-        // event 側は種別条件を掛けない (SQL 時代の fetchSongCollectedCountsQuery と同じ母集合)。
-        val attendedShowIds = CollectionAttendance.showIds(db, CollectionPreferences.includeStream)
-        val attendedEventIds = db.userMarkDao().idsFor(UserMark.EVENT, UserMark.ATTENDED)
+        // event 側のマークにも同じ形態の条件を掛ける (iOS attendedIdsSubquery と同じ)。掛けないと
+        // 「配信で見た」と記録したイベントが既定 (現地のみ) でも回収に数えられ、統計・回収タイル・
+        // 一覧の回収札が曲詳細の回収公演と食い違う。
+        val includeStream = CollectionPreferences.includeStream
+        val attendedShowIds = CollectionAttendance.showIds(db, includeStream)
+        val attendedEventIds = CollectionAttendance.eventIds(db, includeStream)
         return snapshots.query { store ->
             store.songCollectedCountMap(attendedShowIds, attendedEventIds, true)
                 .mapValues { (_, count) -> count.toInt() }

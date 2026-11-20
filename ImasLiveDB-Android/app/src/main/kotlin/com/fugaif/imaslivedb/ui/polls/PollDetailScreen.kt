@@ -47,6 +47,8 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasCardListStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasConfirmDestructive
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.designsystem.ImasErrorAlert
+import com.fugaif.imaslivedb.ui.designsystem.ImasNoticeKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasNotice
 import com.fugaif.imaslivedb.ui.designsystem.ImasForecastAvatar
 import com.fugaif.imaslivedb.ui.designsystem.ImasForecastMeasure
 import com.fugaif.imaslivedb.ui.designsystem.ImasForecastRow
@@ -85,6 +87,7 @@ fun PollDetailScreen(
     val authState by authService.state.collectAsState()
 
     LaunchedEffect(pollId) { viewModel.load(pollId) }
+    LaunchedEffect(authState.isSignedIn) { viewModel.reloadForAuthChange() }
 
     val detail = state.detail
     // 削除は作成者本人か管理者だけ (iOS PollDetailView.canDelete と同じ条件)。自分のお題かは
@@ -187,6 +190,9 @@ fun PollDetailScreen(
                 if (authState.isSignedIn && detail.isActive) {
                     ImasNote("タップで投票/取消 (残り${remaining}/${limit})")
                 }
+                if (state.voteError != null) {
+                    ImasNotice(kind = ImasNoticeKind.ERROR, message = state.voteError)
+                }
 
                 if (authState.isSignedIn && detail.isActive && detail.candidateScope != CommunityApi.PollCandidateScope.MANUAL) {
                     ImasButton(
@@ -195,7 +201,7 @@ fun PollDetailScreen(
                         icon = Icons.Filled.AddCircle,
                         role = ImasButtonRole.PRIMARY,
                         size = ImasButtonSize.LARGE,
-                        enabled = remaining > 0
+                        enabled = remaining > 0 && !state.isVoting
                     )
                 }
 

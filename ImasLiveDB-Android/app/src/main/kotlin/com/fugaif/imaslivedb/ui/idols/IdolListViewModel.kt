@@ -272,14 +272,21 @@ class IdolListViewModel(app: Application) : AndroidViewModel(app) {
         _uiState.value = _uiState.value.copy(listMode = mode)
     }
 
-    /** ツールバーの「フィルタを解除」相当: ブランド/属性/表示形式のみリセット (マイマークは維持)。 */
+    /**
+     * 「フィルタを解除」: activeFilterCount が数える全項目 (ブランド/属性/表示形式 + 担当/お気に入り/メモ)
+     * を漏れなく戻す (iOS clearAllFilters)。マイマークを残すと「担当のみ」で空になった一覧が
+     * このボタンでは戻らない。並び順は絞り込みではないので触らない。
+     */
     fun clearQuickFilters() {
         prefs.edit().putString(KEY_DISPLAY_MODE, VALUE_IDOL).apply()
         _uiState.value = _uiState.value.copy(
             selectedBrandIds = emptySet(),
             selectedAttribute = null,
             selectedSubAttribute = null,
-            displayMode = IdolDisplayMode.IDOL_NAME
+            displayMode = IdolDisplayMode.IDOL_NAME,
+            requireMyPick = false,
+            requireFavorite = false,
+            requireNote = false
         ).rebuilt()
     }
 

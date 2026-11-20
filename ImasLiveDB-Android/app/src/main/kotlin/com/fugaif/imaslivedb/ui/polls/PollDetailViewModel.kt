@@ -26,6 +26,10 @@ data class PollDetailUiState(
     /** ブランド限定のお題で候補になるブランドの略称 (お題の並び順)。それ以外は空。 */
     val scopeBrandNames: List<String> = emptyList(),
     val isDeleting: Boolean = false,
+    /** 投票/取消の通信中。多重に押されるのを弾く (iOS isVoting)。 */
+    val isVoting: Boolean = false,
+    /** 投票/取消に失敗したときの案内。次の操作で消す。 */
+    val voteError: String? = null,
     val deleteError: String? = null
 )
 
@@ -47,6 +51,15 @@ class PollDetailViewModel(app: Application) : AndroidViewModel(app) {
     fun load(pollId: String) {
         if (this.pollId == pollId && _uiState.value.detail != null) return
         this.pollId = pollId
+        viewModelScope.launch { reload() }
+    }
+
+    /**
+     * ログイン状態が変わったら読み直す。自分の票 (my_vote_count・has_user_voted) は認証付きで
+     * 引かないと 0 のままなので、詳細を開いてからログインしても「残り3/3」と出続ける (iOS は onSignedIn で読み直す)。
+     */
+    fun reloadForAuthChange() {
+        if (pollId == null || _uiState.value.detail == null) return
         viewModelScope.launch { reload() }
     }
 
@@ -113,25 +126,28 @@ class PollDetailViewModel(app: Application) : AndroidViewModel(app) {
 
     fun vote(entityId: String) {
         val id = pollId ?: return
-        viewModelScope.launch {
-            val result = runCatching { api.votePoll(id, entityId) }.getOrNull() ?: return@launch
+        mutate("投票できませんでした") {
+            val result = runCatching { api.votePoll(id, entityId) }.getOrNull() ?: return@mutate false
             voteLog.recordVote(id, entityId)
             applyVoteResult(entityId, result, mine = true)
+            true
         }
     }
 
     fun unvote(entityId: String) {
         val id = pollId ?: return
-        viewModelScope.launch {
-            val result = runCatching { api.unvotePoll(id, entityId) }.getOrNull() ?: return@launch
+        mutate("取消できませんでした") {
+            val result = runCatching { api.unvotePoll(id, entityId) }.getOrNull() ?: return@mutate false
             voteLog.removeVote(id, entityId)
             applyVoteResult(entityId, result, mine = false)
+            true
         }
     }
 
     /**
      * ピッカーの選択 (選択肢の表示順) からまとめて投票/取消する。何を入れて何を取り消すか・
      * 残りの票数での打ち切りはコア ([planVoteSelection])。取り消しを先に流す。
+     * 1 件でも失敗したら残りは流さずに知らせる (黙って一部だけ入るのを避ける。iOS と同じ)。
      */
     fun applyPickerSelection(selectedInOrder: List<String>, unvoteDeselected: Boolean) {
         val id = pollId ?: return
@@ -142,17 +158,32 @@ class PollDetailViewModel(app: Application) : AndroidViewModel(app) {
             detail.myVoteCount.coerceAtLeast(0).toUInt(),
             unvoteDeselected
         )
-        viewModelScope.launch {
+        mutate("投票できませんでした") {
             for (entityId in plan.toUnvote) {
-                val result = runCatching { api.unvotePoll(id, entityId) }.getOrNull() ?: continue
+                val result = runCatching { api.unvotePoll(id, entityId) }.getOrNull() ?: return@mutate false
                 voteLog.removeVote(id, entityId)
                 applyVoteResult(entityId, result, mine = false)
             }
             for (entityId in plan.toVote) {
-                val result = runCatching { api.votePoll(id, entityId) }.getOrNull() ?: continue
+                val result = runCatching { api.votePoll(id, entityId) }.getOrNull() ?: return@mutate false
                 voteLog.recordVote(id, entityId)
                 applyVoteResult(entityId, result, mine = true)
             }
+            true
+        }
+    }
+
+    fun clearVoteError() {
+        _uiState.value = _uiState.value.copy(voteError = null)
+    }
+
+    /** 投票系の共通ガード。多重実行を弾き、[body] が false を返したら [errorText] を出す。 */
+    private fun mutate(errorText: String, body: suspend () -> Boolean) {
+        if (_uiState.value.isVoting) return
+        _uiState.value = _uiState.value.copy(isVoting = true, voteError = null)
+        viewModelScope.launch {
+            val ok = body()
+            _uiState.value = _uiState.value.copy(isVoting = false, voteError = if (ok) null else errorText)
         }
     }
 

@@ -244,8 +244,8 @@ fun IdolListScreen(
                         icon = Icons.Filled.FilterAltOff,
                         title = "該当するアイドルがいません",
                         message = "フィルタ条件を変更するか、フィルタを解除してください。",
-                        actionTitle = if (state.filterBadgeCount > 0) "フィルタを解除" else null,
-                        onAction = if (state.filterBadgeCount > 0) { { viewModel.clearQuickFilters() } } else null
+                        actionTitle = if (state.activeFilterCount > 0) "フィルタを解除" else null,
+                        onAction = if (state.activeFilterCount > 0) { { viewModel.clearQuickFilters() } } else null
                     )
                 }
                 state.listMode == IdolListMode.GRID -> {

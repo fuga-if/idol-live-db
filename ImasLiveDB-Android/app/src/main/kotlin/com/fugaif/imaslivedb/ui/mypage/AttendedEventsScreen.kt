@@ -40,6 +40,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasFormBackdrop
 import com.fugaif.imaslivedb.ui.designsystem.ImasListSection
 import com.fugaif.imaslivedb.ui.designsystem.ImasLoadingState
 import com.fugaif.imaslivedb.ui.designsystem.ImasTabs
+import com.fugaif.imaslivedb.ui.theme.AppPreferences
 import com.fugaif.imaslivedb.ui.theme.DS
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -92,7 +93,10 @@ fun AttendedEventsScreen(
     viewModel: AttendedEventsViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    var filterIndex by rememberSaveable { mutableIntStateOf(0) }
+    // 既定は回収の設定に追従する (配信を回収に数えない人には現地だけを見せる。iOS と同じ)。
+    var filterIndex by rememberSaveable {
+        mutableIntStateOf(if (AppPreferences.includeStreamInCollection) AttendanceFilter.ALL.ordinal else AttendanceFilter.LIVE.ordinal)
+    }
 
     val showsLiveViewingTab = state.typeSets.liveViewing.isNotEmpty()
     val filters = remember(showsLiveViewingTab) {

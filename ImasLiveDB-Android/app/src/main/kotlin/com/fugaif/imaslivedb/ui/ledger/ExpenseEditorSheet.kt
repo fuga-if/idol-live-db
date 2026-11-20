@@ -73,7 +73,7 @@ fun ExpenseEditorSheet(
     onSave: (Expense) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var dateText by rememberSaveable { mutableStateOf(expense?.date ?: DATE_FORMAT.format(Instant.now().atZone(ZoneOffset.UTC))) }
+    var dateText by rememberSaveable { mutableStateOf(expense?.date ?: DATE_FORMAT.format(java.time.LocalDate.now())) }
     var category by remember { mutableStateOf(expense?.categoryValue ?: ExpenseCategory.TICKET) }
     var amount by rememberSaveable { mutableStateOf(expense?.amount?.toInt()) }
     var note by rememberSaveable { mutableStateOf(expense?.note ?: "") }
@@ -113,7 +113,8 @@ fun ExpenseEditorSheet(
                 ImasFormCard {
                     ImasFormAmount(label = "金額", imprint = "AMOUNT", icon = Icons.Filled.AttachMoney, amount = amount, onAmountChange = { amount = it })
                 }
-                if (validation == ExpenseInputError.NOT_POSITIVE || validation == ExpenseInputError.TOO_LARGE) {
+                // 開いた直後 (まだ何も打っていない) は叱らない。iOS も金額が入ってから出す。
+                if (amount != null && (validation == ExpenseInputError.NOT_POSITIVE || validation == ExpenseInputError.TOO_LARGE)) {
                     Text(message(validation), style = ImasTextRole.NOTE.style, color = DS.danger)
                 }
 

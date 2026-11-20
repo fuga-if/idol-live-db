@@ -216,9 +216,14 @@ fun PollCreateSheet(
 
     if (showCandidatePicker) {
         val alreadySelected = state.candidates.map { it.entityId }.toSet()
-        // ピッカーは「追加分」だけを返すので、既存の並びの末尾に足して選択順を保つ。
-        val appendCandidates: (List<String>) -> Unit = { newIds ->
-            viewModel.setCandidates(targetType, state.candidates.map { it.entityId } + newIds)
+        // ピッカーは選択全体 (既に選んだ分も含む) を返す。外したものは抜き、残したものは元の並び、
+        // 新しく選んだものを末尾に足す (iOS と同じ差分の当て方)。そのまま足すと候補が二重になり、
+        // サーバに重複で弾かれる。
+        val appendCandidates: (List<String>) -> Unit = { picked ->
+            val pickedSet = picked.toSet()
+            val kept = state.candidates.map { it.entityId }.filter { it in pickedSet }
+            val keptSet = kept.toSet()
+            viewModel.setCandidates(targetType, kept + picked.filter { it !in keptSet }.distinct())
             showCandidatePicker = false
         }
         val remaining = (MAX_MANUAL_CANDIDATES - alreadySelected.size).coerceAtLeast(0)

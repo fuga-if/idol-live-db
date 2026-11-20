@@ -91,6 +91,7 @@ fun FavoritesScreen(
     onBack: () -> Unit,
     onNavigateToSong: (String) -> Unit,
     onNavigateToIdol: (String) -> Unit,
+    onNavigateToEvent: (String) -> Unit,
     viewModel: FavoritesViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -123,7 +124,7 @@ fun FavoritesScreen(
                 when (tabs[tabIndex]) {
                     FavoritesTab.SONG -> SongsTab(state.songs, onNavigateToSong)
                     FavoritesTab.IDOL -> IdolsTab(state.idols, onNavigateToIdol)
-                    FavoritesTab.EVENT -> EventsTab(state.events)
+                    FavoritesTab.EVENT -> EventsTab(state.events, onNavigateToEvent)
                 }
             }
         }
@@ -173,9 +174,7 @@ private fun IdolsTab(idols: List<Idol>, onClick: (String) -> Unit) {
 }
 
 @Composable
-private fun EventsTab(events: List<EventWithDateRange>) {
-    // iOS は行から詳細へ飛べるが、Android はこの画面に遷移先 (onNavigateToEvent) が無い既存の形。
-    // 無い導線を足さず、表示のみ移植する。
+private fun EventsTab(events: List<EventWithDateRange>, onClick: (String) -> Unit) {
     EntityListSection(
         isEmpty = events.isEmpty(),
         emptyIcon = Icons.Filled.MusicNote,
@@ -183,7 +182,7 @@ private fun EventsTab(events: List<EventWithDateRange>) {
         sectionTitle = "${events.size}件"
     ) {
         events.forEach { ew ->
-            ImasEventRow(event = ew.event, date = ew.firstDate, subtitle = ew.dateRange, rainbow = ew.isJoint)
+            ImasEventRow(event = ew.event, date = ew.firstDate, subtitle = ew.dateRange, rainbow = ew.isJoint, onClick = { onClick(ew.event.id) })
         }
     }
 }

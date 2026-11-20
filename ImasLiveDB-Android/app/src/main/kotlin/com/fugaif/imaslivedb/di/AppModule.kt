@@ -137,7 +137,10 @@ class AppModule private constructor(context: Context) {
         com.fugaif.imaslivedb.data.repository.PlaylistRepository(database)
     }
     val showTicketRepository: ShowTicketRepository by lazy { ShowTicketRepository(database) }
-    val authService: AuthService by lazy { AuthService(appContext) }
+    val authService: AuthService by lazy {
+        // 自分の投票履歴は端末ローカルでアカウントに紐づかないので、サインアウトで捨てる。
+        AuthService(appContext).also { auth -> auth.addSignOutListener { localPollVoteLog.clear() } }
+    }
     val spotifyService: SpotifyService by lazy { SpotifyService(appContext, snapshotStoreProvider) }
     /** ChatGPT のプランで「文で探す」を動かす連携 (サインイン状態・保存)。 */
     val chatGptPlanService: com.fugaif.imaslivedb.data.chatgpt.ChatGptPlanService by lazy {

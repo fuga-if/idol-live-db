@@ -229,10 +229,11 @@ class CommunityApi(private val http: WorkerHttpClient) {
     }
 
     /** POST /songs/{id}/tags — 複数タグをまとめて曲に適用 (タグ追加ピッカーの「追加」)。 */
-    suspend fun applySongTags(songId: String, tagIds: List<String>): List<String> = withContext(Dispatchers.IO) {
+    suspend fun applySongTags(songId: String, tagIds: List<String>): List<String>? = withContext(Dispatchers.IO) {
         if (tagIds.isEmpty()) return@withContext emptyList()
+        // 通信失敗・4xx/5xx は null (呼び出し側が「追加に失敗」を出す)。空リストで返すと成功に見える。
         val json = sendJson("POST", "/songs/${enc(songId)}/tags", JSONObject().put("tag_ids", JSONArray(tagIds)))
-            ?: return@withContext emptyList()
+            ?: return@withContext null
         val arr = json.optJSONArray("applied_tag_ids") ?: JSONArray()
         (0 until arr.length()).map { arr.getString(it) }
     }
@@ -255,10 +256,11 @@ class CommunityApi(private val http: WorkerHttpClient) {
     }
 
     /** POST /idols/{id}/tags — 複数タグをまとめてアイドルに適用 (タグ追加ピッカーの「追加」)。 */
-    suspend fun applyIdolTags(idolId: String, tagIds: List<String>): List<String> = withContext(Dispatchers.IO) {
+    suspend fun applyIdolTags(idolId: String, tagIds: List<String>): List<String>? = withContext(Dispatchers.IO) {
         if (tagIds.isEmpty()) return@withContext emptyList()
+        // 通信失敗・4xx/5xx は null (呼び出し側が「追加に失敗」を出す)。空リストで返すと成功に見える。
         val json = sendJson("POST", "/idols/${enc(idolId)}/tags", JSONObject().put("tag_ids", JSONArray(tagIds)))
-            ?: return@withContext emptyList()
+            ?: return@withContext null
         val arr = json.optJSONArray("applied_tag_ids") ?: JSONArray()
         (0 until arr.length()).map { arr.getString(it) }
     }
@@ -281,10 +283,11 @@ class CommunityApi(private val http: WorkerHttpClient) {
     }
 
     /** POST /units/{id}/tags — 複数タグをまとめてユニットに適用 (タグ追加ピッカーの「追加」)。 */
-    suspend fun applyUnitTags(unitId: String, tagIds: List<String>): List<String> = withContext(Dispatchers.IO) {
+    suspend fun applyUnitTags(unitId: String, tagIds: List<String>): List<String>? = withContext(Dispatchers.IO) {
         if (tagIds.isEmpty()) return@withContext emptyList()
+        // 通信失敗・4xx/5xx は null (呼び出し側が「追加に失敗」を出す)。空リストで返すと成功に見える。
         val json = sendJson("POST", "/units/${enc(unitId)}/tags", JSONObject().put("tag_ids", JSONArray(tagIds)))
-            ?: return@withContext emptyList()
+            ?: return@withContext null
         val arr = json.optJSONArray("applied_tag_ids") ?: JSONArray()
         (0 until arr.length()).map { arr.getString(it) }
     }

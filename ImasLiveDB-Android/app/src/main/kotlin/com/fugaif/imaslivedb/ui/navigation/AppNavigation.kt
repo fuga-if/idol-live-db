@@ -542,7 +542,8 @@ internal fun NavGraphBuilder.produceNavGraph(navController: NavHostController) {
         FavoritesScreen(
             onBack = { navController.popBackStack() },
             onNavigateToSong = { navController.navigate(NavRoutes.SongDetail.createRoute(it)) },
-            onNavigateToIdol = { navController.navigate(NavRoutes.IdolDetail.createRoute(it)) }
+            onNavigateToIdol = { navController.navigate(NavRoutes.IdolDetail.createRoute(it)) },
+            onNavigateToEvent = { navController.navigate(NavRoutes.EventDetail.createRoute(it)) }
         )
     }
     composable(NavRoutes.AttendedEvents.route) {

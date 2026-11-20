@@ -69,8 +69,8 @@ fun ImasBrandPicker(
 
 // MARK: - 曲
 
-/** 試聴に使える URL (http/https でホストがあるものだけ。iOS `URL.safeHTTP`)。 */
-private fun safeHttp(url: String?): String? {
+/** 開いてよい URL (http/https でホストがあるものだけ。iOS `URL.safeHTTP`)。利用者が編集できる URL は必ず通す。 */
+fun safeHttp(url: String?): String? {
     if (url.isNullOrEmpty()) return null
     val uri = runCatching { Uri.parse(url) }.getOrNull() ?: return null
     val scheme = uri.scheme?.lowercase()
