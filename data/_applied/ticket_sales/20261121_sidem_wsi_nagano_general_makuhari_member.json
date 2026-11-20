@@ -1,0 +1,58 @@
+{
+ "title": "F@NTASTIC BATTLE FES ～Wanna step in～ 長野公演 一般発売(先着)・幕張公演 アソビストア一般会員先行",
+ "author": "daily-data-crawl",
+ "ticket_sales": [
+  {
+   "event_id": "ev_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~",
+   "show_ids": [
+    "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_1",
+    "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_5",
+    "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_2",
+    "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_6"
+   ],
+   "kind": "first_come",
+   "name": "一般発売(S席・A席)(長野公演)",
+   "starts_at": "2026-11-21 13:00",
+   "ends_at": "2026-12-19 23:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/c6c3c94b-a11f-498e-ab1e-476739b295d8",
+   "note": "お一人様1公演につき4枚まで（複数公演申込可）。予定枚数に達し次第終了。SP席は完売のため受付なし。12月17日00:00以降の支払いはクレジットカードのみ。",
+   "source_url": "https://idolmaster-official.jp/live_event/sidem_fbfes_wsi/ticket/",
+   "sort_order": 6
+  },
+  {
+   "event_id": "ev_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~",
+   "show_ids": [
+    "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_3",
+    "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_7",
+    "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_4",
+    "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_8"
+   ],
+   "kind": "lottery",
+   "name": "アソビストア一般会員先行(SP席)(幕張公演)",
+   "starts_at": "2026-11-21 12:00",
+   "ends_at": "2026-12-06 23:59",
+   "result_at": "2026-12-17 13:00",
+   "note": "お一人様1公演につき2枚まで（複数公演申込可）。入金期間は2026年12月17日13:00〜12月21日23:59。",
+   "source_url": "https://idolmaster-official.jp/news/01_20406",
+   "sort_order": 7
+  },
+  {
+   "event_id": "ev_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~",
+   "show_ids": [
+    "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_3",
+    "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_7",
+    "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_4",
+    "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_8"
+   ],
+   "kind": "lottery",
+   "name": "アソビストア一般会員先行(S席・A席)(幕張公演)",
+   "starts_at": "2026-11-21 12:00",
+   "ends_at": "2026-12-06 23:59",
+   "result_at": "2026-12-17 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/eecc1637-f2f1-4791-9277-e8a74cf58bab",
+   "note": "お一人様1公演につき4枚まで（複数公演申込可）。入金期間は2026年12月17日13:00〜12月21日23:59。",
+   "source_url": "https://idolmaster-official.jp/news/01_20406",
+   "sort_order": 8
+  }
+ ]
+}

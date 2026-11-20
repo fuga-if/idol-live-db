@@ -1,0 +1,16 @@
+{
+ "title": "天海春香のローマ字表記を追加 (#430)",
+ "author": "daily-data-crawl",
+ "source": "https://github.com/fuga-if/idol-live-db/issues/430",
+ "fixes": [
+  {
+   "table": "idols",
+   "id": "765as_天海春香",
+   "fields": {
+    "name_romaji": "Haruka Amami"
+   },
+   "source": "https://github.com/fuga-if/idol-live-db/issues/430",
+   "note": "修正リクエスト #430 の投稿どおり (公式英語表記 Haruka Amami)"
+  }
+ ]
+}

@@ -1,0 +1,89 @@
+{
+ "title": "xR LIVE REVIVAL 一般販売(先着)と公式リセール",
+ "author": "daily-data-crawl",
+ "ticket_sales": [
+  {
+   "event_id": "ev_xr_live_revival",
+   "kind": "first_come",
+   "name": "一般販売(先着)",
+   "starts_at": "2026-11-22 12:00",
+   "ends_at": "2026-12-05 23:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/62d2bd07-0a6e-4ab3-a891-bb53dcaf31de",
+   "note": "早期限定グッズ付きチケットの取り扱いなし。お一人様1公演につき2枚まで（複数公演申込可）。予定枚数に達し次第終了。12月3日00:00以降の支払いはクレジットカードのみ。",
+   "source_url": "https://idolmaster-official.jp/news/01_20396",
+   "sort_order": 1
+  },
+  {
+   "event_id": "ev_xr_live_revival",
+   "show_ids": [
+    "sh_xr_live_revival_1"
+   ],
+   "kind": "resale",
+   "name": "公式リセール（第一公演 12月12日 友藍）",
+   "starts_at": "2026-11-22 15:00",
+   "ends_at": "2026-12-06 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/4f82b2a7-69e9-42fd-8903-8f346bc5ebf3",
+   "note": "ASOBI TICKET 公式リセール。12月4日00:00以降の支払いはクレジットカードのみ。",
+   "source_url": "https://idolmaster-official.jp/news/01_20396",
+   "sort_order": 2
+  },
+  {
+   "event_id": "ev_xr_live_revival",
+   "show_ids": [
+    "sh_xr_live_revival_2"
+   ],
+   "kind": "resale",
+   "name": "公式リセール（第二公演 12月12日 悲藍）",
+   "starts_at": "2026-11-22 15:00",
+   "ends_at": "2026-12-06 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/b0d56427-218f-4ae6-adc5-89da9c77b60d",
+   "note": "ASOBI TICKET 公式リセール。12月4日00:00以降の支払いはクレジットカードのみ。",
+   "source_url": "https://idolmaster-official.jp/news/01_20396",
+   "sort_order": 3
+  },
+  {
+   "event_id": "ev_xr_live_revival",
+   "show_ids": [
+    "sh_xr_live_revival_3"
+   ],
+   "kind": "resale",
+   "name": "公式リセール（第三公演 12月12日 純藍）",
+   "starts_at": "2026-11-22 15:00",
+   "ends_at": "2026-12-06 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/20503dd9-29a3-45f1-8a57-8a7ff3b48bb9",
+   "note": "ASOBI TICKET 公式リセール。12月4日00:00以降の支払いはクレジットカードのみ。",
+   "source_url": "https://idolmaster-official.jp/news/01_20396",
+   "sort_order": 4
+  },
+  {
+   "event_id": "ev_xr_live_revival",
+   "show_ids": [
+    "sh_xr_live_revival_1",
+    "sh_xr_live_revival_2",
+    "sh_xr_live_revival_3"
+   ],
+   "kind": "resale",
+   "name": "公式リセール（12月12日 3公演通し）",
+   "starts_at": "2026-11-22 15:00",
+   "ends_at": "2026-12-06 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/29d43976-a68a-4e3e-a857-6e92d95ac75b",
+   "note": "ASOBI TICKET 公式リセール。12月4日00:00以降の支払いはクレジットカードのみ。",
+   "source_url": "https://idolmaster-official.jp/news/01_20396",
+   "sort_order": 5
+  },
+  {
+   "event_id": "ev_xr_live_revival",
+   "show_ids": [
+    "sh_xr_live_revival_4"
+   ],
+   "kind": "resale",
+   "name": "公式リセール（第四公演 12月13日 夕方公演）",
+   "starts_at": "2026-11-22 15:00",
+   "ends_at": "2026-12-06 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/9f95dc4e-38b1-4820-a246-6d0e4994a520",
+   "note": "ASOBI TICKET 公式リセール。12月4日00:00以降の支払いはクレジットカードのみ。",
+   "source_url": "https://idolmaster-official.jp/news/01_20396",
+   "sort_order": 6
+  }
+ ]
+}

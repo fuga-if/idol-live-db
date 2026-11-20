@@ -1,0 +1,43 @@
+{
+ "title": "F@NTASTIC BATTLE FES ～Wanna step in～ 幕張公演の開演時刻",
+ "author": "daily-data-crawl",
+ "source": "https://idolmaster-official.jp/news/01_20406",
+ "fixes": [
+  {
+   "table": "shows",
+   "id": "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_3",
+   "fields": {
+    "start_time": "11:30"
+   },
+   "source": "https://idolmaster-official.jp/news/01_20406",
+   "note": "公式ニュースの開催概要（幕張公演 開演時刻）"
+  },
+  {
+   "table": "shows",
+   "id": "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_4",
+   "fields": {
+    "start_time": "11:30"
+   },
+   "source": "https://idolmaster-official.jp/news/01_20406",
+   "note": "公式ニュースの開催概要（幕張公演 開演時刻）"
+  },
+  {
+   "table": "shows",
+   "id": "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_7",
+   "fields": {
+    "start_time": "17:00"
+   },
+   "source": "https://idolmaster-official.jp/news/01_20406",
+   "note": "公式ニュースの開催概要（幕張公演 開演時刻）"
+  },
+  {
+   "table": "shows",
+   "id": "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_8",
+   "fields": {
+    "start_time": "17:00"
+   },
+   "source": "https://idolmaster-official.jp/news/01_20406",
+   "note": "公式ニュースの開催概要（幕張公演 開演時刻）"
+  }
+ ]
+}
