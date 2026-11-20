@@ -145,6 +145,10 @@ fun PollDetailScreen(
                     Text(detail.statusLabel, style = ImasTextRole.META.style, color = if (detail.isActive) DS.pick else DS.ink3)
                     ScopeBadge(detail)
                 }
+                // どのブランドに限ったお題かを名前で出す (札は数しか持たない。iOS は同じ所にブランド名を並べる)。
+                if (state.scopeBrandNames.isNotEmpty()) {
+                    Text("対象ブランド: ${state.scopeBrandNames.joinToString("・")}", style = ImasTextRole.META.style, color = DS.ink2)
+                }
                 if (!detail.description.isNullOrEmpty()) {
                     Text(detail.description, style = ImasTextRole.BODY.style, color = DS.ink2)
                 }
@@ -217,23 +221,27 @@ fun PollDetailScreen(
         val alreadySelected = detail.entries.filter { it.mine }.map { it.entityId }.toSet()
         val remaining = votesRemaining(detail.myVoteCount.coerceAtLeast(0).toUInt()).toInt()
         // 選択状態を見せる選択肢 (アイドル・ユニット) は外したものを取り消す。曲は足すだけ (iOS と同じ)。
+        // ブランド限定のお題は、どの種類でも候補を許可されたブランドに絞る。
+        val restrictedBrandIds = if (detail.candidateScope == CommunityApi.PollCandidateScope.BRAND) detail.scopeBrandIds.toSet() else null
         when (detail.targetType) {
             "idol" -> IdolPollCandidatePicker(
                 alreadySelected = alreadySelected,
                 remaining = remaining,
+                restrictedBrandIds = restrictedBrandIds,
                 onDismiss = { showPicker = false },
                 onConfirm = { ordered -> viewModel.applyPickerSelection(ordered, unvoteDeselected = true); showPicker = false }
             )
             "unit" -> UnitPollCandidatePicker(
                 alreadySelected = alreadySelected,
                 remaining = remaining,
+                restrictedBrandIds = restrictedBrandIds,
                 onDismiss = { showPicker = false },
                 onConfirm = { ordered -> viewModel.applyPickerSelection(ordered, unvoteDeselected = true); showPicker = false }
             )
             else -> SongPollCandidatePicker(
                 alreadySelected = alreadySelected,
                 remaining = remaining,
-                restrictedBrandIds = if (detail.candidateScope == CommunityApi.PollCandidateScope.BRAND) detail.scopeBrandIds.toSet() else null,
+                restrictedBrandIds = restrictedBrandIds,
                 onDismiss = { showPicker = false },
                 onConfirm = { ordered -> viewModel.applyPickerSelection(ordered, unvoteDeselected = false); showPicker = false }
             )

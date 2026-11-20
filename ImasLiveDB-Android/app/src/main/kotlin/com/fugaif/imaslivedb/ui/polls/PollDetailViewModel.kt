@@ -23,6 +23,8 @@ data class PollDetailUiState(
     val songsById: Map<String, Song> = emptyMap(),
     val idolsById: Map<String, Idol> = emptyMap(),
     val unitsById: Map<String, ImasUnit> = emptyMap(),
+    /** ブランド限定のお題で候補になるブランドの略称 (お題の並び順)。それ以外は空。 */
+    val scopeBrandNames: List<String> = emptyList(),
     val isDeleting: Boolean = false,
     val deleteError: String? = null
 )
@@ -34,6 +36,7 @@ class PollDetailViewModel(app: Application) : AndroidViewModel(app) {
     private val songRepo = AppModule.from(app).songRepository
     private val idolRepo = AppModule.from(app).idolRepository
     private val unitRepo = AppModule.from(app).unitRepository
+    private val statsRepo = AppModule.from(app).statsRepository
     private val voteLog = AppModule.from(app).localPollVoteLog
 
     private val _uiState = MutableStateFlow(PollDetailUiState())
@@ -60,13 +63,18 @@ class PollDetailViewModel(app: Application) : AndroidViewModel(app) {
         val songs = if (detail.targetType == "song") songRepo.fetchSongsByIds(ids).associateBy { it.id } else emptyMap()
         val idols = if (detail.targetType == "idol") ids.mapNotNull { idolRepo.fetchIdol(it) }.associateBy { it.id } else emptyMap()
         val units = if (detail.targetType == "unit") unitRepo.fetchUnitsByIds(ids).associateBy { it.id } else emptyMap()
+        val scopeBrandNames = if (detail.candidateScope == CommunityApi.PollCandidateScope.BRAND) {
+            val brands = runCatching { statsRepo.fetchBrands() }.getOrDefault(emptyList()).associateBy { it.id }
+            detail.scopeBrandIds.map { brands[it]?.shortName ?: it }
+        } else emptyList()
         _uiState.value = PollDetailUiState(
             isLoading = false,
             detail = detail,
             entityNames = names,
             songsById = songs,
             idolsById = idols,
-            unitsById = units
+            unitsById = units,
+            scopeBrandNames = scopeBrandNames
         )
     }
 

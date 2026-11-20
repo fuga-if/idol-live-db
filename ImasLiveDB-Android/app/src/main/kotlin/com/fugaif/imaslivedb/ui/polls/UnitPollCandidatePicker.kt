@@ -95,6 +95,7 @@ private enum class UnitPickerDisplayMode { GRID, LIST }
 fun UnitPollCandidatePicker(
     alreadySelected: Set<String>,
     remaining: Int,
+    restrictedBrandIds: Set<String>? = null,
     onDismiss: () -> Unit,
     onConfirm: (List<String>) -> Unit,
     viewModel: UnitPickerViewModel = viewModel()
@@ -107,18 +108,27 @@ fun UnitPollCandidatePicker(
     var selectedBrandId by remember { mutableStateOf<String?>(null) }
     var displayMode by remember { mutableStateOf(UnitPickerDisplayMode.GRID) }
 
+    // ブランド限定のお題では、許可されたブランドのユニットだけを母集団にする。サーバは brand スコープを
+    // 検証しない (マスタを持たない) ので、ここで絞らないと他ブランドへ投票できてしまう (iOS と同じ)。
+    val pool = remember(state.units, restrictedBrandIds) {
+        if (restrictedBrandIds == null) state.units else state.units.filter { it.brandId in restrictedBrandIds }
+    }
+    val brands = remember(state.brands, restrictedBrandIds) {
+        if (restrictedBrandIds == null) state.brands else state.brands.filter { it.id in restrictedBrandIds }
+    }
+
     // 数百件を一気にスクロールするピッカー。行ごとに derive すると、その間ずっと 1 行 1 回
     // FFI を跨ぐ。行が組まれる前に母集団ぶんを 1 往復で温め、行はメモに当てる。
     // 鍵を filtered ではなく母集団にするのは、行が引く色が絞り込みで変わらないため
     // (打鍵のたびに温め直しても新しい組は 1 件も無い)。
-    imasThemePrewarm(state.units) { state.units.map { it.id to it.brandId } }
+    imasThemePrewarm(pool) { pool.map { it.id to it.brandId } }
 
-    val matched = rememberSearchFiltered(state.units, query) { listOf(it.name, it.nameAlt, it.nameKana) }
+    val matched = rememberSearchFiltered(pool, query) { listOf(it.name, it.nameAlt, it.nameKana) }
     val filtered = remember(matched, selectedBrandId) {
         matched.filter { selectedBrandId == null || it.brandId == selectedBrandId }
     }
-    val grouped = remember(filtered, state.brands) {
-        state.brands.mapNotNull { brand ->
+    val grouped = remember(filtered, brands) {
+        brands.mapNotNull { brand ->
             val list = filtered.filter { it.brandId == brand.id }
             if (list.isEmpty()) null else brand to list
         }
@@ -133,8 +143,8 @@ fun UnitPollCandidatePicker(
     fun confirm() {
         // 選択は選択肢の表示順 (ブランド順 → 一覧の並び) で返す。
         // 何を入れて何を取り消すか・残りの票数での打ち切りはコア (planVoteSelection)。
-        val ordered = state.brands
-            .flatMap { brand -> state.units.filter { it.brandId == brand.id } }
+        val ordered = brands
+            .flatMap { brand -> pool.filter { it.brandId == brand.id } }
             .map { it.id }
             .filter { it in selection }
         onConfirm(ordered + (selection - ordered.toSet()))
@@ -158,11 +168,14 @@ fun UnitPollCandidatePicker(
                 )
             }
 
-            BrandFilterChips(
-                brands = state.brands.map { BrandFilterItem(it.id, it.shortName) },
-                selectedBrandId = selectedBrandId,
-                onBrandSelected = { selectedBrandId = it }
-            )
+            // 1 ブランドに限ったお題では切り替える先が無いので帯ごと出さない (曲のピッカーと同じ)。
+            if (brands.size > 1) {
+                BrandFilterChips(
+                    brands = brands.map { BrandFilterItem(it.id, it.shortName) },
+                    selectedBrandId = selectedBrandId,
+                    onBrandSelected = { selectedBrandId = it }
+                )
+            }
 
             ImasSearchField(
                 prompt = "ユニット名で検索",
