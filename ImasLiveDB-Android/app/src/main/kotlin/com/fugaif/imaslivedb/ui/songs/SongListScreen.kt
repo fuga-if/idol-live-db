@@ -484,8 +484,8 @@ private fun filterBarItems(uiState: SongListUiState, viewModel: SongListViewMode
     val filter = uiState.filter
     // 検索語と同じ軸の条件は、打った語に上書きされている間だけ出さない
     // (VM の withSearch を参照。入力欄と札に違う値が並ぶのを避ける)。
+    // 歌唱の語はシートのアイドル選びと掛け合わせる (上書きしない) ので、アイドルの札は出したまま。
     val searching = uiState.searchText.isNotEmpty()
-    val idolOverridden = searching && uiState.searchMode == SongSearchMode.PERFORMER
     val songwriterOverridden = searching && uiState.searchMode == SongSearchMode.CREATOR
 
     return buildList {
@@ -508,7 +508,7 @@ private fun filterBarItems(uiState: SongListUiState, viewModel: SongListViewMode
                 add(ImasFilterBarItem(id = "collect", title = "未回収", onRemove = viewModel::clearCollectFilter))
             SongCollectFilter.ALL -> {}
         }
-        filter.idolIds?.takeIf { it.isNotEmpty() && !idolOverridden }?.let { ids ->
+        filter.idolIds?.takeIf { it.isNotEmpty() }?.let { ids ->
             // 名前の引き当てはフィルタシート側にしか無いので、札は人数で出す。
             add(
                 ImasFilterBarItem(

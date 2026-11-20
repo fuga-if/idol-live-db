@@ -26,6 +26,9 @@ import uniffi.imas_core.buildMasteryGroups
 import uniffi.imas_core.masteryBulkTargets
 import uniffi.imas_core.masterySummary
 
+/** 一括更新の取り消し用。更新前の段階を曲ごとに持つ (iOS `UndoState` と同じ)。 */
+data class MasteryUndo(val label: String, val previous: Map<String, UByte>)
+
 /** 群の詳細に渡す一式。曲の実体は開かれてから引く。 */
 data class MasteryDetailState(
     val group: MasteryGroup,
@@ -118,7 +121,38 @@ class MasteryViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             val targets = masteryBulkTargets(group.songIds, group.levels, scope)
             if (targets.isEmpty()) return@launch
+            val before = targets.associateWith { levels[it] ?: 0u }
+            // 書けなかったときは取り消しの帯を出さない (localWrite が失敗を知らせる)。
             localWrite("習熟度の記録") { marks.setMastery(targets, level) } ?: return@launch
+            onMarksChanged()
+            showUndo(MasteryUndo("${targets.size}曲を「${AppPreferences.masteryScale.label(level)}」に", before))
+        }
+    }
+
+    private val _undo = MutableStateFlow<MasteryUndo?>(null)
+    val undo: StateFlow<MasteryUndo?> = _undo.asStateFlow()
+    private var undoJob: Job? = null
+
+    /** 取り消しの帯を 6 秒だけ出す。 */
+    private fun showUndo(value: MasteryUndo) {
+        undoJob?.cancel()
+        _undo.value = value
+        undoJob = viewModelScope.launch {
+            delay(6_000)
+            _undo.value = null
+        }
+    }
+
+    /** 一括更新を元の段階に戻す。 */
+    fun revertBulk() {
+        val u = _undo.value ?: return
+        undoJob?.cancel()
+        _undo.value = null
+        viewModelScope.launch {
+            // 戻す先ごとにまとめて書く (setMastery(ids, level) は同じ段階を複数曲へ)。
+            u.previous.entries.groupBy({ it.value }, { it.key }).forEach { (level, ids) ->
+                localWrite("習熟度の取り消し") { marks.setMastery(ids, level) }
+            }
             onMarksChanged()
         }
     }

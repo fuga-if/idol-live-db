@@ -198,5 +198,6 @@ object AppPreferences {
     /** 回収の集計条件をリポジトリへ反映する。DB は開かないので合成中に呼んでも重くない。 */
     private fun pushCollectionScope(context: Context) {
         AppModule.from(context).userMarkRepository.includeStreamInCollection = includeStreamInCollection
+        AppModule.from(context).userMarkRepository.masterySteps = masteryScale.steps
     }
 }

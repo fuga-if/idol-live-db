@@ -1,7 +1,8 @@
 package com.fugaif.imaslivedb.ui.events
 
+import android.app.Application
 import android.content.Context
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.data.model.EventWithDateRange
@@ -87,9 +88,24 @@ data class EventListUiState(
             (if (venue == null) 0 else 1)
 }
 
-class EventListViewModel : ViewModel() {
+class EventListViewModel(app: Application) : AndroidViewModel(app) {
 
-    private val _uiState = MutableStateFlow(EventListUiState())
+    // iOS の @AppStorage (events_*) と同じキー・同じ既定値で端末に残す。
+    // ブランド選択・配信除外・検索語は iOS も残さないのでここでも残さない。
+    private val prefs = app.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    private val _uiState = MutableStateFlow(
+        EventListUiState(
+            excludedKinds = prefs.getString(KEY_EXCLUDED_KINDS, "").orEmpty()
+                .split(',').filter { it.isNotEmpty() }.toSet(),
+            attendanceFilter = prefs.getString(KEY_ATTENDANCE_FILTER, "all") ?: "all",
+            requireFavorite = prefs.getBoolean(KEY_REQUIRE_FAVORITE, false),
+            requireNote = prefs.getBoolean(KEY_REQUIRE_NOTE, false),
+            showEmptyEvents = prefs.getBoolean(KEY_SHOW_EMPTY, false),
+            timeFilter = prefs.getInt(KEY_TIME_FILTER, 0),
+            venue = prefs.getString(KEY_VENUE_ID, "").orEmpty().ifEmpty { null }
+        )
+    )
     val uiState: StateFlow<EventListUiState> = _uiState.asStateFlow()
 
     // 絞り込みの入力。画面には出さないので UiState には載せない
@@ -124,6 +140,8 @@ class EventListViewModel : ViewModel() {
             val brands = module.statsRepository.fetchBrands()
             val directory = module.eventRepository.fetchVenueDirectory()
             loadMarkSets(context)
+            // 前回の会場絞り込みを引き継いだときは、event_id 集合もここで解決し直す。
+            _uiState.value.venue?.let { venueEventIds = module.eventRepository.fetchEventIdsAtVenue(it) }
             sourceLoaded = true
             // isLoading はここでは降ろさない。groupedByYear の算出は下の scheduleRebuild が
             // 別コルーチン + Dispatchers.Default で行うため、先に降ろすと
@@ -155,6 +173,20 @@ class EventListViewModel : ViewModel() {
         notedEventIds = marks.notedIds(UserMark.EVENT)
     }
 
+    /** 端末に残す絞り込み条件を書き出す。条件を変える操作のたびに呼ぶ。 */
+    private fun persistFilters() {
+        val state = _uiState.value
+        prefs.edit()
+            .putString(KEY_EXCLUDED_KINDS, state.excludedKinds.sorted().joinToString(","))
+            .putString(KEY_ATTENDANCE_FILTER, state.attendanceFilter)
+            .putBoolean(KEY_REQUIRE_FAVORITE, state.requireFavorite)
+            .putBoolean(KEY_REQUIRE_NOTE, state.requireNote)
+            .putBoolean(KEY_SHOW_EMPTY, state.showEmptyEvents)
+            .putInt(KEY_TIME_FILTER, state.timeFilter)
+            .putString(KEY_VENUE_ID, state.venue.orEmpty())
+            .apply()
+    }
+
     fun toggleBrand(brandId: String) {
         val current = _uiState.value.selectedBrandIds
         _uiState.value = _uiState.value.copy(
@@ -175,6 +207,7 @@ class EventListViewModel : ViewModel() {
 
     fun selectTimeFilter(index: Int) {
         _uiState.value = _uiState.value.copy(timeFilter = index)
+        persistFilters()
         scheduleRebuild()
     }
 
@@ -221,32 +254,38 @@ class EventListViewModel : ViewModel() {
             showEmptyEvents = showEmptyEvents,
             hideStreaming = hideStreaming
         )
+        persistFilters()
         scheduleRebuild()
     }
 
     /** チップ列からの個別解除。 */
     fun removeExcludedKind(kind: String) {
         _uiState.value = _uiState.value.copy(excludedKinds = _uiState.value.excludedKinds - kind)
+        persistFilters()
         scheduleRebuild()
     }
 
     fun clearAttendanceFilter() {
         _uiState.value = _uiState.value.copy(attendanceFilter = "all")
+        persistFilters()
         scheduleRebuild()
     }
 
     fun clearFavoriteFilter() {
         _uiState.value = _uiState.value.copy(requireFavorite = false)
+        persistFilters()
         scheduleRebuild()
     }
 
     fun clearNoteFilter() {
         _uiState.value = _uiState.value.copy(requireNote = false)
+        persistFilters()
         scheduleRebuild()
     }
 
     fun clearShowEmptyEvents() {
         _uiState.value = _uiState.value.copy(showEmptyEvents = false)
+        persistFilters()
         scheduleRebuild()
     }
 
@@ -269,6 +308,7 @@ class EventListViewModel : ViewModel() {
                 AppModule.from(context).eventRepository.fetchEventIdsAtVenue(venue)
             }
             _uiState.value = _uiState.value.copy(venue = venue)
+            persistFilters()
             rebuild()
         }
     }
@@ -332,6 +372,16 @@ class EventListViewModel : ViewModel() {
     }
 
     private companion object {
+        const val PREFS_NAME = "event_list_prefs"
+        // iOS EventListView の @AppStorage と同じキー
+        const val KEY_SHOW_EMPTY = "events_show_empty"
+        const val KEY_EXCLUDED_KINDS = "events_excluded_kinds"
+        const val KEY_ATTENDANCE_FILTER = "events_attendance_filter"
+        const val KEY_REQUIRE_FAVORITE = "events_require_favorite"
+        const val KEY_REQUIRE_NOTE = "events_require_note"
+        const val KEY_VENUE_ID = "events_venue_id"
+        const val KEY_TIME_FILTER = "events_time_filter"
+
         /** 変換が落ち着いたと見なすまでの待ち (iOS EventListView の 280ms と同値)。 */
         const val SEARCH_DEBOUNCE_MS = 280L
     }

@@ -84,20 +84,29 @@ class RecentEditsViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoadingMore = true)
             try {
-                val next = state.page + 1
-                val page = editApi.fetchEdits(page = next, limit = limit, mine = state.mineOnly)
-                val existingIds = state.entries.map { it.batchId }.toSet()
-                val fresh = page.items.filter { it.batchId !in existingIds }
-                val newTitles = resolveTitles(fresh)
-                _uiState.value = _uiState.value.copy(
-                    entries = state.entries + fresh,
-                    recordTitles = state.recordTitles + newTitles,
-                    page = next,
-                    hasMore = page.items.size >= limit,
-                    isLoadingMore = false
-                )
+                // 全件が既出のページ (fresh が空) でも次がある限り進める。一覧が変わらないと末尾の
+                // 読み込みが再発火せず、無限スクロールが詰まる (iOS と同じループ)。
+                while (true) {
+                    val current = _uiState.value
+                    val next = current.page + 1
+                    val page = editApi.fetchEdits(page = next, limit = limit, mine = current.mineOnly)
+                    val existingIds = current.entries.map { it.batchId }.toSet()
+                    val fresh = page.items.filter { it.batchId !in existingIds }
+                    val newTitles = resolveTitles(fresh)
+                    // 「もう次が無い」は重複を除く前の受信件数で決める。
+                    val more = page.items.size >= limit
+                    _uiState.value = _uiState.value.copy(
+                        entries = current.entries + fresh,
+                        recordTitles = current.recordTitles + newTitles,
+                        page = next,
+                        hasMore = more
+                    )
+                    if (fresh.isNotEmpty() || !more) break
+                }
+                _uiState.value = _uiState.value.copy(isLoadingMore = false)
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(isLoadingMore = false, hasMore = false)
+                // 一過性の失敗でページ送りを止めない (hasMore は触らず、知らせて再試行の余地を残す)。
+                _uiState.value = _uiState.value.copy(isLoadingMore = false, errorMessage = errorText(e))
             }
         }
     }

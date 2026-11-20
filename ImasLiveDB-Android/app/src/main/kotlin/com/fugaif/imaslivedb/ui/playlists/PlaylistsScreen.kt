@@ -35,6 +35,8 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.community.CommunityPlaylistApi
 import com.fugaif.imaslivedb.data.model.PlaylistSummary
@@ -71,8 +73,6 @@ class PlaylistsViewModel(app: Application) : AndroidViewModel(app) {
     private val _uiState = MutableStateFlow(PlaylistsUiState())
     val uiState: StateFlow<PlaylistsUiState> = _uiState.asStateFlow()
 
-    init { load() }
-
     fun load() {
         viewModelScope.launch {
             _uiState.value = PlaylistsUiState(summaries = repository.summaries(), isLoading = false)
@@ -107,6 +107,9 @@ fun PlaylistsScreen(
     viewModel: PlaylistsViewModel = viewModel()
 ) {
     var tab by rememberSaveable { mutableStateOf(0) }
+    // 戻ってくるたびに読み直す。中で曲を足した・名前を変えた・公開した結果が一覧の件数と札に
+    // 出るように (iOS は .task が出直すたびに走る)。初回の読み込みもここで兼ねる。
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.load() }
 
     Scaffold(
         topBar = {

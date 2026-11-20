@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import uniffi.imas_core.BackupUserMarkRecord
 import uniffi.imas_core.backupMeaningfulMarkIndices
+import uniffi.imas_core.remapMasteryLevel
 import java.time.Instant
 import uniffi.imas_core.ticketApplicationRaw
 import uniffi.imas_core.ticketApplicationFromRaw
@@ -137,16 +138,44 @@ class UserMarkRepository(
             }
             .toMap()
 
+    /**
+     * 習熟度の段数。超える値は最上段に丸めて書く (iOS `setMastery` と同じ)。
+     * [includeStreamInCollection] と同じく、設定側 (AppPreferences) が読み込み時と変更時に押し込む
+     * (data → ui の依存を作らない)。押し込まれるまでは丸めない。
+     */
+    @Volatile var masterySteps: UByte = UByte.MAX_VALUE
+
     /** 1 曲の段階を決める。0 で未設定に戻す (行ごと消す)。 */
     suspend fun setMastery(songId: String, level: UByte) {
+        val clamped = minOf(level, masterySteps)
         setText(UserMark.SONG, songId, UserMark.MASTERY,
-                if (level.toInt() == 0) null else level.toString())
+                if (clamped.toInt() == 0) null else clamped.toString())
     }
 
     /** まとめて決める。1 曲ずつ書くのと同じ結果だが、呼び出し側の再読込を 1 回で済ませる。 */
     suspend fun setMastery(songIds: List<String>, level: UByte) {
-        val text = if (level.toInt() == 0) null else level.toString()
+        val clamped = minOf(level, masterySteps)
+        val text = if (clamped.toInt() == 0) null else clamped.toString()
         songIds.forEach { setText(UserMark.SONG, it, UserMark.MASTERY, text) }
+    }
+
+    /** 段数を [newSteps] に減らしたとき、上の段から寄せられる曲の数。 */
+    suspend fun masteryCountAbove(newSteps: UByte): Int =
+        masteryLevels().values.count { it > newSteps }
+
+    /**
+     * 段を減らしたぶんを 1 つ下へ寄せる (記録は消さない)。寄せ先の規則はコア (`remapMasteryLevel`)。
+     * 増やすとき・同数のときは何もしない。
+     */
+    suspend fun remapMastery(oldSteps: UByte, newSteps: UByte) {
+        if (newSteps >= oldSteps) return
+        masteryLevels().forEach { (songId, level) ->
+            val moved = remapMasteryLevel(level, oldSteps, newSteps)
+            if (moved != level) {
+                setText(UserMark.SONG, songId, UserMark.MASTERY,
+                        if (moved.toInt() == 0) null else moved.toString())
+            }
+        }
     }
 
     /**

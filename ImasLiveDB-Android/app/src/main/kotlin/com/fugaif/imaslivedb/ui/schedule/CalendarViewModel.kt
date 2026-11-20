@@ -1,6 +1,7 @@
 package com.fugaif.imaslivedb.ui.schedule
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.fugaif.imaslivedb.data.model.CalendarEntry
@@ -82,7 +83,25 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
 
     private val calendar = AppModule.from(app).calendarRepository
 
-    private val _uiState = MutableStateFlow(CalendarUiState())
+    // iOS CalendarView の @AppStorage (calendar_*) と同じキー・同じ既定値で端末に残す。
+    private val prefs = app.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    private val _uiState = MutableStateFlow(
+        CalendarUiState().let { base ->
+            val weekMode = prefs.getInt(KEY_DISPLAY_MODE, 0) == 1
+            base.copy(
+                showShows = prefs.getBoolean(KEY_SHOW_SHOWS, true),
+                showReleases = prefs.getBoolean(KEY_SHOW_RELEASES, true),
+                showBirthdays = prefs.getBoolean(KEY_SHOW_BIRTHDAYS, false),
+                showStaffBirthdays = prefs.getBoolean(KEY_SHOW_STAFF_BIRTHDAYS, false),
+                showAnniversaries = prefs.getBoolean(KEY_SHOW_ANNIVERSARIES, true),
+                showTickets = prefs.getBoolean(KEY_SHOW_TICKETS, true),
+                weekMode = weekMode,
+                // 週表示は基準日が要る。起動直後は今日を選んでおく (toggleWeekMode と同じ理由)。
+                selectedDate = if (weekMode) base.today else null
+            )
+        }
+    )
     val uiState: StateFlow<CalendarUiState> = _uiState.asStateFlow()
 
     init { load() }
@@ -181,16 +200,46 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
             weekMode = !state.weekMode,
             selectedDate = state.selectedDate ?: fallback
         )
+        prefs.edit().putInt(KEY_DISPLAY_MODE, if (_uiState.value.weekMode) 1 else 0).apply()
     }
 
-    fun toggleShows() { _uiState.value = _uiState.value.copy(showShows = !_uiState.value.showShows) }
-    fun toggleReleases() { _uiState.value = _uiState.value.copy(showReleases = !_uiState.value.showReleases) }
-    fun toggleBirthdays() { _uiState.value = _uiState.value.copy(showBirthdays = !_uiState.value.showBirthdays) }
-    fun toggleStaffBirthdays() { _uiState.value = _uiState.value.copy(showStaffBirthdays = !_uiState.value.showStaffBirthdays) }
-    fun toggleAnniversaries() { _uiState.value = _uiState.value.copy(showAnniversaries = !_uiState.value.showAnniversaries) }
-    fun toggleTickets() { _uiState.value = _uiState.value.copy(showTickets = !_uiState.value.showTickets) }
+    fun toggleShows() {
+        _uiState.value = _uiState.value.copy(showShows = !_uiState.value.showShows)
+        prefs.edit().putBoolean(KEY_SHOW_SHOWS, _uiState.value.showShows).apply()
+    }
+    fun toggleReleases() {
+        _uiState.value = _uiState.value.copy(showReleases = !_uiState.value.showReleases)
+        prefs.edit().putBoolean(KEY_SHOW_RELEASES, _uiState.value.showReleases).apply()
+    }
+    fun toggleBirthdays() {
+        _uiState.value = _uiState.value.copy(showBirthdays = !_uiState.value.showBirthdays)
+        prefs.edit().putBoolean(KEY_SHOW_BIRTHDAYS, _uiState.value.showBirthdays).apply()
+    }
+    fun toggleStaffBirthdays() {
+        _uiState.value = _uiState.value.copy(showStaffBirthdays = !_uiState.value.showStaffBirthdays)
+        prefs.edit().putBoolean(KEY_SHOW_STAFF_BIRTHDAYS, _uiState.value.showStaffBirthdays).apply()
+    }
+    fun toggleAnniversaries() {
+        _uiState.value = _uiState.value.copy(showAnniversaries = !_uiState.value.showAnniversaries)
+        prefs.edit().putBoolean(KEY_SHOW_ANNIVERSARIES, _uiState.value.showAnniversaries).apply()
+    }
+    fun toggleTickets() {
+        _uiState.value = _uiState.value.copy(showTickets = !_uiState.value.showTickets)
+        prefs.edit().putBoolean(KEY_SHOW_TICKETS, _uiState.value.showTickets).apply()
+    }
 
     private companion object {
+        const val PREFS_NAME = "calendar_prefs"
+        // iOS CalendarView の @AppStorage と同じキー
+        const val KEY_SHOW_SHOWS = "calendar_show_shows"
+        const val KEY_SHOW_RELEASES = "calendar_show_releases"
+        const val KEY_SHOW_BIRTHDAYS = "calendar_show_birthdays"
+        const val KEY_SHOW_STAFF_BIRTHDAYS = "calendar_show_staff_birthdays"
+        const val KEY_SHOW_ANNIVERSARIES = "calendar_show_anniversaries"
+        const val KEY_SHOW_TICKETS = "calendar_show_tickets"
+        /** 0 = 月表示, 1 = 週表示 */
+        const val KEY_DISPLAY_MODE = "calendar_display_mode"
+
         /** 月グリッドは常に 6 行 × 7 列。読み込み範囲もこの実描画範囲に合わせる。 */
         const val GRID_DAYS = 42L
     }

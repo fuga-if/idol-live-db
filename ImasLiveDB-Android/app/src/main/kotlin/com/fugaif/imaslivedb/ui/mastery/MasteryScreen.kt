@@ -63,6 +63,7 @@ fun MasteryScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     val detail by viewModel.detail.collectAsState()
+    val undo by viewModel.undo.collectAsState()
     var showFilter by remember { mutableStateOf(false) }
     // 長押しされた群 (null = シートを出さない)。まだ付けていない曲だけをまとめて付ける。
     var bulkTarget by remember { mutableStateOf<MasteryGroup?>(null) }
@@ -76,6 +77,8 @@ fun MasteryScreen(
             onOpenSong = onOpenSong,
             onSetLevel = viewModel::setMastery,
             onBulk = { scope, level -> viewModel.applyBulk(d.group, scope, level) },
+            undoLabel = undo?.label,
+            onUndo = viewModel::revertBulk,
         )
         return
     }

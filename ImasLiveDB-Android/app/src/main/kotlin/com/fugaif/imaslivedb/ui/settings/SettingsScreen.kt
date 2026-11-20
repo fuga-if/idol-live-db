@@ -88,6 +88,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasActionRowKind
 import com.fugaif.imaslivedb.ui.designsystem.ImasButton
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonSize
+import com.fugaif.imaslivedb.ui.designsystem.ImasConfirmDestructive
 import com.fugaif.imaslivedb.ui.designsystem.ImasFilterChip
 import com.fugaif.imaslivedb.ui.designsystem.ImasFormBackdrop
 import com.fugaif.imaslivedb.ui.designsystem.ImasFullScreenDialog
@@ -1079,7 +1080,47 @@ private fun DeveloperSection() {
  */
 @Composable
 private fun MasteryScaleSection() {
+    val context = LocalContext.current
+    val appScope = remember { AppModule.from(context).appScope }
+    val marks = remember { AppModule.from(context).userMarkRepository }
     var labels by remember { mutableStateOf(AppPreferences.masteryScale.labels) }
+    // 段を減らして曲が動くときだけ、確認を出すために持つ (適用前の段階と動く曲数)。
+    var pendingShrink by remember { mutableStateOf<Pair<List<String>, Int>?>(null) }
+
+    // 段階を適用する。減らすときは先に記録を寄せてから段階を差し替える
+    // (寄せ先の規則と書き込みはリポジトリ、ここは順序だけ)。
+    fun commit(next: List<String>) {
+        val oldSteps = AppPreferences.masteryScale.steps
+        val newSteps = next.size.coerceIn(1, 8).toUByte()
+        labels = next
+        appScope.launch {
+            marks.remapMastery(oldSteps, newSteps)
+            AppPreferences.setMasteryLabels(next)
+            marks.masterySteps = AppPreferences.masteryScale.steps
+        }
+    }
+
+    // 減らすなら何曲動くかを数え、動くなら確認へ。動かないなら即適用 (iOS `shrinkWarning` と同じ)。
+    fun request(next: List<String>) {
+        val newSteps = next.size.coerceIn(1, 8).toUByte()
+        if (newSteps >= AppPreferences.masteryScale.steps) { commit(next); return }
+        appScope.launch {
+            val moving = marks.masteryCountAbove(newSteps)
+            if (moving > 0) pendingShrink = next to moving else commit(next)
+        }
+    }
+
+    pendingShrink?.let { (next, moving) ->
+        val dest = next.getOrNull(next.size.coerceIn(1, 8) - 1) ?: "最上段"
+        ImasConfirmDestructive(
+            title = "段階を減らしますか？",
+            isPresented = true,
+            onDismiss = { pendingShrink = null },
+            onConfirm = { commit(next) },
+            actionTitle = "この段階にする",
+            message = "$moving 曲が「$dest」に移ります。記録は消えません。",
+        )
+    }
 
     Column(
         modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.rowH, vertical = DS.Space.gap),
@@ -1087,10 +1128,7 @@ private fun MasteryScaleSection() {
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
             MasteryScale.presets.forEach { (name, preset) ->
-                ImasFilterChip(name, labels == preset.labels, {
-                    labels = preset.labels
-                    AppPreferences.setMasteryLabels(preset.labels)
-                })
+                ImasFilterChip(name, labels == preset.labels, { request(preset.labels) })
             }
         }
         labels.forEachIndexed { index, label ->
@@ -1116,8 +1154,7 @@ private fun MasteryScaleSection() {
                 // 寄せ先の規則 (上限で丸める) と噛み合わなくなる。
                 if (index == labels.lastIndex && labels.size > 1) {
                     TextButton(onClick = {
-                        labels = labels.dropLast(1)
-                        AppPreferences.setMasteryLabels(labels)
+                        request(labels.dropLast(1))
                     }) { Text("削除") }
                 }
             }
@@ -1128,7 +1165,7 @@ private fun MasteryScaleSection() {
             }
             Box(Modifier.weight(1f))
             TextButton(
-                onClick = { AppPreferences.setMasteryLabels(labels) },
+                onClick = { request(labels.map { it.trim() }) },
                 enabled = labels.all { it.isNotBlank() } &&
                     labels.map { it.trim() }.toSet().size == labels.size &&
                     labels != AppPreferences.masteryScale.labels,
