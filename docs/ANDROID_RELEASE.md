@@ -84,3 +84,9 @@ Play への上げは `tools/play_release.py` (Android Publisher API v3) で行�
 - この枝には `checkCoreBindings` が無いので、バインディングが呼ぶ uniffi 関数 1344 個が AAB 内の両 ABI の .so にあることを nm で突き合わせた (欠け 0)。
 - 本番に下書きで置き、オーナーの go で `promote` (completed)。枝の `play_release.py` には promote が無いので develop 版で実行した。
 - develop の版も 2.9.3 / 22 に揃えた。develop の次の Android リリースは versionCode 23 以上。
+
+## 2026-11-21: 2.10.0 (versionCode 23)
+
+- ChatGPT とつなぐチャット・文で探す・コール表の取り込み、予習 DJ / 復習 DJ。iOS との突き合わせで見つけた Android だけの不具合 (お題のブランド限定ほか約 25 件) の修正。
+- develop の 85bb8f14 からビルド。`checkCoreBindings` を通り、署名 (`jar verified`)・両 ABI の libimas_core.so とシンボル表の同梱を確かめた。
+- 本番に下書きで置き、オーナーの go で `promote` (completed)。次の Android リリースは versionCode 24 以上。
