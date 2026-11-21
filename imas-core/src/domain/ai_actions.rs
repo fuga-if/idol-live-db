@@ -15,6 +15,7 @@
 //!
 //! 実行そのものは各 OS (GRDB・通知・再生は OS の持ち物)。操作 1 件 = 既存の書き込み口 1 回。
 
+use crate::domain::ai_producer_card::{self, AiProducerCardEdit, AiProducerCardRef};
 use crate::domain::ledger::{self, ExpenseCategory};
 use crate::domain::ticket_sales::{self, TicketApplication};
 use crate::domain::show_naming::show_title;
@@ -28,6 +29,19 @@ pub const MAX_SONGS_PER_ACTION: usize = 200;
 /// メモ・座席・タグ名・プレイリスト名の上限 (文字数)。
 pub const MAX_NOTE_CHARS: usize = 500;
 pub const MAX_NAME_CHARS: usize = 40;
+
+/// `open_screen` で開ける画面 (キーと、一覧に出す名前)。各 OS はキーで画面を引く。
+pub const SCREENS: [(&str, &str); 9] = [
+    ("producer_card", "自分の P名刺"),
+    ("card_case", "名刺入れ"),
+    ("ledger", "収支"),
+    ("playlists", "プレイリスト"),
+    ("mastery", "習熟度"),
+    ("favorites", "お気に入り"),
+    ("my_predictions", "自分のセトリ予想"),
+    ("my_votes", "自分の投票"),
+    ("my_contributions", "自分の投稿"),
+];
 
 /// 操作がどこまで届くか。
 #[derive(uniffi::Enum, Debug, Clone, Copy, PartialEq, Eq)]
@@ -86,6 +100,10 @@ pub enum AiAction {
     SetNotification { kind: String, on: bool },
     /// 一覧 (タブ) を開いて、その検索欄に語を入れる。`list` は "events" / "songs" / "idols"。
     OpenList { list: String, query: String },
+    /// 利用者の持ち物の画面を開く。`screen` は [`SCREENS`] のキー。
+    OpenScreen { screen: String },
+    /// 自分の P名刺を作る・直す。渡された項目だけを変える。
+    SetProducerCard { edit: AiProducerCardEdit },
     /// セトリ予想の 1 票。
     PredictSong { show_id: String, song_id: String, on: bool },
     /// セトリの曲への「いいね」。
@@ -121,6 +139,8 @@ pub struct PlanContext<'a> {
     pub mastery_labels: &'a [String],
     /// 利用者がもう付けている記録 (二重に積まないために見る)。
     pub records: &'a AiUserRecords,
+    /// この番の発言に添えられた画像の枚数 (P名刺の写真・素材に番号で使う)。往復の中でコアが数える。
+    pub attached_images: u32,
 }
 
 /// 公演 1 つぶんの、いまの参加の記録。
@@ -151,6 +171,9 @@ pub struct AiUserRecords {
     pub my_pick_idol_ids: Vec<String>,
     pub owned_release_ids: Vec<String>,
     pub expenses: Vec<AiExpenseRef>,
+    /// いまの自分の P名刺 (まだ作っていなければ None)。
+    #[uniffi(default = None)]
+    pub producer_card: Option<AiProducerCardRef>,
 }
 
 /// 記録が何も無い端末 (既定と、テスト用)。
@@ -160,6 +183,7 @@ pub static NO_RECORDS: AiUserRecords = AiUserRecords {
     my_pick_idol_ids: Vec::new(),
     owned_release_ids: Vec::new(),
     expenses: Vec::new(),
+    producer_card: None,
 };
 
 /// 端末の側の事情 (DB の外にあって、検査や頼み方に要るもの)。各 OS が 1 回射影して渡す。
@@ -174,7 +198,7 @@ pub struct AiDeviceContext {
 
 impl AiDeviceContext {
     pub fn plan_context<'a>(&'a self, today_key: &'a str) -> PlanContext<'a> {
-        PlanContext { today_key, playlists: &self.playlists, mastery_labels: &self.mastery_labels, records: &self.records }
+        PlanContext { today_key, playlists: &self.playlists, mastery_labels: &self.mastery_labels, records: &self.records, attached_images: 0 }
     }
 }
 
@@ -186,7 +210,7 @@ pub struct ActionSpec {
     pub required: &'static [&'static str],
 }
 
-fn string(description: &str) -> Value {
+pub(crate) fn string(description: &str) -> Value {
     json!({ "type": "string", "description": description })
 }
 
@@ -354,6 +378,13 @@ pub fn catalog() -> Vec<ActionSpec> {
             required: &["list"],
         },
         ActionSpec {
+            name: "open_screen",
+            description: "利用者の持ち物の画面を開く。producer_card = 自分の P名刺 (交換・紙に刷る・SNS に貼る画像もここ)、card_case = 名刺入れ (受け取った名刺)、ledger = 収支、playlists = プレイリスト、mastery = 習熟度、favorites = お気に入り、my_predictions = 自分のセトリ予想、my_votes = 自分の投票、my_contributions = 自分の投稿。",
+            properties: json!({ "screen": { "type": "string", "enum": SCREENS.iter().map(|s| s.0).collect::<Vec<_>>() } }),
+            required: &["screen"],
+        },
+        ai_producer_card::spec(),
+        ActionSpec {
             name: "predict_song",
             description: "これからの公演のセトリ予想に、この曲で 1 票入れる・取り消す。サーバに送られ、票の数は他の人にも見える。",
             properties: json!({ "show_id": string("公演の id。"), "song_id": string("曲の id。"), "on": on_flag() }),
@@ -452,6 +483,8 @@ fn replaces_or_removes(action: &AiAction) -> bool {
         | AiAction::LikeSetlistSong { on, .. } => !on,
         AiAction::SetNotification { on, .. } | AiAction::SetOwnedRelease { on, .. } => !on,
         AiAction::SetTicketApplication { .. } => true,
+        // 置き換えになるかは今の名刺しだいなので、積むところで決める ([`ai_producer_card::plan`])。
+        AiAction::SetProducerCard { .. } => false,
         AiAction::SetNote { .. } | AiAction::SetSeat { .. } | AiAction::RemovePersonalTag { .. } | AiAction::SetMastery { .. } => true,
         AiAction::AddPersonalTag { .. }
         | AiAction::CreatePlaylist { .. }
@@ -459,6 +492,7 @@ fn replaces_or_removes(action: &AiAction) -> bool {
         | AiAction::AddExpense { .. }
         | AiAction::Open { .. }
         | AiAction::OpenList { .. }
+        | AiAction::OpenScreen { .. }
         | AiAction::AddToCalendar { .. }
         | AiAction::PlaySongs { .. } => false,
     }
@@ -730,6 +764,13 @@ pub fn plan(snap: &Snapshot, name: &str, args: &Value, ctx: PlanContext<'_>) -> 
             let title = if query.is_empty() { "一覧を開く".to_string() } else { format!("一覧を開いて「{query}」で探す") };
             Ok(planned(AiAction::OpenList { list: list.into(), query }, Screen, title, label))
         }
+        "open_screen" => {
+            let key = text_arg(args, "screen");
+            let (key, label) =
+                SCREENS.iter().find(|s| s.0 == key).ok_or_else(|| format!("screen が語彙にありません: {key}"))?;
+            Ok(planned(AiAction::OpenScreen { screen: (*key).into() }, Screen, "開く", *label))
+        }
+        ai_producer_card::NAME => ai_producer_card::plan(snap, args, ctx),
         "predict_song" | "like_setlist_song" => {
             let (show_id, show) = show_name(snap, text_arg(args, "show_id"))?;
             let (song_id, song) = song_title(snap, text_arg(args, "song_id"))?;
@@ -759,7 +800,7 @@ mod tests {
     use super::*;
     use crate::test_support::bundle_snapshot;
 
-    const CTX: PlanContext<'static> = PlanContext { today_key: "2026-11-16", playlists: &[], mastery_labels: &[], records: &NO_RECORDS };
+    const CTX: PlanContext<'static> = PlanContext { today_key: "2026-11-16", playlists: &[], mastery_labels: &[], records: &NO_RECORDS, attached_images: 0 };
 
     fn first_ids(snap: &Snapshot) -> (String, String, String) {
         (snap.songs[0].id.clone(), snap.idols[0].id.clone(), snap.shows[0].id.clone())
@@ -779,6 +820,15 @@ mod tests {
             assert!(is_action(spec.name));
         }
         assert!(!is_action("search"));
+    }
+
+    #[test]
+    fn 持ち物の画面は語彙にあるものだけ開く() {
+        let snap = bundle_snapshot();
+        let p = plan(&snap, "open_screen", &json!({ "screen": "ledger" }), CTX).unwrap();
+        assert_eq!(p.action, AiAction::OpenScreen { screen: "ledger".into() });
+        assert_eq!((p.reach, p.target.as_str(), p.preselected), (AiActionReach::Screen, "収支", true));
+        assert!(plan(&snap, "open_screen", &json!({ "screen": "settings" }), CTX).is_err());
     }
 
     #[test]
@@ -848,11 +898,11 @@ mod tests {
         let snap = bundle_snapshot();
         let (song, _, show) = first_ids(&snap);
         // 予想はこれからの公演だけ (取り消しはいつでも)。
-        let future = PlanContext { today_key: "1990-01-01", playlists: &[], mastery_labels: &[], records: &NO_RECORDS };
+        let future = PlanContext { today_key: "1990-01-01", playlists: &[], mastery_labels: &[], records: &NO_RECORDS, attached_images: 0 };
         let vote = plan(&snap, "predict_song", &json!({ "show_id": show, "song_id": song }), future).unwrap();
         assert_eq!(vote.reach, AiActionReach::Shared);
         assert!(!vote.preselected);
-        let far = PlanContext { today_key: "2999-01-01", playlists: &[], mastery_labels: &[], records: &NO_RECORDS };
+        let far = PlanContext { today_key: "2999-01-01", playlists: &[], mastery_labels: &[], records: &NO_RECORDS, attached_images: 0 };
         assert!(plan(&snap, "predict_song", &json!({ "show_id": show, "song_id": song }), far).is_err());
         assert!(plan(&snap, "predict_song", &json!({ "show_id": show, "song_id": song, "on": false }), far).is_ok());
         assert!(plan(&snap, "like_setlist_song", &json!({ "show_id": show, "song_id": song }), future).is_err());
@@ -884,7 +934,7 @@ mod tests {
             AiPlaylistRef { id: "p2".into(), name: "かぶり".into() },
             AiPlaylistRef { id: "p3".into(), name: "かぶり".into() },
         ];
-        let ctx = PlanContext { today_key: "2026-11-16", playlists: &lists, mastery_labels: &[], records: &NO_RECORDS };
+        let ctx = PlanContext { today_key: "2026-11-16", playlists: &lists, mastery_labels: &[], records: &NO_RECORDS, attached_images: 0 };
         let args = |name: &str| json!({ "playlist_name": name, "song_ids": [song] });
         let hit = plan(&snap, "add_to_playlist", &args("予習"), ctx).unwrap();
         assert_eq!(hit.action, AiAction::AddToPlaylist { playlist_id: "p1".into(), song_ids: vec![song.clone()] });
@@ -898,7 +948,7 @@ mod tests {
         let snap = bundle_snapshot();
         let (song, _, show) = first_ids(&snap);
         let labels = ["聴いた".to_string(), "歌える".to_string()];
-        let ctx = PlanContext { today_key: "2026-11-16", playlists: &[], mastery_labels: &labels, records: &NO_RECORDS };
+        let ctx = PlanContext { today_key: "2026-11-16", playlists: &[], mastery_labels: &labels, records: &NO_RECORDS, attached_images: 0 };
         let p = plan(&snap, "set_mastery", &json!({ "song_ids": [song], "level": 2 }), ctx).unwrap();
         assert!(p.title.contains("歌える") && !p.preselected);
         assert!(plan(&snap, "set_mastery", &json!({ "song_ids": [song], "level": 3 }), ctx).is_err());
@@ -946,7 +996,7 @@ mod tests {
             expenses: vec![AiExpenseRef { date: "2026-11-15".into(), category: ExpenseCategory::Ticket, amount: 9800, show_id: Some(show.clone()), note: None }],
             ..AiUserRecords::default()
         };
-        let ctx = PlanContext { today_key: "2026-11-16", playlists: &[], mastery_labels: &[], records: &records };
+        let ctx = PlanContext { today_key: "2026-11-16", playlists: &[], mastery_labels: &[], records: &records, attached_images: 0 };
         // もう付いているものは積まない。外すのは積める。種類が違えば積める。
         assert!(plan(&snap, "set_attendance", &json!({ "show_id": show }), ctx).unwrap_err().message.contains("もう付いています"));
         assert!(plan(&snap, "set_attendance", &json!({ "show_id": show, "on": false }), ctx).is_ok());

@@ -6,6 +6,7 @@
 
 use super::{tool_schema, ToolSpec};
 use crate::domain::ai_actions::AiUserRecords;
+use crate::domain::ai_producer_card;
 use crate::domain::ledger;
 use crate::domain::show_naming::show_title;
 use crate::domain::snapshot::Snapshot;
@@ -19,10 +20,10 @@ pub const NAME: &str = "my_records";
 pub fn spec() -> ToolSpec {
     ToolSpec {
         name: NAME.into(),
-        description: "利用者がこのアプリに付けている記録を読む。参加した公演・お気に入りの曲・担当のアイドル・持っている円盤・収支。「私の」「自分の」と訊かれたときと、記録を付ける前にもう付いていないか確かめるときに。".into(),
+        description: "利用者がこのアプリに付けている記録を読む。参加した公演・お気に入りの曲・担当のアイドル・持っている円盤・収支・自分の P名刺。「私の」「自分の」と訊かれたときと、記録を付ける前にもう付いていないか確かめるときに。".into(),
         input_schema: tool_schema(
-            json!({ "kind": { "type": "string", "enum": ["attendance", "favorites", "my_picks", "owned_releases", "expenses"],
-                               "description": "attendance = 参加した公演、favorites = お気に入りの曲、my_picks = 担当、owned_releases = 持っている円盤、expenses = 収支。" } }),
+            json!({ "kind": { "type": "string", "enum": ["attendance", "favorites", "my_picks", "owned_releases", "expenses", "producer_card"],
+                               "description": "attendance = 参加した公演、favorites = お気に入りの曲、my_picks = 担当、owned_releases = 持っている円盤、expenses = 収支、producer_card = 自分の P名刺 (いまの中身と、選べるデザイン)。" } }),
             &["kind"],
         ),
     }
@@ -83,6 +84,7 @@ pub fn call(snap: &Snapshot, records: &AiUserRecords, args: &Value) -> String {
                            "note": "total_amount は全件の合計 (円)。rows は新しい順で、多ければ途中まで。" })
             .to_string();
         }
+        "producer_card" => return ai_producer_card::describe(snap, records.producer_card.as_ref()).to_string(),
         other => return json!({ "error": format!("kind が語彙にありません: {other}") }).to_string(),
     };
     let shown: Vec<Value> = rows.into_iter().take(MAX_ROWS).collect();

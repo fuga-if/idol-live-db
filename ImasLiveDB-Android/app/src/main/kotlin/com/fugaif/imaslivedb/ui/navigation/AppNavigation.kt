@@ -112,6 +112,8 @@ import com.fugaif.imaslivedb.ui.tags.UnitTagDetailScreen
 import com.fugaif.imaslivedb.ui.units.UnitDetailScreen
 import com.fugaif.imaslivedb.ui.search.CrossTabSearch
 import com.fugaif.imaslivedb.ui.chatgpt.NaturalSearchKind
+import com.fugaif.imaslivedb.data.chatgpt.AssistantScreen
+import com.fugaif.imaslivedb.ui.chatgpt.AssistantScreenOpen
 import com.fugaif.imaslivedb.ui.chatgpt.NaturalSearchOpen
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material3.ScaffoldDefaults
@@ -212,6 +214,26 @@ fun AppNavigation() {
         nav.currentBackStackEntryFlow.first()
         nav.navigate(route) { launchSingleTop = true }
         NaturalSearchOpen.consume()
+    }
+    // チャットの「画面を開く」(P名刺・収支など)。入口はプロデュースのタブにあるので、そこへ切り替えて積む。
+    val screenOpen = AssistantScreenOpen.pending
+    LaunchedEffect(screenOpen) {
+        val req = screenOpen ?: return@LaunchedEffect
+        val route = when (req) {
+            AssistantScreen.ProducerCard -> NavRoutes.ProducerCard.route
+            AssistantScreen.CardCase -> NavRoutes.CardCase.route
+            AssistantScreen.Ledger -> NavRoutes.Ledger.route
+            AssistantScreen.Playlists -> NavRoutes.Playlists.route
+            AssistantScreen.Mastery -> NavRoutes.Mastery.route
+            AssistantScreen.Favorites -> NavRoutes.Favorites.route
+            AssistantScreen.MyVotes -> NavRoutes.MyVotes.route
+            AssistantScreen.MyContributions -> NavRoutes.MyContributions.route
+        }
+        current = AppDestination.PRODUCE
+        val nav = navControllers.getValue(AppDestination.PRODUCE)
+        nav.currentBackStackEntryFlow.first()
+        nav.navigate(route) { launchSingleTop = true }
+        AssistantScreenOpen.consume()
     }
     // 再生中バーから開く曲。楽曲タブをまだ一度も開いていないと NavHost が組まれておらずグラフが無いので、
     // その場で navigate すると IllegalArgumentException で落ちる (Play の最多クラッシュだった)。

@@ -129,6 +129,7 @@ fun ChatGptSettingsScreen(onBack: () -> Unit) {
             initialOrder = "",
             onDismiss = { assistantOpen = false },
             onOpen = { kind, id -> onBack(); NaturalSearchOpen.request(kind, id) },
+            onOpenScreen = { screen -> onBack(); AssistantScreenOpen.request(screen) },
         )
     }
 }

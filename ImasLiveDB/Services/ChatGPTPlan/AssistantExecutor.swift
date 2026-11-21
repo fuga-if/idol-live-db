@@ -1,4 +1,4 @@
-import Foundation
+import UIKit
 
 /// コアが検査した操作 1 件を、既存の書き込み口 1 回に写す。
 ///
@@ -17,11 +17,26 @@ enum AssistantExecutor {
         case detail(DetailDestination)
         /// 一覧のタブへ移った (シートを閉じる)。
         case list
+        /// 利用者の持ち物の画面 (シートの中に積む)。
+        case screen(Screen)
     }
 
-    /// - Returns: 開くもの (`open` / `open_list` のときだけ)。
+    /// `open_screen` で開ける画面。rawValue はコアのキー (`ai_actions::SCREENS`)。
+    enum Screen: String, Identifiable, Hashable {
+        case producerCard = "producer_card"
+        case cardCase = "card_case"
+        case ledger, playlists, mastery, favorites
+        case myPredictions = "my_predictions"
+        case myVotes = "my_votes"
+        case myContributions = "my_contributions"
+
+        var id: String { rawValue }
+    }
+
+    /// - Parameter images: その番の発言に添えた画像 (P名刺の写真・素材に使う)。
+    /// - Returns: 開くもの (`open` / `open_list` / 名刺を直したとき)。
     @discardableResult
-    static func perform(_ action: AiAction) async throws -> Opened? {
+    static func perform(_ action: AiAction, images: [UIImage] = []) async throws -> Opened? {
         let marks = UserMarkService.shared
         let container = AppContainer.shared
         switch action {
@@ -93,6 +108,13 @@ enum AssistantExecutor {
             }
             CrossTabSearch.shared.hand(query, to: tab)
             return .list
+        case .setProducerCard(let edit):
+            try await AssistantCardEditor.apply(edit, images: images)
+            // 直した結果をその場で見せる。
+            return .screen(.producerCard)
+        case .openScreen(let screen):
+            guard let screen = Screen(rawValue: screen) else { throw Failure(message: "開く先が見つかりませんでした") }
+            return .screen(screen)
         case .predictSong(let showId, let songId, let on):
             if on {
                 _ = try await PredictionService.shared.vote(showId: showId, songId: songId)

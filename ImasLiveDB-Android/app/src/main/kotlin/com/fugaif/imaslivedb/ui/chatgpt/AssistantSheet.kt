@@ -5,6 +5,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import com.fugaif.imaslivedb.data.chatgpt.AssistantExecutor
+import com.fugaif.imaslivedb.data.chatgpt.AssistantScreen
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -92,6 +93,7 @@ fun AssistantSheet(
     initialOrder: String,
     onDismiss: () -> Unit,
     onOpen: (NaturalSearchKind, String) -> Unit = { kind, id -> NaturalSearchOpen.request(kind, id) },
+    onOpenScreen: (AssistantScreen) -> Unit = { AssistantScreenOpen.request(it) },
 ) {
     // シートは閉じたら止める。タブとは別の持ち主を作る。
     val context = LocalContext.current
@@ -102,7 +104,7 @@ fun AssistantSheet(
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = DS.bg,
     ) {
-        AssistantScreen(initialOrder = initialOrder, isTab = false, onClose = onDismiss, controller = controller, onOpen = onOpen)
+        AssistantScreen(initialOrder = initialOrder, isTab = false, onClose = onDismiss, controller = controller, onOpen = onOpen, onOpenScreen = onOpenScreen)
     }
 }
 
@@ -118,6 +120,7 @@ fun AssistantScreen(
     onClose: () -> Unit,
     controller: AssistantController,
     onOpen: (NaturalSearchKind, String) -> Unit = { kind, id -> NaturalSearchOpen.request(kind, id) },
+    onOpenScreen: (AssistantScreen) -> Unit = { AssistantScreenOpen.request(it) },
 ) {
     val context = LocalContext.current
     val module = remember { AppModule.from(context) }
@@ -148,6 +151,8 @@ fun AssistantScreen(
             is AssistantExecutor.Opened.Detail -> { if (!isTab) onClose(); onOpen(result.target.kind, result.target.id) }
             // 一覧のタブへ移ったので、上に被さっているこのシートは閉じる。
             AssistantExecutor.Opened.List -> if (!isTab) onClose()
+            // 持ち物の画面 (直した P名刺もここで見せる)。本体のナビが開くので、シートは閉じる。
+            is AssistantExecutor.Opened.Screen -> { if (!isTab) onClose(); onOpenScreen(result.screen) }
         }
     }
 

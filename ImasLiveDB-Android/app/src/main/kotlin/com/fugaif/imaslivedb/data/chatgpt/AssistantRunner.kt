@@ -1,17 +1,21 @@
 package com.fugaif.imaslivedb.data.chatgpt
 
 import android.graphics.Bitmap
+import android.content.Context
 import android.graphics.BitmapFactory
 import android.util.Base64
 import com.fugaif.imaslivedb.data.core.SnapshotStoreProvider
 import com.fugaif.imaslivedb.data.model.JstDay
 import com.fugaif.imaslivedb.data.repository.ExpenseRepository
+import com.fugaif.imaslivedb.data.producercard.ProducerCardFiles
 import com.fugaif.imaslivedb.data.repository.PlaylistRepository
+import com.fugaif.imaslivedb.data.repository.ProducerCardRepository
 import com.fugaif.imaslivedb.data.repository.UserMarkRepository
 import com.fugaif.imaslivedb.ui.theme.AppPreferences
 import uniffi.imas_core.AiAttendanceRef
 import uniffi.imas_core.AiDeviceContext
 import uniffi.imas_core.AiExpenseRef
+import uniffi.imas_core.AiProducerCardRef
 import uniffi.imas_core.AiUserRecords
 import uniffi.imas_core.AiPlaylistRef
 import uniffi.imas_core.AssistantPlan
@@ -34,6 +38,8 @@ class AssistantRunner(
     private val playlists: PlaylistRepository,
     private val marks: UserMarkRepository,
     private val expenses: ExpenseRepository,
+    private val producerCards: ProducerCardRepository,
+    private val context: Context,
 ) {
     /** 1 番ぶんの結果。[images] はこの番で描かれた画像 (会話には残さない)。 */
     class Outcome(val plan: AssistantPlan, val images: List<Bitmap>)
@@ -55,6 +61,18 @@ class AssistantRunner(
             myPickIdolIds = marks.pickedIdolIdList(),
             ownedReleaseIds = marks.ownedReleaseIds().toList(),
             expenses = refs,
+            producerCard = producerCardRef(),
+        )
+    }
+
+    /** いまの自分の P名刺 (まだ作っていなければ null)。検査と `my_records` の答えに使う。 */
+    private suspend fun producerCardRef(): AiProducerCardRef? {
+        val card = producerCards.myCard()?.takeIf { it.name.isNotEmpty() } ?: return null
+        return AiProducerCardRef(
+            name = card.name, message = card.message, sinceYear = card.sinceYear?.takeIf { it in 0..65535 }?.toUShort(),
+            links = card.links, design = card.cardDesign, oshiIdolIds = card.cardOshiChoice.orEmpty(),
+            hasPhoto = ProducerCardFiles.myPhotoFile(context) != null,
+            stickerCount = ProducerCardFiles.myStickers(context).size.toUInt(),
         )
     }
 

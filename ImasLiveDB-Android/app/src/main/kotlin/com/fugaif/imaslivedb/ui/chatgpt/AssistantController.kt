@@ -267,12 +267,14 @@ class AssistantController(
         if (targets.isEmpty()) return
         review = review.copy(isExecuting = true)
         update(key) { it.copy(state = AssistantTurnState.Done(review)) }
+        // 名刺の写真・素材は、この番の発言に添えた画像から取る。
+        val attached = turns.firstOrNull { it.key == key }?.images.orEmpty()
         scope.launch {
             var opened: AssistantExecutor.Opened? = null
             try {
                 for (index in targets) {
                     val outcome = try {
-                        val result = executor.perform(review.plan.actions[index].action)
+                        val result = executor.perform(review.plan.actions[index].action, attached)
                         opened = opened ?: result
                         AssistantActionOutcome.Done
                     } catch (e: CancellationException) {

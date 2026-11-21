@@ -3,6 +3,7 @@ package com.fugaif.imaslivedb.data.chatgpt
 import com.fugaif.imaslivedb.data.community.SetlistLikeService
 import com.fugaif.imaslivedb.data.community.SetlistPredictionService
 import android.content.Context
+import android.graphics.Bitmap
 import com.fugaif.imaslivedb.data.model.AttendanceType
 import com.fugaif.imaslivedb.data.model.CalShowRow
 import com.fugaif.imaslivedb.data.notification.NotificationCategory
@@ -44,6 +45,7 @@ class AssistantExecutor(
     private val playback: LyricsPlayback,
     private val predictions: SetlistPredictionService,
     private val likes: SetlistLikeService,
+    private val cardEditor: AssistantCardEditor,
 ) {
     /** 画面に出す失敗の文言を持つ。 */
     class Failure(message: String) : Exception(message)
@@ -54,10 +56,15 @@ class AssistantExecutor(
         data class Detail(val target: NaturalSearchTarget) : Opened
         /** 一覧のタブへ移った (シートを閉じる)。 */
         data object List : Opened
+        /** 利用者の持ち物の画面 (プロデュースのナビの中で開く)。 */
+        data class Screen(val screen: AssistantScreen) : Opened
     }
 
-    /** @return 開くもの (`Open` / `OpenList` のときだけ)。 */
-    suspend fun perform(action: AiAction): Opened? {
+    /**
+     * @param images その番の発言に添えた画像 (P名刺の写真・素材に使う)。
+     * @return 開くもの (`Open` / `OpenList` / 名刺を直したとき)。
+     */
+    suspend fun perform(action: AiAction, images: List<Bitmap> = emptyList()): Opened? {
         when (action) {
             is AiAction.SetAttendance -> {
                 val type = AttendanceType.from(action.attendance) ?: throw Failure("参加の種類が分かりません")
@@ -110,6 +117,15 @@ class AssistantExecutor(
                 CrossTabSearch.hand(action.query, tab)
                 return Opened.List
             }
+            is AiAction.SetProducerCard -> {
+                cardEditor.apply(action.edit, images)
+                // 直した結果をその場で見せる。
+                return Opened.Screen(AssistantScreen.ProducerCard)
+            }
+            is AiAction.OpenScreen -> {
+                val screen = AssistantScreen.fromKey(action.screen) ?: throw Failure("開く先が見つかりませんでした")
+                return Opened.Screen(screen)
+            }
             is AiAction.PredictSong ->
                 if (action.on) predictions.vote(action.showId, action.songId) else predictions.unvote(action.showId, action.songId)
             is AiAction.LikeSetlistSong ->
@@ -161,5 +177,25 @@ class AssistantExecutor(
 
     private companion object {
         val NOTE_ENTITIES = setOf(UserMark.SONG, UserMark.IDOL, UserMark.EVENT, UserMark.SHOW)
+    }
+}
+
+/**
+ * `open_screen` で開ける画面。key はコアのキー (`ai_actions::SCREENS`)。iOS `AssistantExecutor.Screen`。
+ *
+ * Android には「自分のセトリ予想」の画面が無いので、`my_predictions` は含めない (開く先が見つからない失敗になる)。
+ */
+enum class AssistantScreen(val key: String) {
+    ProducerCard("producer_card"),
+    CardCase("card_case"),
+    Ledger("ledger"),
+    Playlists("playlists"),
+    Mastery("mastery"),
+    Favorites("favorites"),
+    MyVotes("my_votes"),
+    MyContributions("my_contributions");
+
+    companion object {
+        fun fromKey(key: String): AssistantScreen? = entries.firstOrNull { it.key == key }
     }
 }

@@ -35,7 +35,18 @@ enum AssistantRunner {
             favoriteSongIds: marks.allMarked(kind: .favorite, entity: .song),
             myPickIdolIds: marks.allMarked(kind: .myPick, entity: .idol),
             ownedReleaseIds: marks.allMarked(kind: .owned, entity: .release),
-            expenses: expenses
+            expenses: expenses,
+            producerCard: try await producerCardRef()
+        )
+    }
+
+    /// いまの自分の P名刺 (まだ作っていなければ nil)。検査と `my_records` の答えに使う。
+    private static func producerCardRef() async throws -> AiProducerCardRef? {
+        guard let card = try await AppContainer.shared.producerCards.myCard(), !card.name.isEmpty else { return nil }
+        return AiProducerCardRef(
+            name: card.name, message: card.message, sinceYear: card.sinceYear.flatMap(UInt16.init(exactly:)),
+            links: card.links, design: card.cardDesign, oshiIdolIds: card.cardOshiChoice ?? [],
+            hasPhoto: ProducerCardFiles.myPhotoURL != nil, stickerCount: UInt32(ProducerCardFiles.myStickers.count)
         )
     }
 

@@ -24,6 +24,8 @@ struct AssistantSheet: View {
     /// ここまでの会話 (コアが組んだ input)。次の番にそのまま渡す。
     @State private var history: [String] = []
     @State private var path: [DetailDestination] = []
+    /// チャットから開いた持ち物の画面 (直した P名刺もここで見せる)。
+    @State private var screen: AssistantExecutor.Screen?
     @State private var runTask: Task<Void, Never>?
     /// いまの会話の id (端末に残すときの鍵)。新しい会話のたびに振り直す。
     @State private var sessionID = UUID().uuidString
@@ -138,6 +140,9 @@ struct AssistantSheet: View {
                 ChatHistorySheet(currentID: sessionID, onOpen: { open($0) }, onDelete: { id in
                     if id == sessionID { reset() }
                 })
+            }
+            .navigationDestination(item: $screen) { screen in
+                AssistantScreenView(screen: screen)
             }
             .navigationDestination(for: DetailDestination.self) { dest in
                 DetailContentView(destination: dest) { path.append($0) }
@@ -546,11 +551,13 @@ struct AssistantSheet: View {
         AppAnalytics.tap("assistant.execute")
         review.isExecuting = true
         update(turnID) { $0.state = .done(review) }
+        // 名刺の写真・素材は、この番の発言に添えた画像から取る。
+        let attached = turns.first { $0.id == turnID }?.images ?? []
         Task {
             var opened: AssistantExecutor.Opened?
             for index in targets {
                 do {
-                    let result = try await AssistantExecutor.perform(review.plan.actions[index].action)
+                    let result = try await AssistantExecutor.perform(review.plan.actions[index].action, images: attached)
                     opened = opened ?? result
                     review.outcomes[index] = .done
                 } catch {
@@ -566,8 +573,28 @@ struct AssistantSheet: View {
             case .detail(let destination)?: path.append(destination)
             // 一覧のタブへ移ったので、上に被さっているこのシートは閉じる。
             case .list?: dismiss()
+            case .screen(let opened)?: screen = opened
             case nil: break
             }
+        }
+    }
+}
+
+/// チャットから開く持ち物の画面。中身はプロデュースタブから開くものと同じ。
+private struct AssistantScreenView: View {
+    let screen: AssistantExecutor.Screen
+
+    var body: some View {
+        switch screen {
+        case .producerCard: MyProducerCardView()
+        case .cardCase: CardCaseView()
+        case .ledger: LedgerView().environment(AppDatabase.shared)
+        case .playlists: PlaylistsView().environment(AppDatabase.shared)
+        case .mastery: MasteryView().environment(AppDatabase.shared)
+        case .favorites: FavoritesListView().environment(AppDatabase.shared)
+        case .myPredictions: MyPredictionsView().environment(AppDatabase.shared)
+        case .myVotes: MyVotesView().environment(AppDatabase.shared)
+        case .myContributions: MyContributionsView()
         }
     }
 }

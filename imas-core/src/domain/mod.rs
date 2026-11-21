@@ -1,6 +1,7 @@
 //! ドメイン核: 純粋ロジックのみ。uniffi は型 derive を除き持ち込まない。
 
 pub mod ai_actions;
+pub mod ai_producer_card;
 pub mod app_navigation;
 pub mod attendance;
 pub mod auth_rules;

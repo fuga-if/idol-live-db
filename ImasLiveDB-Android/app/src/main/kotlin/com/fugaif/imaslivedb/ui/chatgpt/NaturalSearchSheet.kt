@@ -86,6 +86,23 @@ object NaturalSearchOpen {
     }
 }
 
+/**
+ * チャットの「画面を開く」(P名刺・収支など) の依頼。[NaturalSearchOpen] と同じ受け渡しで、
+ * 本体のナビがプロデュースのタブの中で開く。iOS はシートの中に積む。
+ */
+object AssistantScreenOpen {
+    private var _pending by mutableStateOf<com.fugaif.imaslivedb.data.chatgpt.AssistantScreen?>(null)
+    val pending: com.fugaif.imaslivedb.data.chatgpt.AssistantScreen? get() = _pending
+
+    fun request(screen: com.fugaif.imaslivedb.data.chatgpt.AssistantScreen) {
+        _pending = screen
+    }
+
+    fun consume() {
+        _pending = null
+    }
+}
+
 private sealed interface Phase {
     data object Idle : Phase
     data class Running(val label: String) : Phase

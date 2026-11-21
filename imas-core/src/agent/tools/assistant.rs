@@ -185,6 +185,7 @@ fn instructions(today_key: &str, mastery_labels: &[String]) -> String {
 - 金額・座席・メモの文面は、利用者が言ったものだけを使う。DB の値や推測で埋めない。
 - 用意されていない操作 (消す・公開する・歌詞やコールを書く・設定を変える) は積めない。人が中身を書くものは open でその画面を開くところまでにして、そう伝える。
 - 前の番で積んだ操作を、頼まれていないのにもう一度積まない。
+- P名刺 (set_producer_card) は、渡した項目だけが変わる。名前・ひとこと・リンクは利用者が言ったものを使う (ひとことの文面を考えてと頼まれたら、考えてよい)。添えられた画像は番号で指し、名前の横の写真 (顔写真・アイコン)・自作の名刺の画像 (名刺の表そのものの絵)・素材 (表に置くロゴやスタンプ) のどれに使うかを、利用者の言葉と写っているものから決める。決めきれなければ訊き返す。前の番の画像は使えないので、もう一度添えてもらう。いまの名刺と選べるデザインは my_records の producer_card にある。
 {mastery}"
     )
 }
@@ -296,6 +297,16 @@ fn is_private_read(item: &Value) -> bool {
     item["type"] == "function_call" && item["name"] == my_records::NAME
 }
 
+/// この番の発言に添えられた画像の枚数 (P名刺の写真・素材を番号で指すのに使う)。
+fn attached_images(items: &[Value]) -> u32 {
+    items
+        .iter()
+        .rfind(|i| i["role"] == "user")
+        .and_then(|i| i["content"].as_array())
+        .map(|parts| parts.iter().filter(|p| p["type"] == "input_image").count() as u32)
+        .unwrap_or(0)
+}
+
 /// この番 (最後の利用者の発言より後) の項目。
 fn turn_items(items: &[Value]) -> &[Value] {
     let start = items.iter().rposition(|i| i["role"] == "user").map(|i| i + 1).unwrap_or(0);
@@ -327,6 +338,7 @@ pub fn step(snap: &Snapshot, input: &[String], output_items: &[String], text: &s
     // この番でここまでに、外の文を読んだか・利用者の記録を読んだか (この応答のぶんも含める)。
     // 両方を同じ番でやらせない: 外の文に誘導されたモデルが、記録を Web 検索の語に載せて持ち出せるため。
     let sent: Vec<Value> = input.iter().filter_map(|s| serde_json::from_str::<Value>(s).ok()).collect();
+    let ctx = PlanContext { attached_images: attached_images(&sent), ..ctx };
     let earlier = turn_items(&sent);
     let external = earlier.iter().any(delivered_external) || items.iter().any(is_external);
     let private = earlier.iter().chain(items.iter()).any(is_private_read);
@@ -399,6 +411,7 @@ pub fn resolve(snap: &Snapshot, input: &[String], text: &str, ctx: PlanContext<'
         .unwrap_or_else(|| text.to_string());
     let message = clip_reply(&message);
     let items: Vec<Value> = input.iter().filter_map(|s| serde_json::from_str::<Value>(s).ok()).collect();
+    let ctx = PlanContext { attached_images: attached_images(&items), ..ctx };
     // 次の番に持ち越すのは発言と返事だけ。ツールの呼び出しと結果 (DB の JSON) は番ごとに捨てる
     // (毎番ぜんぶ送り直すと、数番でモデルの文脈を使い切る)。
     let mut history: Vec<String> = items
@@ -446,7 +459,7 @@ mod tests {
     use crate::test_support::bundle_snapshot;
 
     const TODAY: &str = "2026-11-16";
-    const CTX: PlanContext<'static> = PlanContext { today_key: TODAY, playlists: &[], mastery_labels: &[], records: &NO_RECORDS };
+    const CTX: PlanContext<'static> = PlanContext { today_key: TODAY, playlists: &[], mastery_labels: &[], records: &NO_RECORDS, attached_images: 0 };
 
     fn call(id: &str, name: &str, args: Value) -> String {
         json!({ "type": "function_call", "id": "fc_x", "call_id": id, "name": name, "arguments": args.to_string() }).to_string()
@@ -472,8 +485,29 @@ mod tests {
         assert!(req.instructions.contains("その場では実行されない"));
         assert!(req.instructions.contains("この端末では使えない"));
         let labels = ["聴いた".to_string(), "歌える".to_string()];
-        let with = PlanContext { today_key: TODAY, playlists: &[], mastery_labels: &labels, records: &NO_RECORDS };
+        let with = PlanContext { today_key: TODAY, playlists: &[], mastery_labels: &labels, records: &NO_RECORDS, attached_images: 0 };
         assert!(request(&[], "習熟度を付けて", &[], with).unwrap().instructions.contains("1 = 聴いた、2 = 歌える"));
+    }
+
+    #[test]
+    fn 添えた画像は番号で名刺の写真にできる_添えていない番は通さない() {
+        let snap = bundle_snapshot();
+        let args = json!({ "name": "ふがP", "photo_image": 2 });
+        let with_images = request(&[], "この 2 枚目を写真にして名刺を作って", &["aaaa".into(), "bbbb".into()], CTX).unwrap();
+        let mut input = with_images.input.clone();
+        input.push(call("c1", "set_producer_card", args.clone()));
+        let plan = resolve(&snap, &input, r#"{"message":"下の一覧で確かめてください"}"#, CTX);
+        assert_eq!(plan.rejected, 0);
+        match &plan.actions[0].action {
+            AiAction::SetProducerCard { edit } => assert_eq!(edit.photo_image, Some(2)),
+            other => panic!("{other:?}"),
+        }
+        // 次の番 (画像は持ち越さない) に同じ頼みをしても、番号は通らない。
+        let mut later = request(&plan.history, "やっぱり 2 枚目で", &[], CTX).unwrap().input;
+        later.push(call("c2", "set_producer_card", args));
+        let again = resolve(&snap, &later, r#"{"message":"画像をもう一度添えてください"}"#, CTX);
+        assert!(again.actions.is_empty());
+        assert_eq!(again.rejected, 1);
     }
 
     #[test]

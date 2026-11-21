@@ -160,7 +160,7 @@ class AppModule private constructor(context: Context) {
         com.fugaif.imaslivedb.data.chatgpt.CallSheetRunner(chatGptPlanTaskRunner)
     }
     val assistantRunner: com.fugaif.imaslivedb.data.chatgpt.AssistantRunner by lazy {
-        com.fugaif.imaslivedb.data.chatgpt.AssistantRunner(chatGptPlanTaskRunner, snapshotStoreProvider, playlistRepository, userMarkRepository, expenseRepository)
+        com.fugaif.imaslivedb.data.chatgpt.AssistantRunner(chatGptPlanTaskRunner, snapshotStoreProvider, playlistRepository, userMarkRepository, expenseRepository, producerCardRepository, appContext)
     }
     /**
      * タブとして出すチャットの状態の持ち主。画面より長く生きるので、タブを離れても返事待ちと実行は続く。
@@ -184,6 +184,7 @@ class AppModule private constructor(context: Context) {
             playback = lyricsPlayback,
             predictions = setlistPredictionService,
             likes = setlistLikeService,
+            cardEditor = com.fugaif.imaslivedb.data.chatgpt.AssistantCardEditor(appContext, this),
         )
     }
     /** Worker (imas-live-api) への HTTP。セッションはリクエストの時点の値を付ける。 */
