@@ -71,6 +71,7 @@ import kotlinx.coroutines.launch
 // ImasEmptyState         何もない・見つからない・読めなかった・ログインが要る。
 // ImasNotice             読まないと困ること (始められない・失敗した・オフライン)。囲む。
 // ImasSignInPrompt       区画の中の「ログインが必要です」。
+// ImasUndoBar            一括の操作の直後に出す取り消しの帯 (iOS `ImasUndoBar`)。
 // ImasSavingOverlay      保存・送信中 (iOS `.imasSavingOverlay`)。
 // ImasErrorAlert         操作の失敗 (iOS `.imasErrorAlert`)。
 // ImasConfirmDestructive 消す前の確認 (iOS `.imasConfirmDestructive`)。
@@ -382,6 +383,27 @@ fun ImasSignInPrompt(
             size = ImasButtonSize.SMALL,
             modifier = Modifier.clearAndSetSemantics { }
         )
+    }
+}
+
+// MARK: - 取り消しの帯
+
+/**
+ * 一括の操作の直後に画面の下に出す取り消しの帯 (iOS `ImasUndoBar`)。
+ * Scaffold の bottomBar などに置く。文言は 1 行、右に [actionTitle] の押せる語。
+ */
+@Composable
+fun ImasUndoBar(label: String, onUndo: () -> Unit, actionTitle: String = "元に戻す") {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = DS.sp5).padding(bottom = DS.sp4)
+            .background(DS.sys, RoundedCornerShape(DS.rMD))
+            .padding(horizontal = DS.sp5, vertical = DS.sp4),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(DS.Space.gapLoose),
+    ) {
+        Text(label, style = ImasType.text(13.sp), color = DS.onSys, maxLines = 1, modifier = Modifier.weight(1f))
+        Text(actionTitle, style = ImasType.text(13.sp, FontWeight.Bold), color = DS.onSys,
+             modifier = Modifier.clickable(onClick = onUndo))
     }
 }
 

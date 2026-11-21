@@ -80,7 +80,7 @@ fun MasteryGroupDetailScreen(
                 }
             )
         },
-        bottomBar = { if (undoLabel != null) MasteryUndoBar(undoLabel, onUndo) },
+        bottomBar = { if (undoLabel != null) ImasUndoBar(undoLabel, onUndo) },
     ) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding)) {
             item {
@@ -257,21 +257,6 @@ private fun BulkSheet(group: MasteryGroup, scale: MasteryScale,
                 ImasFilterChip("未設定に戻す", false, { onPick(MasteryBulkScope.ALL, 0u) })
             }
         }
-    }
-}
-
-/** 一括更新の取り消しの帯 (iOS `ImasUndoBar`)。 */
-@Composable
-private fun MasteryUndoBar(label: String, onUndo: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().padding(horizontal = DS.sp5).padding(bottom = DS.sp4)
-            .clip(RoundedCornerShape(DS.rMD)).background(DS.sys)
-            .padding(horizontal = DS.sp5, vertical = DS.sp4),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, color = DS.onSys, fontSize = 13.sp, maxLines = 1, modifier = Modifier.weight(1f))
-        Text("元に戻す", color = DS.onSys, fontSize = 13.sp, fontWeight = FontWeight.Bold,
-             modifier = Modifier.clickable(onClick = onUndo))
     }
 }
 
