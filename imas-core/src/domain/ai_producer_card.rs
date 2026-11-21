@@ -64,6 +64,9 @@ pub struct AiProducerCardEdit {
     pub photo_x_handle: Option<String>,
     /// 自作の名刺の画像 (表) にする画像の番号。デザインは「自作の画像」になる。
     pub face_image: Option<u32>,
+    /// この番で描いてもらった画像 (最後の 1 枚) を、自作の名刺の画像 (表) にする。デザインは「自作の画像」になる。
+    /// 描けたかどうかはコアからは見えないので、無ければ実行のときに端末が失敗を返す。
+    pub face_generated: bool,
     /// 表に置く素材として足す画像の番号。
     pub sticker_images: Vec<u32>,
     /// 素材の背景を切り抜いてから置く。
@@ -115,6 +118,7 @@ pub fn spec() -> ActionSpec {
             "photo_image": image_no("名前の横の写真 (顔写真・アイコン)"),
             "photo_x_icon": { "type": "boolean", "description": "true で、名刺の X のリンクのアイコンを写真にする。" },
             "face_image": image_no("自作の名刺の画像 (名刺の表そのものの絵)"),
+            "face_generated": { "type": "boolean", "description": "true で、この番で画像の生成で描いた絵 (最後の 1 枚) を、名刺の表そのものにする。先に絵を描いてから、同じ番で積む。" },
             "sticker_images": { "type": "array", "items": { "type": "integer" },
                                 "description": format!("表に置く素材 (ロゴ・スタンプ・イラスト) として足す画像の番号。素材は合わせて {MAX_CARD_STICKERS} 枚まで。") },
             "sticker_cutout": { "type": "boolean", "description": "true で、素材の背景を切り抜いてから置く (写真から人や物だけを抜く)。" },
@@ -255,20 +259,25 @@ pub fn plan(snap: &Snapshot, args: &Value, ctx: PlanContext<'_>) -> Result<AiPla
     }
 
     edit.face_image = image_no(args, "face_image", ctx.attached_images)?;
+    edit.face_generated = args.get("face_generated").and_then(Value::as_bool) == Some(true);
+    if edit.face_generated && edit.face_image.is_some() {
+        return Err("名刺の表は face_image か face_generated のどちらか 1 つ".into());
+    }
+    let has_face = edit.face_image.is_some() || edit.face_generated;
     if let Some(key) = text(args, "design").filter(|k| !k.is_empty()) {
         let design = card_design_from_key(key).ok_or_else(|| Refusal::from(format!("design が語彙にありません: {key}")))?;
         let already_custom = existing.is_some_and(|c| c.design == CardDesign::Custom);
-        if card_design_info(design).uses_face_image && edit.face_image.is_none() && !already_custom {
-            return Err("自作の画像のデザインは、名刺の表にする画像 (face_image) と一緒に頼む".into());
+        if card_design_info(design).uses_face_image && !has_face && !already_custom {
+            return Err("自作の画像のデザインは、名刺の表にする画像 (face_image か face_generated) と一緒に頼む".into());
         }
-        if edit.face_image.is_some() && !card_design_info(design).uses_face_image {
-            return Err("face_image (自作の名刺の画像) を使うなら、design は custom にするか省く".into());
+        if has_face && !card_design_info(design).uses_face_image {
+            return Err("名刺の表の画像 (face_image / face_generated) を使うなら、design は custom にするか省く".into());
         }
         edit.design = Some(design);
     }
-    if edit.face_image.is_some() {
+    if has_face {
         edit.design = Some(CardDesign::Custom);
-        parts.push("自作の名刺の画像".into());
+        parts.push(if edit.face_generated { "描いた絵を名刺の表にする".into() } else { "自作の名刺の画像".into() });
     } else if let Some(design) = edit.design {
         parts.push(format!("デザイン「{}」", card_design_info(design).label));
     }
@@ -485,6 +494,11 @@ mod tests {
         assert!(plan_action(&snap, NAME, &json!({ "design": "custom" }), ctx(&records, 1)).is_err());
         let face = plan_action(&snap, NAME, &json!({ "face_image": 1 }), ctx(&records, 1)).unwrap();
         assert_eq!(edit_of(&face).design, Some(CardDesign::Custom));
+        // 描いてもらった絵も名刺の表にできる (添えた画像が無くてもよい)。両方は指せない。
+        let drawn = plan_action(&snap, NAME, &json!({ "face_generated": true }), ctx(&records, 0)).unwrap();
+        assert_eq!((edit_of(&drawn).design, edit_of(&drawn).face_generated), (Some(CardDesign::Custom), true));
+        assert!(drawn.title.contains("描いた絵") && !drawn.preselected);
+        assert!(plan_action(&snap, NAME, &json!({ "face_generated": true, "face_image": 1 }), ctx(&records, 1)).is_err());
     }
 
     #[test]

@@ -41,7 +41,13 @@ struct AssistantSheet: View {
         let id = UUID()
         let order: String
         var images: [UIImage] = []
+        /// 画像を添えなかった発言に、端末が付け直して送る直前の画像 (紙片には出さない)。
+        /// 「さっきの画像で名刺を作って」と続けて頼めるようにする。
+        var carried: [UIImage] = []
         var state: State
+
+        /// この番で ChatGPT に送る画像 (操作が番号で指すのもこの並び)。
+        var sent: [UIImage] { images.isEmpty ? carried : images }
 
         enum State {
             case running(label: String)
@@ -412,8 +418,10 @@ struct AssistantSheet: View {
         AppAnalytics.tap(images.isEmpty ? "assistant.send" : "assistant.send_with_image")
         text = ""
         attachments = []
+        // 画像を添えていなければ、直前に添えた画像を付け直す (会話には画像を持ち越していないため)。
+        let carried = images.isEmpty ? (turns.last { !$0.sent.isEmpty }?.sent ?? []) : []
         let turn = Turn(order: order.trimmingCharacters(in: .whitespacesAndNewlines), images: images,
-                        state: .running(label: "考えています…"))
+                        carried: carried, state: .running(label: "考えています…"))
         turns.append(turn)
         start(turn)
     }
@@ -429,7 +437,7 @@ struct AssistantSheet: View {
         let before = history
         runTask = Task {
             do {
-                let outcome = try await AssistantRunner.run(history: before, order: turn.order, images: turn.images) { label in
+                let outcome = try await AssistantRunner.run(history: before, order: turn.order, images: turn.sent) { label in
                     update(turn.id) { $0.state = .running(label: label) }
                 }
                 let plan = outcome.plan
@@ -552,12 +560,13 @@ struct AssistantSheet: View {
         review.isExecuting = true
         update(turnID) { $0.state = .done(review) }
         // 名刺の写真・素材は、この番の発言に添えた画像から取る。
-        let attached = turns.first { $0.id == turnID }?.images ?? []
+        let attached = turns.first { $0.id == turnID }?.sent ?? []
         Task {
             var opened: AssistantExecutor.Opened?
             for index in targets {
                 do {
-                    let result = try await AssistantExecutor.perform(review.plan.actions[index].action, images: attached)
+                    let result = try await AssistantExecutor.perform(review.plan.actions[index].action, images: attached,
+                                                                     generated: review.images)
                     opened = opened ?? result
                     review.outcomes[index] = .done
                 } catch {

@@ -7,8 +7,10 @@ import UIKit
 /// 画像は、発言に添えた手元の画像をそのまま使う (モデルから画像は受け取らない)。
 @MainActor
 enum AssistantCardEditor {
-    /// - Parameter images: その番の発言に添えた画像 (番号は 1 始まりで、この並び)。
-    static func apply(_ edit: AiProducerCardEdit, images: [UIImage]) async throws {
+    /// - Parameters:
+    ///   - images: その番の発言に添えた画像 (番号は 1 始まりで、この並び)。
+    ///   - generated: その番で描いてもらった画像 (名刺の表にするのは最後の 1 枚)。
+    static func apply(_ edit: AiProducerCardEdit, images: [UIImage], generated: [UIImage]) async throws {
         let store = AppContainer.shared.producerCards
         var card = (try await store.myCard()) ?? .empty()
         if let name = edit.name { card.name = name }
@@ -40,7 +42,16 @@ enum AssistantCardEditor {
         } else {
             photo = nil
         }
-        let face = try edit.faceImage.map { try attached($0, in: images) }
+        let face: UIImage?
+        if edit.faceGenerated {
+            guard let drawn = generated.last else {
+                throw AssistantExecutor.Failure(message: "名刺の絵が描かれていませんでした。もう一度「名刺の絵を描いて」と頼んでください")
+            }
+            // 描いた絵は名刺と形が違う (3:2) ので、名刺の形に真ん中で切る。
+            face = cropped(drawn, toAspect: ImasMeishi.aspect)
+        } else {
+            face = try edit.faceImage.map { try attached($0, in: images) }
+        }
         var stickers = ProducerCardFiles.myStickers
         var stickerData: [String: Data] = [:]
         for number in edit.stickerImages {
@@ -76,6 +87,22 @@ enum AssistantCardEditor {
         let latest = try await store.myCard()
         try await store.saveMyCard(card.applyingEdit(onto: latest))
         NotificationCenter.default.post(name: .myProducerCardChanged, object: nil)
+    }
+
+    /// 真ん中を、横 / 縦 = `aspect` の形に切る。
+    private static func cropped(_ image: UIImage, toAspect aspect: CGFloat) -> UIImage {
+        let size = CGSize(width: image.size.width * image.scale, height: image.size.height * image.scale)
+        guard size.width > 0, size.height > 0, aspect > 0 else { return image }
+        let target = size.width / size.height > aspect
+            ? CGSize(width: size.height * aspect, height: size.height)
+            : CGSize(width: size.width, height: size.width / aspect)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        return UIGraphicsImageRenderer(size: target, format: format).image { _ in
+            image.draw(in: CGRect(x: (target.width - size.width) / 2, y: (target.height - size.height) / 2,
+                                  width: size.width, height: size.height))
+        }
     }
 
     private static func attached(_ number: UInt32, in images: [UIImage]) throws -> UIImage {

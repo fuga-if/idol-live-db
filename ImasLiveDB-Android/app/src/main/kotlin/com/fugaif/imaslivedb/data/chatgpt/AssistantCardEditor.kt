@@ -9,6 +9,7 @@ import com.fugaif.imaslivedb.data.producercard.ProducerCardFiles
 import com.fugaif.imaslivedb.data.producercard.StickerCutout
 import com.fugaif.imaslivedb.data.producercard.XAvatarFetcher
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.designsystem.ImasMeishi
 import com.fugaif.imaslivedb.ui.designsystem.ImasPortraitCrop
 import com.fugaif.imaslivedb.ui.producercard.PaperCardRectifier
 import java.util.UUID
@@ -41,8 +42,11 @@ class AssistantCardEditor(
         val stickerData: Map<String, ByteArray>,
     )
 
-    /** @param images その番の発言に添えた画像 (番号は 1 始まりで、この並び)。 */
-    suspend fun apply(edit: AiProducerCardEdit, images: List<Bitmap>) {
+    /**
+     * @param images その番の発言に添えた画像 (番号は 1 始まりで、この並び)。
+     * @param generated その番で描いてもらった画像 (名刺の表にするのは最後の 1 枚)。
+     */
+    suspend fun apply(edit: AiProducerCardEdit, images: List<Bitmap>, generated: List<Bitmap>) {
         val repository = module.producerCardRepository
         var card = repository.myCard() ?: MyProducerCard.empty()
         edit.name?.let { card = card.copy(name = it) }
@@ -63,7 +67,7 @@ class AssistantCardEditor(
         }
 
         // 画像は先に全部そろえる (取れない・切り抜けないなら、名刺を半端に書き換えない)。
-        val prepared = prepare(edit, images)
+        val prepared = prepare(edit, images, generated)
 
         withContext(Dispatchers.IO) {
             prepared.photo?.let { (image, origin) ->
@@ -79,7 +83,7 @@ class AssistantCardEditor(
         repository.updateMyCard { latest -> edited.applyingEdit(latest) }
     }
 
-    private suspend fun prepare(edit: AiProducerCardEdit, images: List<Bitmap>): Prepared {
+    private suspend fun prepare(edit: AiProducerCardEdit, images: List<Bitmap>, generated: List<Bitmap>): Prepared {
         val photo: Pair<Bitmap, CardPhotoSource>? = when {
             edit.photoImage != null -> attached(edit.photoImage!!, images) to CardPhotoSource.PICKED
             edit.photoXHandle != null -> when (val outcome = XAvatarFetcher.fetch(edit.photoXHandle!!)) {
@@ -89,7 +93,14 @@ class AssistantCardEditor(
             }
             else -> null
         }
-        val face = edit.faceImage?.let { PaperCardRectifier.bounded(attached(it, images), 3000) }
+        val face = if (edit.faceGenerated) {
+            val drawn = generated.lastOrNull()
+                ?: throw AssistantExecutor.Failure("名刺の絵が描かれていませんでした。もう一度「名刺の絵を描いて」と頼んでください")
+            // 描いた絵は名刺と形が違う (3:2) ので、名刺の形に真ん中で切る。
+            cropped(drawn, ImasMeishi.ASPECT)
+        } else {
+            edit.faceImage?.let { PaperCardRectifier.bounded(attached(it, images), 3000) }
+        }
         var stickers = ProducerCardFiles.myStickers(context)
         val stickerData = mutableMapOf<String, ByteArray>()
         for (number in edit.stickerImages) {
@@ -116,4 +127,13 @@ class AssistantCardEditor(
     private fun attached(number: UInt, images: List<Bitmap>): Bitmap =
         images.getOrNull(number.toInt() - 1)
             ?: throw AssistantExecutor.Failure("添えた画像が見つかりませんでした。画像を添えて、もう一度頼んでください")
+
+    /** 真ん中を、横 / 縦 = [aspect] の形に切る。 */
+    private fun cropped(image: Bitmap, aspect: Float): Bitmap {
+        if (image.width <= 0 || image.height <= 0 || aspect <= 0f) return image
+        val wide = image.width.toFloat() / image.height > aspect
+        val w = if (wide) (image.height * aspect).toInt().coerceIn(1, image.width) else image.width
+        val h = if (wide) image.height else (image.width / aspect).toInt().coerceIn(1, image.height)
+        return Bitmap.createBitmap(image, (image.width - w) / 2, (image.height - h) / 2, w, h)
+    }
 }

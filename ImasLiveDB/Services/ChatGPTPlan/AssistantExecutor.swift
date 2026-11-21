@@ -33,10 +33,12 @@ enum AssistantExecutor {
         var id: String { rawValue }
     }
 
-    /// - Parameter images: その番の発言に添えた画像 (P名刺の写真・素材に使う)。
+    /// - Parameters:
+    ///   - images: その番の発言に添えた画像 (P名刺の写真・素材に使う)。
+    ///   - generated: その番で描いてもらった画像 (P名刺の表に使う)。
     /// - Returns: 開くもの (`open` / `open_list` / 名刺を直したとき)。
     @discardableResult
-    static func perform(_ action: AiAction, images: [UIImage] = []) async throws -> Opened? {
+    static func perform(_ action: AiAction, images: [UIImage] = [], generated: [UIImage] = []) async throws -> Opened? {
         let marks = UserMarkService.shared
         let container = AppContainer.shared
         switch action {
@@ -109,7 +111,7 @@ enum AssistantExecutor {
             CrossTabSearch.shared.hand(query, to: tab)
             return .list
         case .setProducerCard(let edit):
-            try await AssistantCardEditor.apply(edit, images: images)
+            try await AssistantCardEditor.apply(edit, images: images, generated: generated)
             // 直した結果をその場で見せる。
             return .screen(.producerCard)
         case .openScreen(let screen):

@@ -62,9 +62,10 @@ class AssistantExecutor(
 
     /**
      * @param images その番の発言に添えた画像 (P名刺の写真・素材に使う)。
+     * @param generated その番で描いてもらった画像 (P名刺の表に使う)。
      * @return 開くもの (`Open` / `OpenList` / 名刺を直したとき)。
      */
-    suspend fun perform(action: AiAction, images: List<Bitmap> = emptyList()): Opened? {
+    suspend fun perform(action: AiAction, images: List<Bitmap> = emptyList(), generated: List<Bitmap> = emptyList()): Opened? {
         when (action) {
             is AiAction.SetAttendance -> {
                 val type = AttendanceType.from(action.attendance) ?: throw Failure("参加の種類が分かりません")
@@ -118,7 +119,7 @@ class AssistantExecutor(
                 return Opened.List
             }
             is AiAction.SetProducerCard -> {
-                cardEditor.apply(action.edit, images)
+                cardEditor.apply(action.edit, images, generated)
                 // 直した結果をその場で見せる。
                 return Opened.Screen(AssistantScreen.ProducerCard)
             }

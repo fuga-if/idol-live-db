@@ -56,7 +56,17 @@ sealed interface AssistantTurnState {
     data class Restored(val reply: String, val actions: List<ChatSavedAction>, val imageCount: UInt) : AssistantTurnState
 }
 
-data class AssistantTurn(val key: Int, val order: String, val images: List<Bitmap>, val state: AssistantTurnState)
+data class AssistantTurn(
+    val key: Int,
+    val order: String,
+    val images: List<Bitmap>,
+    val state: AssistantTurnState,
+    /** 画像を添えなかった発言に、直前の画像を付け直したもの (紙片には出さず、履歴にも数えない)。 */
+    val carried: List<Bitmap> = emptyList(),
+) {
+    /** ChatGPT に送り、実行役に「添えた画像」として渡す画像。 */
+    val sent: List<Bitmap> get() = images.ifEmpty { carried }
+}
 
 /**
  * チャット 1 本ぶんの状態と、返事待ち・実行・保存の持ち主。iOS の `AssistantSheet` が持つ `@State` と `Task` に当たる。
@@ -164,7 +174,7 @@ class AssistantController(
         val before = history
         runJob = scope.launch {
             try {
-                val outcome = runner.run(before, turn.order, turn.images) { label ->
+                val outcome = runner.run(before, turn.order, turn.sent) { label ->
                     update(turn.key) { it.copy(state = AssistantTurnState.Running(label)) }
                 }
                 val plan = outcome.plan
@@ -197,7 +207,9 @@ class AssistantController(
         if (!canUsePlan || isRunning || !assistantAcceptsMessage(order, images.size.toUInt())) return
         text = ""
         attachments = emptyList()
-        val turn = AssistantTurn(nextKey++, order.trim(), images, AssistantTurnState.Running("考えています…"))
+        // 画像を添えなかった発言には、直前に画像を送った番の画像を付け直す (「さっきの画像で」と続けて頼める)。
+        val carried = if (images.isEmpty()) turns.lastOrNull { it.sent.isNotEmpty() }?.sent.orEmpty() else emptyList()
+        val turn = AssistantTurn(nextKey++, order.trim(), images, AssistantTurnState.Running("考えています…"), carried)
         turns = turns + turn
         start(turn)
     }
@@ -268,13 +280,14 @@ class AssistantController(
         review = review.copy(isExecuting = true)
         update(key) { it.copy(state = AssistantTurnState.Done(review)) }
         // 名刺の写真・素材は、この番の発言に添えた画像から取る。
-        val attached = turns.firstOrNull { it.key == key }?.images.orEmpty()
+        val attached = turns.firstOrNull { it.key == key }?.sent.orEmpty()
+        val generated = review.images
         scope.launch {
             var opened: AssistantExecutor.Opened? = null
             try {
                 for (index in targets) {
                     val outcome = try {
-                        val result = executor.perform(review.plan.actions[index].action, attached)
+                        val result = executor.perform(review.plan.actions[index].action, attached, generated)
                         opened = opened ?: result
                         AssistantActionOutcome.Done
                     } catch (e: CancellationException) {
