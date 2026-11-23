@@ -65,6 +65,14 @@ struct PollVoteShareCard: View {
         }
     }
 
+    private var nameHeight: CGFloat? {
+        switch card.picks.count {
+        case 0, 1: return nil
+        case 2: return 42
+        default: return 38
+        }
+    }
+
     var body: some View {
         PosterShareScaffold(
             palette: palette,
@@ -111,7 +119,8 @@ struct PollVoteShareCard: View {
                 .foregroundStyle(.white)
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
-                .frame(width: side + 8, height: card.picks.count >= 3 ? 38 : 42, alignment: .top)
+                // 並べたときは順位の行の高さをそろえるため 2 行分の高さを取る。1 つだけなら詰める。
+                .frame(width: side + 8, height: nameHeight, alignment: .top)
             if !pick.rankLabel.isEmpty {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text(pick.rankLabel)

@@ -158,7 +158,7 @@ private fun PollVoteShareCard(card: PollVoteCard, items: Map<String, PollResultS
             horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
             verticalAlignment = Alignment.Top
         ) {
-            card.picks.forEach { pick -> PickSlot(pick, items[pick.entityId], side, many, palette.accent) }
+            card.picks.forEach { pick -> PickSlot(pick, items[pick.entityId], side, many, card.picks.size <= 1, palette.accent) }
         }
         card.callToAction?.let { cta ->
             // 開催中だけの誘いの帯。差し色の平らな塗りに黒の文字。
@@ -175,7 +175,7 @@ private fun PollVoteShareCard(card: PollVoteCard, items: Map<String, PollResultS
 }
 
 @Composable
-private fun PickSlot(pick: PollVotePick, item: PollResultShareItem?, side: androidx.compose.ui.unit.Dp, many: Boolean, accent: Color) {
+private fun PickSlot(pick: PollVotePick, item: PollResultShareItem?, side: androidx.compose.ui.unit.Dp, many: Boolean, single: Boolean, accent: Color) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Box {
             PollShareVisual(item, side)
@@ -190,7 +190,8 @@ private fun PickSlot(pick: PollVotePick, item: PollResultShareItem?, side: andro
         Text(
             item?.name.orEmpty(), fontSize = if (many) 14.sp else 16.sp, fontWeight = FontWeight.Bold, color = Color.White,
             textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.width(side + 8.dp).height(if (many) 38.dp else 42.dp)
+            // 並べたときは順位の行の高さをそろえるため 2 行分の高さを取る。1 つだけなら詰める。
+            modifier = Modifier.width(side + 8.dp).then(if (single) Modifier else Modifier.height(if (many) 38.dp else 42.dp))
         )
         if (pick.rankLabel.isNotEmpty()) {
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
