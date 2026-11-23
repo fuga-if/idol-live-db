@@ -760,7 +760,7 @@ private enum FeaturedPollCache {
         if let poll, let data = try? JSONEncoder().encode(poll) {
             UserDefaults.standard.set(data, forKey: key)
         } else {
-            UserDefaults.standard.removeItem(forKey: key)
+            UserDefaults.standard.removeObject(forKey: key)
         }
     }
 }
