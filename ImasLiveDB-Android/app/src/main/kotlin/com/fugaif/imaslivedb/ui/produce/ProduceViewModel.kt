@@ -37,8 +37,18 @@ data class FeaturedPoll(
     val title: String,
     val totalVotes: Int,
     val entryCount: Int,
-    val remainingLabel: String
+    val remainingLabel: String,
+    /** 締切 (epoch millis)。手元の控えを出してよいか (締切前か) の判定に使う。 */
+    val endsAtMs: Long = Long.MAX_VALUE
 )
+
+/** お題のカードを出せないときの状態 (出せるときは [ProduceUiState.featuredPoll] があるので見ない)。 */
+enum class FeaturedPollPhase(val emptyTitle: String, val emptySubtitle: String) {
+    LOADING("お題を読み込んでいます", "— 票 · — 候補"),
+    ALL_VOTED("開催中のお題はすべて投票済みです", "結果や締め切ったお題は一覧から見られます"),
+    NONE("いま開催中のお題はありません", "締め切ったお題の結果や、新しいお題づくりは一覧から"),
+    FAILED("お題を読み込めませんでした", "画面を開き直すと読み直します")
+}
 
 /** 「次のライブ」カードに出す 1 公演。 */
 data class NextLive(
@@ -62,6 +72,8 @@ data class ProduceUiState(
     val contributionCount: Int = 0,
     val recents: List<RecentChip> = emptyList(),
     val featuredPoll: FeaturedPoll? = null,
+    /** お題の読み込みの状態。カードは常に同じ場所に 1 枚出し、出せないときの文言をこれで決める。 */
+    val pollPhase: FeaturedPollPhase = FeaturedPollPhase.LOADING,
     /** 収支 (家計簿) の合計。金額の表記はコア (`formatYen`) 一本。 */
     val ledgerTotalLabel: String = formatYen(0),
     /** 名刺入れの枚数。 */
@@ -85,7 +97,10 @@ class ProduceViewModel(app: Application) : AndroidViewModel(app) {
     private val marks = module.userMarkRepository
     private val recentsStore = RecentsStore.get(app)
 
-    private val _uiState = MutableStateFlow(ProduceUiState())
+    private val pollCache = FeaturedPollCache(app)
+
+    /** 起動直後は前回出したお題を手元から出す (読み込みを待たずに場所と中身が出る)。 */
+    private val _uiState = MutableStateFlow(ProduceUiState(featuredPoll = pollCache.load()))
     val uiState: StateFlow<ProduceUiState> = _uiState.asStateFlow()
 
     /**
@@ -93,6 +108,8 @@ class ProduceViewModel(app: Application) : AndroidViewModel(app) {
      * に呼ばれるので、init でも読むと初回だけお題の往復が二重に走る。
      */
     fun refresh() {
+        // お題は通信の待ちが長いので、ローカルの読み込みより先に走らせる (待たせない)。
+        viewModelScope.launch { loadFeaturedPoll() }
         viewModelScope.launch {
             // ローカル (Room / SharedPreferences) 由来はまとめて 1 回で反映する。
             // 「参加ライブ」はイベント参加 ∪ 公演参加→所属イベント を重複なしで取った一覧で、
@@ -127,7 +144,6 @@ class ProduceViewModel(app: Application) : AndroidViewModel(app) {
                 isLoading = false
             )
         }
-        viewModelScope.launch { loadFeaturedPoll() }
         // 自分の編集の件数はサーバにだけある。未ログイン・取れなければ 0。
         viewModelScope.launch {
             val count = module.badgeService.myBadges()?.editCount ?: 0
@@ -221,21 +237,74 @@ class ProduceViewModel(app: Application) : AndroidViewModel(app) {
      * (お題ごとの詳細は引かない)。どれを選ぶかの規則はコア (`featuredPollIndex`)。
      */
     private suspend fun loadFeaturedPoll() {
-        val polls = runCatching { module.communityApi.polls() }.getOrNull().orEmpty().filter { it.isActive }
+        // 読めなかったときは今のカードをそのまま残す (消すと場所ごと無くなる)。
+        val fetched = runCatching { module.communityApi.polls() }.getOrNull()
+        if (fetched == null) {
+            if (_uiState.value.featuredPoll == null) {
+                _uiState.value = _uiState.value.copy(pollPhase = FeaturedPollPhase.FAILED)
+            }
+            return
+        }
+        val polls = fetched.filter { it.isActive }
+        // 今出しているお題がまだ出せるなら替えない (画面に戻るたびにカードが入れ替わらない)。
+        val currentId = _uiState.value.featuredPoll?.id
+        val current = polls.indexOfFirst { it.id == currentId }.takeIf { it >= 0 }?.toUInt()
         val picked = featuredPollIndex(
             polls.map { it.myVoteCount.coerceAtLeast(0).toUInt() },
+            current,
             Random.nextLong().toULong()
         )?.let { polls.getOrNull(it.toInt()) }
+        val featured = picked?.let {
+            FeaturedPoll(
+                id = it.id,
+                title = it.title,
+                totalVotes = it.totalVotes,
+                entryCount = it.entryCount,
+                remainingLabel = it.statusLabel,
+                endsAtMs = it.endsAtMs
+            )
+        }
+        pollCache.save(featured)
         _uiState.value = _uiState.value.copy(
-            featuredPoll = picked?.let {
-                FeaturedPoll(
-                    id = it.id,
-                    title = it.title,
-                    totalVotes = it.totalVotes,
-                    entryCount = it.entryCount,
-                    remainingLabel = it.statusLabel
-                )
-            }
+            featuredPoll = featured,
+            pollPhase = if (polls.isEmpty()) FeaturedPollPhase.NONE else FeaturedPollPhase.ALL_VOTED
         )
     }
+}
+
+/** 先頭のお題を手元に 1 件だけ控える (iOS `FeaturedPollCache` と対)。締切を過ぎた控えは出さない。 */
+private class FeaturedPollCache(app: Application) {
+    private val prefs = app.getSharedPreferences("produce_featured_poll", android.content.Context.MODE_PRIVATE)
+
+    fun load(): FeaturedPoll? = runCatching {
+        val raw = prefs.getString(KEY, null) ?: return null
+        val o = org.json.JSONObject(raw)
+        val summary = CommunityApi.PollSummary(
+            id = o.getString("id"),
+            title = o.getString("title"),
+            targetType = "",
+            endsAtMs = o.getLong("endsAtMs"),
+            totalVotes = o.getInt("totalVotes"),
+            entryCount = o.getInt("entryCount")
+        )
+        if (!summary.isActive) return null
+        FeaturedPoll(
+            id = summary.id, title = summary.title, totalVotes = summary.totalVotes,
+            entryCount = summary.entryCount, remainingLabel = summary.statusLabel, endsAtMs = summary.endsAtMs
+        )
+    }.getOrNull()
+
+    fun save(poll: FeaturedPoll?) {
+        if (poll == null) {
+            prefs.edit().remove(KEY).apply()
+            return
+        }
+        val o = org.json.JSONObject()
+            .put("id", poll.id).put("title", poll.title)
+            .put("totalVotes", poll.totalVotes).put("entryCount", poll.entryCount)
+            .put("endsAtMs", poll.endsAtMs)
+        prefs.edit().putString(KEY, o.toString()).apply()
+    }
+
+    private companion object { const val KEY = "featured_poll_v1" }
 }

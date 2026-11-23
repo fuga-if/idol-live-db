@@ -127,7 +127,11 @@ pub fn votes_remaining(my_vote_count: u32) -> u32 {
 /// 票を使い切ったお題は出さない (押しても投票できない)。まだ 1 票も入れていないお題を優先し、
 /// その中から `seed` で 1 件選ぶ (毎回違うお題に触れてもらう)。全部に入れ始めていたら、
 /// 票の残っているものから選ぶ。
-pub fn featured_poll_index(my_vote_counts: &[u32], seed: u64) -> Option<u32> {
+///
+/// `current` は今カードに出しているお題の添字 (無ければ `None`)。それがまだ選ばれうる側に
+/// いる (未投票を優先する中に入っている) あいだは選び直さずそれを返す。読み直すたびに
+/// カードの中身が入れ替わらない。投票して優先の外に出たら、次のお題に替わる。
+pub fn featured_poll_index(my_vote_counts: &[u32], current: Option<u32>, seed: u64) -> Option<u32> {
     let votable: Vec<usize> = (0..my_vote_counts.len())
         .filter(|&i| votes_remaining(my_vote_counts[i]) > 0)
         .collect();
@@ -139,6 +143,11 @@ pub fn featured_poll_index(my_vote_counts: &[u32], seed: u64) -> Option<u32> {
     let pool = if unvoted.is_empty() { votable } else { unvoted };
     if pool.is_empty() {
         return None;
+    }
+    if let Some(c) = current {
+        if pool.contains(&(c as usize)) {
+            return Some(c);
+        }
     }
     Some(pool[(seed % pool.len() as u64) as usize] as u32)
 }
@@ -194,19 +203,38 @@ mod tests {
     fn featured_poll_prefers_unvoted_and_never_shows_used_up_polls() {
         // 0 票のお題があれば、seed が何でもその中から選ぶ。
         for seed in 0..20 {
-            let picked = featured_poll_index(&[1, 0, 3, 0], seed).unwrap();
+            let picked = featured_poll_index(&[1, 0, 3, 0], None, seed).unwrap();
             assert!(picked == 1 || picked == 3);
         }
         // seed で両方とも選ばれうる。
-        assert_eq!(featured_poll_index(&[1, 0, 3, 0], 0), Some(1));
-        assert_eq!(featured_poll_index(&[1, 0, 3, 0], 1), Some(3));
+        assert_eq!(featured_poll_index(&[1, 0, 3, 0], None, 0), Some(1));
+        assert_eq!(featured_poll_index(&[1, 0, 3, 0], None, 1), Some(3));
         // 0 票のお題が無ければ、票の残っているものから。使い切ったものは選ばない。
         for seed in 0..20 {
-            assert_eq!(featured_poll_index(&[3, 2, 5], seed), Some(1));
+            assert_eq!(featured_poll_index(&[3, 2, 5], None, seed), Some(1));
         }
         // 全部使い切った / お題が無い。
-        assert_eq!(featured_poll_index(&[3, 4], 7), None);
-        assert_eq!(featured_poll_index(&[], 7), None);
+        assert_eq!(featured_poll_index(&[3, 4], None, 7), None);
+        assert_eq!(featured_poll_index(&[], None, 7), None);
+    }
+
+    #[test]
+    fn featured_poll_keeps_the_current_card_until_it_falls_out_of_the_pool() {
+        // 今のお題がまだ未投票なら、seed が何でもそのまま。
+        for seed in 0..20 {
+            assert_eq!(featured_poll_index(&[0, 0, 0], Some(2), seed), Some(2));
+        }
+        // 投票したら (未投票のお題がほかにある限り) 替わる。
+        for seed in 0..20 {
+            let picked = featured_poll_index(&[1, 0, 0], Some(0), seed).unwrap();
+            assert!(picked == 1 || picked == 2);
+        }
+        // 全部に入れ始めていて票が残っているなら、そのまま。
+        assert_eq!(featured_poll_index(&[1, 2], Some(0), 9), Some(0));
+        // 使い切ったら替わる。範囲外の添字は無いものとして選ぶ。
+        assert_eq!(featured_poll_index(&[3, 1], Some(0), 9), Some(1));
+        assert_eq!(featured_poll_index(&[0], Some(5), 9), Some(0));
+        assert_eq!(featured_poll_index(&[3], Some(0), 9), None);
     }
 
     /// JS の `trim()` が落とす文字 (node で全 BMP を舐めて得た一覧) とちょうど同じ。

@@ -45,8 +45,11 @@ struct ProduceTabView: View {
     /// 「最近見た」タップ時の詳細遷移先。
     @State private var sheetDestination: DetailDestination?
     @State private var navPath = NavigationPath()
-    /// プロデュース先頭に出す「開催中のお題」(最も票が集まっているもの)。
-    @State private var activePoll: Poll?
+    /// プロデュース先頭に出す「開催中のお題」。起動直後は前回出したものを手元から出し
+    /// (読み込みを待たずに場所と中身が出る)、読み直しで最新の票数に差し替える。
+    @State private var activePoll: Poll? = FeaturedPollCache.load()
+    /// お題の読み込みの状態。カードを出せないときに何を書くか (読み込み中・投票済み・無し・失敗) を決める。
+    @State private var pollPhase: FeaturedPollPhase = .loading
     @State private var showInbox = false
     @State private var inboxStore = AnnouncementStore.shared
     /// Discord ロール受け取り: 認可 URL を発行してもらっている間 true (二度押し防止 + くるくる)。
@@ -140,8 +143,13 @@ struct ProduceTabView: View {
 
     // MARK: - 開催中のお題 (投票導線)
 
+    /// お題のカードは場所を常に取っておく。読み込み中・投票済み・開催中が無い・読めなかった、
+    /// のどれでも同じ位置に 1 枚出して、「ほかのお題」(一覧) へはいつでも行ける。
     @ViewBuilder
     private var featuredPollSection: some View {
+        let openList = ImasFeatureCard<EmptyView>.Action(title: "ほかのお題", systemImage: "list.bullet") {
+            if NavThrottle.allow() { navPath.append(PollRoute.list) }
+        }
         if let poll = activePoll {
             // 投票一覧は値ベース (PollRoute.list) で push する。クロージャで PollListView() を
             // 直接 push すると中の値ベース NavigationLink(value: PollRoute.detail) と混ざり、
@@ -154,7 +162,29 @@ struct ProduceTabView: View {
                 primary: .init(title: "投票する", systemImage: "hand.thumbsup") {
                     if NavThrottle.allow() { navPath.append(PollRoute.detail(poll.id)) }
                 },
-                secondary: .init(title: "ほかのお題", systemImage: "list.bullet") {
+                secondary: openList
+            )
+        } else if pollPhase == .loading {
+            // 出す物と同じ形 (題・副題・行 2 本) で場所を取る。読み込めたら中身だけ替わり、下が動かない。
+            ImasFeatureCard(
+                eyebrow: "お題",
+                title: "お題を読み込んでいます",
+                subtitle: "— 票 · — 候補",
+                // 右上の「あと N 日」も同じ高さで取っておく (無いと読み込み後に下が 22pt ずれる)。
+                metric: .init(prefix: "あと", value: "—", unit: "日"),
+                primary: .init(title: "投票する", systemImage: "hand.thumbsup") {
+                    if NavThrottle.allow() { navPath.append(PollRoute.list) }
+                },
+                secondary: openList
+            )
+            .imasShimmer()
+            .accessibilityLabel("お題を読み込んでいます")
+        } else {
+            ImasFeatureCard(
+                eyebrow: "お題",
+                title: pollPhase.emptyTitle,
+                subtitle: pollPhase.emptySubtitle,
+                primary: .init(title: "みんなの投票を見る", systemImage: "chart.bar.doc.horizontal") {
                     if NavThrottle.allow() { navPath.append(PollRoute.list) }
                 }
             )
@@ -475,12 +505,6 @@ struct ProduceTabView: View {
                         ImasShortcutTile(systemImage: "text.quote", label: "歌詞の投稿状況", seed: pickBrandSeed)
                     }
                 }
-                // 開催中のお題が無いと上の「ほかのお題」が出ないので、そのときだけここに置く。
-                if activePoll == nil {
-                    NavigationLink(value: PollRoute.list) {
-                        ImasShortcutTile(systemImage: "chart.bar.doc.horizontal", label: "みんなの投票", seed: pickBrandSeed)
-                    }
-                }
                 // 編集の協力者に Discord のロールを渡す入口。セッションで本人を確かめるので
                 // ログイン中だけ出す (未ログインで押しても 401 になるだけ)。
                 if AuthService.shared.isSignedIn {
@@ -564,23 +588,34 @@ struct ProduceTabView: View {
     // MARK: - Data Loading
 
     private func loadAll() async {
+        // お題は通信の待ちが長いので、ほかの読み込みを待たせない (並べて走らせる)。
+        async let poll: Void = loadActivePoll()
         await loadLocal()
         await loadNextLive()
         await loadServerActivity()
-        await loadActivePoll()
+        await poll
     }
 
     /// 開催中のお題から1件を先頭カードに出す (誰でも閲覧可)。
     /// ユーザーがまだ投票していないお題を優先し、その中からランダムで選ぶ
     /// (毎回違うお題に触れてもらう導線)。全部投票済み/匿名なら全体からランダム。
+    /// 今出しているお題がまだ出せるなら替えない (読み直しのたびにカードが入れ替わらない)。
+    /// 読めなかったときは今のカードをそのまま残す。
     private func loadActivePoll() async {
-        let polls = (try? await AppContainer.shared.communityVoting.polls(status: "active")) ?? []
+        guard let polls = try? await AppContainer.shared.communityVoting.polls(status: "active") else {
+            if activePoll == nil { pollPhase = .failed }
+            return
+        }
         // 票を使い切ったお題は出さず、未投票を優先してその中からランダム。出すものが無ければ nil。
         // 選び方の規則はコア (`featuredPollIndex`)。匿名は myVoteCount=nil=0 扱いなので常に対象。
+        let current = activePoll.flatMap { cur in polls.firstIndex { $0.id == cur.id } }.map { UInt32($0) }
         let picked = featuredPollIndex(
             myVoteCounts: polls.map { UInt32(max(0, $0.myVoteCount ?? 0)) },
+            current: current,
             seed: UInt64.random(in: .min ... .max))
         activePoll = picked.flatMap { polls.indices.contains(Int($0)) ? polls[Int($0)] : nil }
+        pollPhase = polls.isEmpty ? .none : .allVoted
+        FeaturedPollCache.save(activePoll)
     }
 
     /// ローカル DB から担当・活動・参加ライブを読む。
@@ -686,4 +721,48 @@ struct NextLive: Equatable {
     let isPlanned: Bool
     /// 公演まで何日か (0 = 今日)。日付が年・月までしか無い公演では nil。
     let daysUntil: UInt32?
+}
+
+// MARK: - お題のカードの状態と手元の控え
+
+/// お題のカードを出せないときの状態 (出せるときは `activePoll` があるので見ない)。
+private enum FeaturedPollPhase {
+    case loading, allVoted, none, failed
+
+    var emptyTitle: String {
+        switch self {
+        case .allVoted: "開催中のお題はすべて投票済みです"
+        case .failed: "お題を読み込めませんでした"
+        case .loading, .none: "いま開催中のお題はありません"
+        }
+    }
+
+    var emptySubtitle: String {
+        switch self {
+        case .allVoted: "結果や締め切ったお題は一覧から見られます"
+        case .failed: "下に引っぱると読み直します"
+        case .loading, .none: "締め切ったお題の結果や、新しいお題づくりは一覧から"
+        }
+    }
+}
+
+/// 先頭のお題を手元に 1 件だけ控える。起動直後に読み込みを待たずカードを出すため。
+/// 締め切りを過ぎた控えは出さない。
+private enum FeaturedPollCache {
+    private static let key = "produce.featuredPoll.v1"
+
+    static func load() -> Poll? {
+        guard let data = UserDefaults.standard.data(forKey: key),
+              let poll = try? JSONDecoder().decode(Poll.self, from: data),
+              poll.endsAt > Date() else { return nil }
+        return poll
+    }
+
+    static func save(_ poll: Poll?) {
+        if let poll, let data = try? JSONEncoder().encode(poll) {
+            UserDefaults.standard.set(data, forKey: key)
+        } else {
+            UserDefaults.standard.removeObject(forKey: key)
+        }
+    }
 }
