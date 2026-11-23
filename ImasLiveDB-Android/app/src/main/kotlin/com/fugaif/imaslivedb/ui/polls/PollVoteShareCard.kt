@@ -128,9 +128,9 @@ private fun PollVoteShareCard(card: PollVoteCard, items: Map<String, PollResultS
     val palette = rememberShareCardPalette(seed = card.picks.firstOrNull()?.let { items[it.entityId]?.seed })
     // 1 つなら大きく、3 つでも横幅 (468dp) に収まる大きさ。
     val side = when (card.picks.size) {
-        0, 1 -> 196.dp
-        2 -> 168.dp
-        else -> 136.dp
+        0, 1 -> 212.dp
+        2 -> 188.dp
+        else -> 140.dp
     }
     val many = card.picks.size >= 3
 
@@ -144,31 +144,37 @@ private fun PollVoteShareCard(card: PollVoteCard, items: Map<String, PollResultS
         titleSize = 38.sp,
         subtitle = card.subtitle
     ) {
-        // 「わたしの投票」+ 右へ伸びる罫 (チケットの欄の見出しの書き方)。
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 22.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Text(card.sectionLabel, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp, color = Color.White.copy(alpha = 0.7f))
-            Box(Modifier.weight(1f).height(1.dp).background(Color.White.copy(alpha = 0.14f)))
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 18.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
-            verticalAlignment = Alignment.Top
-        ) {
-            card.picks.forEach { pick -> PickSlot(pick, items[pick.entityId], side, many, card.picks.size <= 1, palette.accent) }
-        }
-        card.callToAction?.let { cta ->
-            // 開催中だけの誘いの帯。差し色の平らな塗りに黒の文字。
+        // 残りの高さを全部こちらで受ける (骨格の足下の前の余白は最小にする)。
+        Column(Modifier.fillMaxWidth().weight(100f)) {
+            // 「わたしの投票」+ 右へ伸びる罫 (チケットの欄の見出しの書き方)。
             Row(
-                modifier = Modifier.padding(top = 22.dp).fillMaxWidth().heightIn(min = 44.dp).background(palette.accent).padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth().padding(top = 22.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text(cta, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = ShareInk.nearBlack, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Spacer(Modifier.weight(1f))
-                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = ShareInk.nearBlack, modifier = Modifier.size(18.dp))
+                Text(card.sectionLabel, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp, color = Color.White.copy(alpha = 0.7f))
+                Box(Modifier.weight(1f).height(1.dp).background(Color.White.copy(alpha = 0.14f)))
+            }
+            // 絵の並びは見出しと帯 (締切後は足下) の間の真ん中に置き、帯は足下の上に据える。
+            Spacer(Modifier.weight(1f).heightIn(min = 18.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
+                verticalAlignment = Alignment.Top
+            ) {
+                card.picks.forEach { pick -> PickSlot(pick, items[pick.entityId], side, many, card.picks.size <= 1, palette.accent) }
+            }
+            Spacer(Modifier.weight(1f).heightIn(min = 22.dp))
+            card.callToAction?.let { cta ->
+                // 開催中だけの誘いの帯。差し色の平らな塗りに黒の文字。
+                Row(
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).background(palette.accent).padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(cta, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = ShareInk.nearBlack, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Spacer(Modifier.weight(1f))
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = ShareInk.nearBlack, modifier = Modifier.size(18.dp))
+                }
             }
         }
     }
@@ -180,8 +186,11 @@ private fun PickSlot(pick: PollVotePick, item: PollResultShareItem?, side: andro
         Box {
             PollShareVisual(item, side)
             // 絵の左上に重ねる投票の印。差し色の正方形に ✓ (投票用紙のチェック欄)。
+            // 判子 (丸) のときは角の外でなく丸の縁に重ねる。
+            val onStamp = item?.image == null && item?.monogram != null
+            val markOffset = if (onStamp) side * 0.07f else (-6).dp
             Box(
-                Modifier.offset(x = (-6).dp, y = (-6).dp).size(30.dp).background(accent).border(2.dp, ShareInk.nearBlack),
+                Modifier.offset(x = markOffset, y = markOffset).size(30.dp).background(accent).border(2.dp, ShareInk.nearBlack),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(Icons.Filled.Check, contentDescription = null, tint = ShareInk.nearBlack, modifier = Modifier.size(20.dp))

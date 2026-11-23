@@ -59,9 +59,9 @@ struct PollVoteShareCard: View {
     /// 1 つなら大きく、3 つでも横幅 (468pt) に収まる大きさ。
     private var side: CGFloat {
         switch card.picks.count {
-        case 0, 1: return 196
-        case 2: return 168
-        default: return 136
+        case 0, 1: return 212
+        case 2: return 188
+        default: return 140
         }
     }
 
@@ -85,17 +85,22 @@ struct PollVoteShareCard: View {
         ) {
             VStack(alignment: .leading, spacing: 0) {
                 sectionLabel.padding(.top, 22)
+                // 絵の並びは見出しと帯 (締切後は足下) の間の真ん中に置き、帯は足下の上に据える。
+                Spacer(minLength: 18)
                 HStack(alignment: .top, spacing: 16) {
                     ForEach(card.picks, id: \.entityId) { pick in
                         pickSlot(pick)
                     }
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.top, 18)
+                Spacer(minLength: 22)
                 if let cta = card.callToAction {
-                    callToAction(cta).padding(.top, 22)
+                    callToAction(cta)
                 }
             }
+            // 残りの高さを全部こちらで受ける (骨格の足下の前の余白は最小にする)。
+            .frame(maxHeight: .infinity)
+            .layoutPriority(1)
         }
     }
 
@@ -113,7 +118,7 @@ struct PollVoteShareCard: View {
     private func pickSlot(_ pick: PollVotePick) -> some View {
         VStack(spacing: 10) {
             PollShareVisual(item: items[pick.entityId], side: side)
-                .overlay(alignment: .topLeading) { voteMark }
+                .overlay(alignment: .topLeading) { voteMark(onStamp: isStamp(pick)) }
             Text(items[pick.entityId]?.name ?? "")
                 .font(.system(size: card.picks.count >= 3 ? 14 : 16, weight: .bold))
                 .foregroundStyle(.white)
@@ -140,7 +145,13 @@ struct PollVoteShareCard: View {
     }
 
     /// 絵の左上に重ねる投票の印。差し色の正方形に ✓ (投票用紙のチェック欄)。
-    private var voteMark: some View {
+    /// 画像の無いアイドルの判子 (丸) か。丸のときは印を角の外でなく丸の縁に重ねる。
+    private func isStamp(_ pick: PollVotePick) -> Bool {
+        let item = items[pick.entityId]
+        return item?.image == nil && item?.monogram != nil
+    }
+
+    private func voteMark(onStamp: Bool) -> some View {
         Rectangle()
             .fill(palette.accent)
             .frame(width: 30, height: 30)
@@ -150,7 +161,7 @@ struct PollVoteShareCard: View {
                     .foregroundStyle(ShareInk.nearBlack)
             )
             .overlay(Rectangle().stroke(ShareInk.nearBlack, lineWidth: 2))
-            .offset(x: -6, y: -6)
+            .offset(x: onStamp ? side * 0.07 : -6, y: onStamp ? side * 0.07 : -6)
     }
 
     /// 開催中だけの誘いの帯。差し色の平らな塗りに黒の文字。
