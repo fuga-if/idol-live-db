@@ -14,7 +14,7 @@ import type { PollListPage } from "../../lib/schema/PollListPage";
  *
  * 共有 URL (`/polls/#poll-<id>`) はアプリが入っていればアプリで開く (iOS Universal Links /
  * Android App Links)。ここに来たのはアプリが無い人か、アプリ内ブラウザでリンクが発火しなかった人。
- * 節ごとの「アプリで投票する」はアプリのスキーム (`imaslivedb://polls/<id>`) へ飛ばす
+ * 節ごとの「アプリから投票する」はアプリのスキーム (`imaslivedb://polls/<id>`) へ飛ばす
  * (同じサイト内の https リンクではアプリが開かない)。アプリが無い人には下の導線がストアを出す。
  * 立てたばかりで一覧にまだ無いお題は、`poll-missing.ts` が知らせを出す。
  */
@@ -86,7 +86,7 @@ const list = page<PollListPage>(Astro.props.data);
     ))
   }
 
-  {/* 共有 URL で開いた人向けの、画面の下に留まる「アプリで投票する」。X などのアプリ内ブラウザでは
+  {/* 共有 URL で開いた人向けの、画面の下に留まる「アプリから投票する」。X などのアプリ内ブラウザでは
       Universal Links が効かずこのページに着くので、ひと押しでアプリのそのお題へ渡す。
       行き先と語は poll-missing.ts が着地したお題の節から写す。アプリが無い人にはストアを並べる。 */}
   <div class="poll-jump" data-poll-jump hidden>

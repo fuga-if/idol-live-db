@@ -177,7 +177,7 @@ const POLL_APP_URL_PREFIX: &str = "imaslivedb://polls/";
 /// アプリでお題を直接開く URL (`imaslivedb://polls/{id}`)。
 ///
 /// 共有には使わない (アプリが無い端末では何も開かない)。公開サイトのお題の節に置く
-/// 「アプリで投票する」の行き先で、共有 URL ([`poll_url`]) をアプリでなくブラウザで
+/// 「アプリから投票する」の行き先で、共有 URL ([`poll_url`]) をアプリでなくブラウザで
 /// 開いてしまった人 (X 等のアプリ内ブラウザで Universal Links / App Links が発火しない) の救済。
 /// 同じサイト内の https リンクではアプリが開かないので、スキームにする。
 /// ライブ・公演ページの「アプリで開く」(`imaslivedb://events/…`) と同じ扱い。
@@ -916,7 +916,7 @@ mod tests {
         assert_eq!(poll_id_from_url("https://idollivedb.fugaapp.site/polls/#poll-"), None);
         assert_eq!(poll_id_from_url("https://idollivedb.fugaapp.site/p/#poll-x"), None);
         assert_eq!(poll_id_from_url("https://example.com/polls/#poll-x"), None);
-        // 公開サイトの「アプリで投票する」・着地ページのスキーム・問い合わせ付きの公開サイトの形。
+        // 公開サイトの「アプリから投票する」・着地ページのスキーム・問い合わせ付きの公開サイトの形。
         assert_eq!(poll_id_from_url(&poll_app_url("p@1")).as_deref(), Some("p@1"));
         assert_eq!(poll_app_url("p@1"), "imaslivedb://polls/p%401");
         assert_eq!(poll_id_from_url("imaslivedb://polls/p1/").as_deref(), Some("p1"));

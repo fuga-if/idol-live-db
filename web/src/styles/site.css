@@ -578,13 +578,13 @@ a.tl-list__row::before {
 .poll__entries > li + li {
   border-block-start: 1px solid var(--ds-sep);
 }
-/* 節の下の「アプリで投票する」。行の続きとして区切り線の下に置く。 */
+/* 節の下の「アプリから投票する」。行の続きとして区切り線の下に置く。 */
 .poll__app {
   justify-content: flex-start;
   padding: var(--sp3) var(--sp5);
   border-block-start: 1px solid var(--ds-sep);
 }
-/* 共有 URL で開いた人向けの、画面の下に留まる「アプリで投票する」(poll-missing.ts が出し入れする)。
+/* 共有 URL で開いた人向けの、画面の下に留まる「アプリから投票する」(poll-missing.ts が出し入れする)。
    タブバー (狭い画面) の上に浮かべる。平らな面と線だけ (光らせない)。 */
 .poll-jump {
   position: fixed;

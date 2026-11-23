@@ -601,7 +601,7 @@ pub fn poll_ends_label(is_open: bool) -> &'static str {
 
 /// お題の節に置く「アプリで開く」の語。締切前は投票へ、過ぎたら結果へ誘う。
 pub fn poll_app_label(is_open: bool) -> &'static str {
-    if is_open { "アプリで投票する" } else { "アプリで見る" }
+    if is_open { "アプリから投票する" } else { "アプリから見る" }
 }
 
 /// お題の一覧の「アプリで開く」の説明。投票はアプリでしかできない。
