@@ -332,10 +332,11 @@ pub fn poll_votes_payload(
     }
 }
 
-/// 結果の画像に添える一言 (「お題「〇〇」の結果」)。画像に見出し・順位・タグが刷ってあるので、
-/// 本文はお題名だけにする。
+/// 結果の画像に添える一言 (「お題「〇〇」の結果 #アイドルライブDB」)。画像に見出し・順位が刷ってあるので、
+/// 本文はお題名とタグだけにする (公式アカウントの結果ポストと同じ形)。タグは画像に刷ってあっても
+/// 本文に無いと X で検索・タグ一覧に出ないので必ず付ける。
 pub fn poll_result_share_text(title: &str) -> String {
-    format!("お題「{title}」の結果")
+    format!("お題「{title}」の結果 {HASHTAG}")
 }
 
 /// お題そのもののシェア。
@@ -368,7 +369,7 @@ pub fn poll_invite_payload(
 ///
 /// タイムゾーンは呼び出し側が渡した固定オフセットで解決する。夏時間は
 /// 「その瞬間のオフセット」を渡してもらう前提なので、ここでは扱わない。
-fn month_day(epoch_ms: i64, tz_offset_seconds: i32) -> String {
+pub(crate) fn month_day(epoch_ms: i64, tz_offset_seconds: i32) -> String {
     use chrono::{DateTime, Datelike, FixedOffset};
     // 表現不能な epoch でだけ None。サーバ由来の締切では到達しない。
     let utc = DateTime::from_timestamp_millis(epoch_ms).unwrap_or(DateTime::UNIX_EPOCH);
@@ -800,7 +801,7 @@ mod tests {
 
     #[test]
     fn poll_result_share_text_wraps_title() {
-        assert_eq!(poll_result_share_text("ベストソング"), "お題「ベストソング」の結果");
+        assert_eq!(poll_result_share_text("ベストソング"), "お題「ベストソング」の結果 #アイドルライブDB");
     }
 
     #[test]

@@ -512,6 +512,7 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_share_poll_votes_payload,
     uniffi_imas_core_checksum_func_poll_competition_ranks,
     uniffi_imas_core_checksum_func_poll_result_card,
+    uniffi_imas_core_checksum_func_poll_vote_card,
     uniffi_imas_core_checksum_func_share_prediction_votes_payload,
     uniffi_imas_core_checksum_func_share_quiz_result_text,
     uniffi_imas_core_checksum_func_sort_maker_estimate_total,

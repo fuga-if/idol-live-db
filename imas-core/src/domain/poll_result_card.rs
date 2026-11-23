@@ -128,6 +128,102 @@ pub fn poll_result_card(input: &PollResultCardInput) -> PollResultCard {
     }
 }
 
+// ---------------------------------------------------------------------------
+// 自分の投票の画像 (「私の投票」)
+// ---------------------------------------------------------------------------
+
+/// 「私の投票」の画像に並べる上限。1 人の票の上限 (3) と同じ。上限を超えて入れていた古い票は
+/// 順位の高い方から載せる。
+const VOTE_CARD_LIMIT: usize = crate::domain::community_limits::VOTE_LIMIT_PER_TARGET as usize;
+
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct PollVoteCardInput {
+    pub title: String,
+    pub target: PollCardTarget,
+    pub is_active: bool,
+    /// 締切。分からなければ None (締切の日付を刷らない)。
+    pub ends_at_epoch_ms: Option<i64>,
+    /// 端末の時刻帯の UTC からのずれ (秒)。**締切時点の**ずれを渡す。
+    pub tz_offset_seconds: i32,
+    /// 自分が票を入れた候補。
+    pub my_entity_ids: Vec<String>,
+    /// サーバのランキング (票の多い順)。自分の票の「いま何位か」に使う。
+    pub entries: Vec<PollCardEntryInput>,
+}
+
+/// 「私の投票」に載せる 1 つ。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct PollVotePick {
+    pub entity_id: String,
+    /// ランキングでの順位 (同票は同順位)。ランキングに見当たらなければ None。
+    pub rank: Option<u32>,
+    pub vote_count: u32,
+    /// 名前の下に刷る順位 (開催中「いま 2位」/ 締切後「2位」)。順位が無ければ空。
+    pub rank_label: String,
+}
+
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct PollVoteCard {
+    /// 見出しの前の印字 (「みんなの投票」)。
+    pub kicker: String,
+    /// 見出しの右の英字の印字 (`MY VOTE`)。
+    pub imprint: String,
+    /// 大見出し (お題)。
+    pub title: String,
+    /// 見出しの下の 1 行 (「3曲に投票しました ・ 2026.11.30 締切」)。
+    pub subtitle: String,
+    /// 帯の見出し (「わたしの投票」)。
+    pub section_label: String,
+    /// 自分の票 (順位の高い順、最大 3)。
+    pub picks: Vec<PollVotePick>,
+    /// 下の帯に刷る誘い (開催中だけ「あなたも投票しよう ・ 11月30日まで」)。締切後は None。
+    pub call_to_action: Option<String>,
+}
+
+pub fn poll_vote_card(input: &PollVoteCardInput) -> PollVoteCard {
+    let votes: Vec<u32> = input.entries.iter().map(|e| e.vote_count).collect();
+    let ranks = competition_ranks(&votes);
+    let mut picks: Vec<PollVotePick> = input
+        .my_entity_ids
+        .iter()
+        .map(|id| {
+            let found = input.entries.iter().position(|e| &e.entity_id == id);
+            let rank = found.map(|i| ranks[i]);
+            let vote_count = found.map(|i| input.entries[i].vote_count).unwrap_or(0);
+            let rank_label = match rank {
+                Some(r) if input.is_active => format!("いま {r}位"),
+                Some(r) => format!("{r}位"),
+                None => String::new(),
+            };
+            PollVotePick { entity_id: id.clone(), rank, vote_count, rank_label }
+        })
+        .collect();
+    // 順位の高い順 (順位の無いものは後ろ)。同順位は渡された順のまま。
+    picks.sort_by_key(|p| p.rank.unwrap_or(u32::MAX));
+    let count = picks.len();
+    picks.truncate(VOTE_CARD_LIMIT);
+
+    let tz = input.tz_offset_seconds;
+    let deadline = input
+        .ends_at_epoch_ms
+        .map(|ms| format!(" ・ {} 締切", dotted_date(ms, tz)))
+        .unwrap_or_default();
+    let call_to_action = input.is_active.then(|| match input.ends_at_epoch_ms {
+        Some(ms) => format!("あなたも投票しよう ・ {}まで", crate::domain::share_text::month_day(ms, tz)),
+        None => "あなたも投票しよう".to_string(),
+    });
+
+    PollVoteCard {
+        kicker: "みんなの投票".to_string(),
+        imprint: "MY VOTE".to_string(),
+        title: input.title.clone(),
+        subtitle: format!("{count}{}に投票しました{deadline}", input.target.counter()),
+        section_label: "わたしの投票".to_string(),
+        picks,
+        call_to_action,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -179,6 +275,54 @@ mod tests {
         let card = poll_result_card(&input(&[3, 2, 1], false));
         assert_eq!(card.imprint, "FINAL RESULT");
         assert_eq!(card.subtitle, "3曲に6票 ・ 2026.10.06 締切");
+    }
+
+    fn vote_input(mine: &[&str], is_active: bool) -> PollVoteCardInput {
+        let base = input(&[9, 7, 7, 5], is_active);
+        PollVoteCardInput {
+            title: base.title,
+            target: PollCardTarget::Song,
+            is_active,
+            ends_at_epoch_ms: Some(OCT6_JST),
+            tz_offset_seconds: JST,
+            my_entity_ids: mine.iter().map(|s| s.to_string()).collect(),
+            entries: base.entries,
+        }
+    }
+
+    #[test]
+    fn vote_card_orders_by_rank_and_labels_interim() {
+        let card = poll_vote_card(&vote_input(&["s3", "s0", "s2"], true));
+        assert_eq!(card.imprint, "MY VOTE");
+        assert_eq!(card.picks.iter().map(|p| p.entity_id.as_str()).collect::<Vec<_>>(), vec!["s0", "s2", "s3"]);
+        assert_eq!(card.picks.iter().map(|p| p.rank_label.as_str()).collect::<Vec<_>>(), vec!["いま 1位", "いま 2位", "いま 4位"]);
+        assert_eq!(card.subtitle, "3曲に投票しました ・ 2026.10.06 締切");
+        assert_eq!(card.call_to_action.as_deref(), Some("あなたも投票しよう ・ 10月6日まで"));
+    }
+
+    #[test]
+    fn vote_card_after_deadline_has_final_rank_and_no_invite() {
+        let card = poll_vote_card(&vote_input(&["s1"], false));
+        assert_eq!(card.picks[0].rank_label, "2位");
+        assert_eq!(card.picks[0].vote_count, 7);
+        assert!(card.call_to_action.is_none());
+    }
+
+    #[test]
+    fn vote_card_caps_at_vote_limit_and_keeps_unknown_last() {
+        let card = poll_vote_card(&vote_input(&["zz", "s3", "s0", "s1"], true));
+        assert_eq!(card.picks.len(), 3);
+        assert_eq!(card.subtitle, "4曲に投票しました ・ 2026.10.06 締切");
+        assert!(card.picks.iter().all(|p| p.entity_id != "zz"));
+    }
+
+    #[test]
+    fn vote_card_without_deadline_skips_the_date() {
+        let mut i = vote_input(&["s0"], true);
+        i.ends_at_epoch_ms = None;
+        let card = poll_vote_card(&i);
+        assert_eq!(card.subtitle, "1曲に投票しました");
+        assert_eq!(card.call_to_action.as_deref(), Some("あなたも投票しよう"));
     }
 
     #[test]

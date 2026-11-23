@@ -16,6 +16,7 @@ struct PollDetailView: View {
     @State private var sheetDestination: DetailDestination?
     /// 結果の画像をシェアするシート。
     @State private var showResultShare = false
+    @State private var showVoteShare = false
 
     // 投票用アイドル一覧（アイドルお題時に事前ロード）。master 参照なので View 側に残す。
     @State private var allIdols: [Idol] = []
@@ -54,6 +55,11 @@ struct PollDetailView: View {
         .sheet(isPresented: $showResultShare) {
             if let detail = vm.detail {
                 PollResultShareSheet(poll: detail.poll, entries: detail.entries)
+            }
+        }
+        .sheet(isPresented: $showVoteShare) {
+            if let detail = vm.detail, let payload = myVotePayload(poll: detail.poll) {
+                PollVoteShareSheet(poll: detail.poll, entries: detail.entries, shareText: sharePayloadPlainText(payload: payload))
             }
         }
         .sheet(item: $sheetDestination) { dest in
@@ -206,9 +212,23 @@ struct PollDetailView: View {
                     .font(.imasCaption)
                     .foregroundStyle(DS.ink3)
                 Spacer(minLength: 8)
-                SocialShareMenu(payload: payload, analyticsKey: "poll_detail.share_votes") {
+                // 画像 (私の投票) を先頭に。文字だけのシェア (X / その他) はその下。
+                Menu {
+                    Section {
+                        Button {
+                            AppAnalytics.tap("poll_detail.share_votes_image")
+                            showVoteShare = true
+                        } label: {
+                            Label("画像でシェア", systemImage: "photo")
+                        }
+                    }
+                    Section {
+                        SocialShareMenuItems(payload: payload, analyticsKey: "poll_detail.share_votes")
+                    }
+                } label: {
                     SocialShareChipLabel(title: "投票をシェア")
                 }
+                .buttonStyle(.borderless)
                 .accessibilityLabel("自分の投票をシェア")
             }
         }

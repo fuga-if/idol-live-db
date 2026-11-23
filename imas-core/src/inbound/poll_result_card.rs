@@ -1,6 +1,6 @@
 //! みんなの投票の結果画像の FFI 面。ロジックは domain::poll_result_card。
 
-use crate::domain::poll_result_card::{self, PollResultCard, PollResultCardInput};
+use crate::domain::poll_result_card::{self, PollResultCard, PollResultCardInput, PollVoteCard, PollVoteCardInput};
 
 /// 結果画像に載せる中身 (見出し・順位・表彰台と下の行)。画像を作る時点で 1 回呼ぶ。
 #[uniffi::export]
@@ -12,4 +12,10 @@ pub fn poll_result_card(input: PollResultCardInput) -> PollResultCard {
 #[uniffi::export]
 pub fn poll_competition_ranks(votes: Vec<u32>) -> Vec<u32> {
     poll_result_card::competition_ranks(&votes)
+}
+
+/// 「私の投票」の画像に載せる中身 (見出し・自分の票といまの順位・誘いの帯)。
+#[uniffi::export]
+pub fn poll_vote_card(input: PollVoteCardInput) -> PollVoteCard {
+    poll_result_card::poll_vote_card(&input)
 }
