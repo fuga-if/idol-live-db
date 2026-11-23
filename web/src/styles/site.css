@@ -532,6 +532,11 @@ a.tl-list__row::before {
   box-shadow: var(--ds-surface-edge);
   overflow: hidden;
 }
+/* 共有 URL (`#poll-<id>`) で開いたお題。飛んだ先がどれか一目で分かるよう、縁を太い線で囲む
+   (平らな線。光らせない)。 */
+.poll:target {
+  box-shadow: 0 0 0 3px var(--ds-pick);
+}
 .poll__head {
   display: flex;
   flex-direction: column;

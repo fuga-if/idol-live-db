@@ -25,7 +25,41 @@ function update(): void {
   if (missing) link.href = `${notice.dataset.appUrlPrefix ?? ""}${encodeURIComponent(id)}`;
 }
 
+/**
+ * 一覧に載っているお題へ着地し直す。ブラウザは読み込みの途中で 1 度だけ断片へ飛ぶが、そのあと
+ * 文字の形 (Web フォント) が入ると上の節の高さが変わり、狙ったお題がヘッダの下や画面の外へずれる
+ * (スマホの遅い回線ほど大きくずれ、「お題に飛ばない」に見える)。読み込みが落ち着いてから合わせ直す。
+ * 利用者が自分で動かしたあとは触らない。
+ */
+function settleOnTarget(): void {
+  const hash = window.location.hash;
+  if (!hash.startsWith(FRAGMENT_PREFIX)) return;
+  let target: HTMLElement | null = null;
+  try {
+    target = document.getElementById(decodeURIComponent(hash.slice(1)));
+  } catch {
+    target = null;
+  }
+  if (!target) return;
+  const el = target;
+  let userMoved = false;
+  const stop = () => {
+    userMoved = true;
+  };
+  for (const ev of ["wheel", "touchstart", "keydown"] as const) {
+    window.addEventListener(ev, stop, { once: true, passive: true });
+  }
+  const align = () => {
+    if (!userMoved) el.scrollIntoView({ block: "start" });
+  };
+  align();
+  void document.fonts?.ready.then(align);
+  if (document.readyState === "complete") requestAnimationFrame(align);
+  else window.addEventListener("load", align, { once: true });
+}
+
 export function watchMissingPoll(): void {
   update();
+  settleOnTarget();
   window.addEventListener("hashchange", update);
 }

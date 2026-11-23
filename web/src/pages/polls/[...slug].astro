@@ -43,7 +43,7 @@ const list = page<PollListPage>(Astro.props.data);
 
   {
     list.polls.map((poll) => (
-      <section class="poll" aria-labelledby={`poll-${poll.id}`}>
+      <section class="poll" id={`poll-${poll.id}`} aria-labelledby={`poll-${poll.id}-title`}>
         {/* ImasFeatureCard の形: 目印 (灰・12px 太字) と右上の数、題、添える日付。 */}
         <div class="poll__head">
           <div class="poll__top">
@@ -53,7 +53,7 @@ const list = page<PollListPage>(Astro.props.data);
               <span class="num__unit">票</span>
             </span>
           </div>
-          <h2 class="poll__title" id={`poll-${poll.id}`}>{poll.title}</h2>
+          <h2 class="poll__title" id={`poll-${poll.id}-title`}>{poll.title}</h2>
           {poll.endsOn && (
             <p class="poll__sub">
               {poll.endsLabel} <time datetime={poll.endsOn}>{poll.endsDisplay}</time>
