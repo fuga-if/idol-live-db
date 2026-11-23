@@ -644,6 +644,9 @@ web_dto! {
         /// パート分け (歌い分け) を描く原唱者 (並びが縞の順)。行が持つのは id だけなので、
         /// 色と名前はここから引く。ソロ曲 (`parts_applicable` が偽) と歌詞を出さないときは空。
         pub part_cast: Vec<LyricPartCastMember>,
+        /// 歌詞の一部を URL で共有したとき、その範囲を塗る色のテーマキー
+        /// (`content::lyrics_share_theme`)。ソロ曲は歌うアイドル、ほかはブランド。
+        pub share_theme_key: String,
 }
 }
 

@@ -646,6 +646,8 @@ fn song_page(reference: &Ref, minimal: bool) -> SongPage {
                     },
                 ]
             },
+            // 代表値は 2 人で歌う曲なので、塗るのはブランドの色。
+            share_theme_key: super::theme::brand_key("ml"),
         },
         // 代表値でもコミュニティ集計が入る形にしておく (器だけ空にしない)。
         community: SongCommunity {

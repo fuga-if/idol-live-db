@@ -327,6 +327,7 @@
   "app": {
     "title": "アプリ「アイドルライブDB」",
     "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
+    "playStoreUrl": "https://play.google.com/store/apps/details?id=site.fugaapp.imaslivedb",
     "deeplink": "imaslivedb://shows/sh_sample_1",
     "note": "参加記録・投票・コールの編集・タグ付けはアプリでご利用いただけます。"
   },

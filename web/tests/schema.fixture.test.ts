@@ -155,7 +155,7 @@ describe("絶対制約: 歌詞の本文とプレビュー音源を出力に含�
   // `partCast` はパート分けを描く原唱者 (id・短縮名・テーマ) で、歌詞には触れない。
   const LYRICS_BLOCK_KEYS = new Set([
     "available", "statusLabel", "note", "licenseNote", "sourceUrl", "readLabel",
-    "callGuide", "partCast",
+    "callGuide", "partCast", "shareThemeKey",
   ]);
 
   it("web/data 配下の全 JSON に歌詞本文・試聴音源のキーが無い", () => {

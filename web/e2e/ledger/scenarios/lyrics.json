@@ -40,6 +40,54 @@
         "island:src/components/SongLyrics.astro",
         "op:src/components/SongLyrics.astro#<top>/button:click"
       ]
+    },
+    {
+      "id": "LYRICS-005",
+      "title": "読み込んだ歌詞の行を押すと、その行を歌い手の色で塗り、画面下の帯から「その行へのリンク」をコピー / 共有できる。⌘C でも写るのは本文ではなくリンク。同じ行をもう一度押す・× を押す・外を押すと外れる",
+      "status": "implemented",
+      "pendingReason": null,
+      "covers": [
+        "island:src/components/SongLyrics.astro",
+        "op:src/components/SongLyrics.astro#<top>/body:pointerdown",
+        "op:src/components/SongLyrics.astro#<top>/body:pointerup",
+        "op:src/components/SongLyrics.astro#<top>/copyButton:click",
+        "op:src/components/SongLyrics.astro#<top>/document:copy",
+        "op:src/components/SongLyrics.astro#<top>/document:keydown",
+        "op:src/components/SongLyrics.astro#<top>/document:pointerdown",
+        "op:src/components/SongLyrics.astro#<top>/closeButton:click"
+      ]
+    },
+    {
+      "id": "LYRICS-006",
+      "title": "マウスでなぞると字の位置まで選べ、リンクには行と行内の位置が入る (#lyric-1.2-2.4)",
+      "status": "implemented",
+      "pendingReason": null,
+      "covers": [
+        "op:src/components/SongLyrics.astro#<top>/body:pointerdown",
+        "op:src/components/SongLyrics.astro#<top>/body:pointermove",
+        "op:src/components/SongLyrics.astro#<top>/body:pointerup"
+      ]
+    },
+    {
+      "id": "LYRICS-007",
+      "title": "#lyric-… の URL で開くと、歌詞のタブを開いて 1 曲ぶんだけ読み込み、その範囲を塗って画面に送る。共有の帯は出さない。範囲外の数は行末に丸める",
+      "status": "implemented",
+      "pendingReason": null,
+      "covers": [
+        "island:src/components/SongLyrics.astro"
+      ]
+    },
+    {
+      "id": "LYRICS-008",
+      "title": "指の端末では、行を長押ししたままなぞると範囲を選べ (選んでいる間はページが動かない、スクロールが始まったら選ばない)、帯の「共有」で OS の共有シートにリンクだけを渡す",
+      "status": "pending",
+      "pendingReason": "Playwright のタッチは tap しか無く、長押し→なぞりと OS の共有シートを再現できない。実機 (iPhone Safari / Android Chrome) で確かめる",
+      "covers": [
+        "op:src/components/SongLyrics.astro#<top>/body:touchmove",
+        "op:src/components/SongLyrics.astro#<top>/body:contextmenu",
+        "op:src/components/SongLyrics.astro#<top>/body:pointercancel",
+        "op:src/components/SongLyrics.astro#<top>/nativeButton:click"
+      ]
     }
   ]
 }
