@@ -63,6 +63,13 @@ private fun shimmerOverlay(content: @Composable () -> Unit) {
     Box(Modifier.graphicsLayer { this.alpha = alpha }) { content() }
 }
 
+/**
+ * 部品を読み込み中の濃さで包む (iOS の `.imasShimmer()` と対)。読み込み中も本物と同じ形で
+ * 場所を取っておきたいとき (プロデュースのお題のカード) に使う。
+ */
+@Composable
+fun ImasShimmer(content: @Composable () -> Unit) = shimmerOverlay(content)
+
 /** プレースホルダの角丸ブロック。 */
 @Composable
 fun SkeletonBox(width: Dp? = null, height: Dp = 12.dp, corner: Dp = 6.dp) {

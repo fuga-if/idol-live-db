@@ -67,6 +67,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasFeatureCard
 import com.fugaif.imaslivedb.ui.designsystem.ImasPass
 import com.fugaif.imaslivedb.ui.designsystem.ImasSection
 import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeaderStyle
+import com.fugaif.imaslivedb.ui.designsystem.ImasShimmer
 import com.fugaif.imaslivedb.ui.designsystem.ImasShortcutGroup
 import com.fugaif.imaslivedb.ui.designsystem.ImasShortcutTile
 import com.fugaif.imaslivedb.ui.designsystem.ImasStatGrid
@@ -166,15 +167,18 @@ fun ProduceScreen(
                 }
             }
 
-            state.featuredPoll?.let { poll ->
-                // 投票一覧 (ほかのお題) はこの見出しから。カードの中には iOS と同じ「投票する」行を置く。
-                ImasSection(
-                    "投票受付中",
-                    style = ImasSectionHeaderStyle.SMALL,
-                    seeAll = onNavigateToPolls,
-                    seeAllTitle = "ほかのお題"
-                ) {
-                    ImasFeatureCard(
+            // お題のカードは場所を常に取っておく。読み込み中・投票済み・開催中が無い・読めなかった、
+            // のどれでも同じ位置に 1 枚出して、「ほかのお題」(一覧) へはいつでも行ける (iOS と同じ)。
+            // 投票一覧 (ほかのお題) はこの見出しから。カードの中には iOS と同じ「投票する」行を置く。
+            ImasSection(
+                "投票受付中",
+                style = ImasSectionHeaderStyle.SMALL,
+                seeAll = onNavigateToPolls,
+                seeAllTitle = "ほかのお題"
+            ) {
+                val poll = state.featuredPoll
+                when {
+                    poll != null -> ImasFeatureCard(
                         title = poll.title,
                         eyebrow = "お題",
                         subtitle = "${poll.totalVotes}票 · ${poll.entryCount}候補 · ${poll.remainingLabel}",
@@ -182,6 +186,26 @@ fun ProduceScreen(
                         onOpen = { onNavigateToPollDetail(poll.id) },
                         primary = ImasFeatureAction(title = "投票する", icon = Icons.Filled.ThumbUp) {
                             onNavigateToPollDetail(poll.id)
+                        }
+                    )
+                    // 出す物と同じ形 (題・副題・行 1 本) で場所を取る。読み込めたら中身だけ替わり、下が動かない。
+                    state.pollPhase == FeaturedPollPhase.LOADING -> ImasShimmer {
+                        ImasFeatureCard(
+                            title = state.pollPhase.emptyTitle,
+                            eyebrow = "お題",
+                            subtitle = state.pollPhase.emptySubtitle,
+                            primary = ImasFeatureAction(title = "投票する", icon = Icons.Filled.ThumbUp) {
+                                onNavigateToPolls()
+                            }
+                        )
+                    }
+                    else -> ImasFeatureCard(
+                        title = state.pollPhase.emptyTitle,
+                        eyebrow = "お題",
+                        subtitle = state.pollPhase.emptySubtitle,
+                        onOpen = onNavigateToPolls,
+                        primary = ImasFeatureAction(title = "みんなの投票を見る", icon = Icons.Filled.HowToVote) {
+                            onNavigateToPolls()
                         }
                     )
                 }
@@ -197,8 +221,6 @@ fun ProduceScreen(
                 onNavigateToEditHistory = onNavigateToEditHistory,
                 onNavigateToTagActivity = onNavigateToTagActivity,
                 onNavigateToTagList = onNavigateToTagList,
-                showsPollsShortcut = state.featuredPoll == null,
-                onNavigateToPolls = onNavigateToPolls,
                 isSignedIn = authState.isSignedIn,
                 isLinkingDiscord = state.isLinkingDiscord,
                 onRequestDiscordLink = viewModel::requestDiscordLink,
@@ -326,8 +348,6 @@ private fun ShortcutsSection(
     onNavigateToEditHistory: () -> Unit,
     onNavigateToTagActivity: () -> Unit,
     onNavigateToTagList: () -> Unit,
-    showsPollsShortcut: Boolean,
-    onNavigateToPolls: () -> Unit,
     isSignedIn: Boolean,
     isLinkingDiscord: Boolean,
     onRequestDiscordLink: () -> Unit,
@@ -371,10 +391,6 @@ private fun ShortcutsSection(
             ImasShortcutTile(Icons.Filled.LocalFireDepartment, "タグ", seed = pickSeed, onClick = onNavigateToTagActivity)
             // iOS のコールガイドの位置。Android には歌詞が無いので、ここからしか行けないタグ一覧を置く。
             ImasShortcutTile(Icons.Filled.Sell, "タグ一覧", seed = pickSeed, onClick = onNavigateToTagList)
-            // 開催中のお題が無いと上の「ほかのお題」が出ないので、そのときだけここに置く。
-            if (showsPollsShortcut) {
-                ImasShortcutTile(Icons.Filled.HowToVote, "お題", seed = pickSeed, onClick = onNavigateToPolls)
-            }
             // 編集の協力者に Discord のロールを渡す入口。セッションで本人を確かめるので
             // ログイン中だけ出す (未ログインで押しても 401 になるだけ)。
             if (isSignedIn) {
