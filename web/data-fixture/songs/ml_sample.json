@@ -105,7 +105,8 @@
         "name": "静香",
         "themeKey": "idol:ml_mogami_shizuka"
       }
-    ]
+    ],
+    "shareThemeKey": "brand:ml"
   },
   "songTypeLabel": "全体曲",
   "releaseDate": "2019-03-13",
@@ -293,9 +294,28 @@
       "link": null
     }
   ],
+  "tabs": [
+    {
+      "key": "info",
+      "label": "情報・歌唱"
+    },
+    {
+      "key": "lyrics",
+      "label": "歌詞"
+    },
+    {
+      "key": "history",
+      "label": "披露履歴"
+    },
+    {
+      "key": "community",
+      "label": "コミュニティ"
+    }
+  ],
   "app": {
     "title": "アプリ「アイドルライブDB」",
     "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
+    "playStoreUrl": "https://play.google.com/store/apps/details?id=site.fugaapp.imaslivedb",
     "deeplink": null,
     "note": "参加記録・投票・コールの編集・タグ付けはアプリでご利用いただけます。"
   },

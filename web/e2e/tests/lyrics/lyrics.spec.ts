@@ -10,7 +10,7 @@ test.describe("曲ページの歌詞とコールガイド", () => {
         { text: "ハイ！ハイ！", kind: "call", calls: [] },
       ],
     });
-    await page.goto("/songs/ml_sample/");
+    await page.goto("/songs/ml_sample/#tab-lyrics");
     // 許諾番号は押す前から見える位置にある。
     await expect(page.locator(".lyrics__license")).toContainText("JASRAC");
     await expect(page.locator("[data-lyrics-body]")).toBeHidden();
@@ -27,7 +27,7 @@ test.describe("曲ページの歌詞とコールガイド", () => {
 
   test("取れなかったら案内を出し、もう一度押せる", { tag: "@LYRICS-002" }, async ({ page }) => {
     await mockLyricsApi(page, LYRICS, null);
-    await page.goto("/songs/ml_sample/");
+    await page.goto("/songs/ml_sample/#tab-lyrics");
     const button = page.locator("[data-lyrics-load]");
     await button.click();
     await expect(page.locator("[data-lyrics-status]")).toHaveText(/読み込めませんでした/);
@@ -36,7 +36,7 @@ test.describe("曲ページの歌詞とコールガイド", () => {
 
   test("歌詞の本文はコピー・切り取り・ドラッグできない", { tag: "@LYRICS-003" }, async ({ page }) => {
     await mockLyricsApi(page, LYRICS, { lines: [{ text: "はじめの一行", kind: "lyric", calls: [] }] });
-    await page.goto("/songs/ml_sample/");
+    await page.goto("/songs/ml_sample/#tab-lyrics");
     await page.locator("[data-lyrics-load]").click();
     const line = page.locator("[data-lyrics-body] .lyrics__line").first();
     await expect(line).toBeVisible();
@@ -68,7 +68,7 @@ test.describe("曲ページの歌詞とコールガイド", () => {
         },
       ],
     });
-    await page.goto("/songs/ml_sample/");
+    await page.goto("/songs/ml_sample/#tab-lyrics");
     await page.locator("[data-lyrics-load]").click();
     const lines = page.locator("[data-lyrics-body] .lyrics__line");
     const first = lines.nth(0);

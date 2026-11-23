@@ -377,7 +377,7 @@ web_dto! {
         pub entries: Vec<PollEntryDto>,
         /// アプリでこのお題を開く URL (`imaslivedb://polls/{id}`)。
         pub app_url: String,
-        /// その導線の語 (締切前は「アプリで投票する」、過ぎたら「アプリで見る」)。
+        /// その導線の語 (締切前は「アプリから投票する」、過ぎたら「アプリから見る」)。
         pub app_label: String,
     }
 }

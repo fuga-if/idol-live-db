@@ -70,6 +70,18 @@ fn lyrics_off_note() -> String {
 /// ボタンに見せない (About の説明文もこれを引く)。
 pub const LYRICS_READ_LABEL: &str = "歌詞とコールガイドを読む";
 
+/// 歌詞の一部を URL で共有したとき、その範囲を塗る色 (テーマキー)。
+///
+/// 歌っている人と対応させる: ソロ曲 (原唱者が 1 人) はそのアイドルの色、ほか
+/// (ユニット曲・全体曲) はブランドの色。ユニットはまだ自分の色を持たないので
+/// ブランドに倒す (ユニット色ができたらここで返す)。
+pub fn lyrics_share_theme(original_idol_themes: Vec<String>, brand_theme: String) -> String {
+    match <[String; 1]>::try_from(original_idol_themes) {
+        Ok([only]) => only,
+        Err(_) => brand_theme,
+    }
+}
+
 /// 出面で歌詞を出すときの文言。出面の許諾番号を必ず添える (掲示が許諾の条件)。
 pub fn lyrics_on_web_note(license_number: &str) -> String {
     format!("JASRAC 許諾番号 {license_number} のもとで掲載しています。1 曲ずつの表示のみで、まとめての取得はできません。")
@@ -601,7 +613,7 @@ pub fn poll_ends_label(is_open: bool) -> &'static str {
 
 /// お題の節に置く「アプリで開く」の語。締切前は投票へ、過ぎたら結果へ誘う。
 pub fn poll_app_label(is_open: bool) -> &'static str {
-    if is_open { "アプリで投票する" } else { "アプリで見る" }
+    if is_open { "アプリから投票する" } else { "アプリから見る" }
 }
 
 /// お題の一覧の「アプリで開く」の説明。投票はアプリでしかできない。
@@ -673,6 +685,14 @@ pub const NOT_FOUND_PREVIEW_IDOLS: &str = "プロフィール・持ち曲・出�
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn lyrics_share_color_follows_who_sings() {
+        let brand = "brand:ml".to_string();
+        assert_eq!(lyrics_share_theme(vec!["idol:a".into()], brand.clone()), "idol:a", "ソロはアイドル色");
+        assert_eq!(lyrics_share_theme(vec!["idol:a".into(), "idol:b".into()], brand.clone()), brand, "複数はブランド色");
+        assert_eq!(lyrics_share_theme(Vec::new(), brand.clone()), brand, "原唱者不明もブランド色");
+    }
 
     #[test]
     fn poll_end_and_voice_actor_rows_are_worded_by_state() {

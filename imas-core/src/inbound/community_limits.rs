@@ -39,10 +39,11 @@ pub fn votes_remaining(my_vote_count: u32) -> u32 {
 }
 
 /// 先頭に出す「開催中のお題」の添字 (一覧の並びのままの自分の票数から選ぶ)。出すものが無ければ None。
+/// `current` は今カードに出しているお題の添字 (まだ出せるならそれを返し、カードを入れ替えない)。
 /// `seed` は呼ぶ側が毎回変える乱数。
 #[uniffi::export]
-pub fn featured_poll_index(my_vote_counts: Vec<u32>, seed: u64) -> Option<u32> {
-    domain::featured_poll_index(&my_vote_counts, seed)
+pub fn featured_poll_index(my_vote_counts: Vec<u32>, current: Option<u32>, seed: u64) -> Option<u32> {
+    domain::featured_poll_index(&my_vote_counts, current, seed)
 }
 
 /// 選択肢で選んだ結果から、入れる対象・取り消す対象・溢れた数を決める。

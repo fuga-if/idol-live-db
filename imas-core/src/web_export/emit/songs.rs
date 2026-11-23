@@ -148,6 +148,10 @@ pub fn song_page(ctx: &Ctx, song_id: &str) -> Option<SongPage> {
             } else {
                 Vec::new()
             },
+            share_theme_key: content::lyrics_share_theme(
+                original_idols.iter().map(|i| ctx.idol_theme(&i.id)).collect(),
+                ctx.brand_theme(brand_id.as_deref()),
+            ),
         },
         id: record.id.clone(),
         path: path.clone(),

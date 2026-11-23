@@ -157,9 +157,11 @@ fun SocialShareIconButton(
 fun SocialShareChip(
     title: String,
     payload: SharePayload,
-    accent: Color = DS.pick
+    accent: Color = DS.pick,
+    /** X/その他の上に足す項目 (例: 画像でシェア)。 */
+    leadingItems: @Composable ColumnScope.(close: () -> Unit) -> Unit = {}
 ) {
-    SocialShareMenu(payload) { onClick ->
+    SocialShareMenu(payload, leadingItems) { onClick ->
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier

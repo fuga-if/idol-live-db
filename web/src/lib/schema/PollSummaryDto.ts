@@ -34,6 +34,6 @@ entries: Array<PollEntryDto>,
  */
 appUrl: string, 
 /**
- * その導線の語 (締切前は「アプリで投票する」、過ぎたら「アプリで見る」)。
+ * その導線の語 (締切前は「アプリから投票する」、過ぎたら「アプリから見る」)。
  */
 appLabel: string, };

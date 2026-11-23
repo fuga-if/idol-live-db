@@ -21,7 +21,7 @@ sealed interface PollLink {
  * 受ける形 (AndroidManifest の intent-filter と対):
  * - 公開サイトの共有 URL `https://idollivedb.fugaapp.site/polls/#poll-{id}` (App Links)
  * - API の着地ページ `https://imas-live-api.tokata3011.workers.dev/app/polls/{id}` (旧い共有 URL。App Links)
- * - `imaslivedb://polls/{id}` (公開サイトの「アプリで投票する」・着地ページの「アプリで開く」)
+ * - `imaslivedb://polls/{id}` (公開サイトの「アプリから投票する」・着地ページの「アプリで開く」)
  */
 object PollLinks {
     private const val WEB_HOST = "idollivedb.fugaapp.site"

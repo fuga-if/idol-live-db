@@ -177,7 +177,7 @@ const POLL_APP_URL_PREFIX: &str = "imaslivedb://polls/";
 /// アプリでお題を直接開く URL (`imaslivedb://polls/{id}`)。
 ///
 /// 共有には使わない (アプリが無い端末では何も開かない)。公開サイトのお題の節に置く
-/// 「アプリで投票する」の行き先で、共有 URL ([`poll_url`]) をアプリでなくブラウザで
+/// 「アプリから投票する」の行き先で、共有 URL ([`poll_url`]) をアプリでなくブラウザで
 /// 開いてしまった人 (X 等のアプリ内ブラウザで Universal Links / App Links が発火しない) の救済。
 /// 同じサイト内の https リンクではアプリが開かないので、スキームにする。
 /// ライブ・公演ページの「アプリで開く」(`imaslivedb://events/…`) と同じ扱い。
@@ -332,10 +332,11 @@ pub fn poll_votes_payload(
     }
 }
 
-/// 結果の画像に添える一言 (「お題「〇〇」の結果」)。画像に見出し・順位・タグが刷ってあるので、
-/// 本文はお題名だけにする。
+/// 結果の画像に添える一言 (「お題「〇〇」の結果 #アイドルライブDB」)。画像に見出し・順位が刷ってあるので、
+/// 本文はお題名とタグだけにする (公式アカウントの結果ポストと同じ形)。タグは画像に刷ってあっても
+/// 本文に無いと X で検索・タグ一覧に出ないので必ず付ける。
 pub fn poll_result_share_text(title: &str) -> String {
-    format!("お題「{title}」の結果")
+    format!("お題「{title}」の結果 {HASHTAG}")
 }
 
 /// お題そのもののシェア。
@@ -368,7 +369,7 @@ pub fn poll_invite_payload(
 ///
 /// タイムゾーンは呼び出し側が渡した固定オフセットで解決する。夏時間は
 /// 「その瞬間のオフセット」を渡してもらう前提なので、ここでは扱わない。
-fn month_day(epoch_ms: i64, tz_offset_seconds: i32) -> String {
+pub(crate) fn month_day(epoch_ms: i64, tz_offset_seconds: i32) -> String {
     use chrono::{DateTime, Datelike, FixedOffset};
     // 表現不能な epoch でだけ None。サーバ由来の締切では到達しない。
     let utc = DateTime::from_timestamp_millis(epoch_ms).unwrap_or(DateTime::UNIX_EPOCH);
@@ -800,7 +801,7 @@ mod tests {
 
     #[test]
     fn poll_result_share_text_wraps_title() {
-        assert_eq!(poll_result_share_text("ベストソング"), "お題「ベストソング」の結果");
+        assert_eq!(poll_result_share_text("ベストソング"), "お題「ベストソング」の結果 #アイドルライブDB");
     }
 
     #[test]
@@ -915,7 +916,7 @@ mod tests {
         assert_eq!(poll_id_from_url("https://idollivedb.fugaapp.site/polls/#poll-"), None);
         assert_eq!(poll_id_from_url("https://idollivedb.fugaapp.site/p/#poll-x"), None);
         assert_eq!(poll_id_from_url("https://example.com/polls/#poll-x"), None);
-        // 公開サイトの「アプリで投票する」・着地ページのスキーム・問い合わせ付きの公開サイトの形。
+        // 公開サイトの「アプリから投票する」・着地ページのスキーム・問い合わせ付きの公開サイトの形。
         assert_eq!(poll_id_from_url(&poll_app_url("p@1")).as_deref(), Some("p@1"));
         assert_eq!(poll_app_url("p@1"), "imaslivedb://polls/p%401");
         assert_eq!(poll_id_from_url("imaslivedb://polls/p1/").as_deref(), Some("p1"));

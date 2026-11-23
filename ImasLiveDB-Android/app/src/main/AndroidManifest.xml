@@ -124,7 +124,7 @@
                 <data android:host="imas-live-api.tokata3011.workers.dev" />
                 <data android:pathPrefix="/app/polls/" />
             </intent-filter>
-            <!-- imaslivedb://polls/{id} (公開サイトの「アプリで投票する」・着地ページの「アプリで開く」)。 -->
+            <!-- imaslivedb://polls/{id} (公開サイトの「アプリから投票する」・着地ページの「アプリで開く」)。 -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />

@@ -1,5 +1,6 @@
 package com.fugaif.imaslivedb.ui.polls
 
+import android.content.Context
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -107,29 +108,13 @@ fun PollResultShareSheet(
                 entries = detail.entries.map { PollCardEntryInput(it.entityId, it.voteCount.coerceAtLeast(0).toUInt()) }
             )
         )
-        val podiumIds = built.podium.map { it.entityId }.toSet()
-        val store = AppModule.from(context).customImageStore
-        // 焼き込みは読み込みを待たないので、表彰台の画像を先に ImageBitmap にしておく。
-        suspend fun localImage(id: String, kind: GalleryKind): ImageBitmap? = withContext(Dispatchers.IO) {
-            store.primaryImageFile(id, kind)?.let { ProducerCardFiles.decodeBounded(it, maxPixels = 600) }?.asImageBitmap()
-        }
-        val resolved = mutableMapOf<String, PollResultShareItem>()
-        for (row in built.podium + built.rest) {
-            val id = row.entityId
-            val onPodium = id in podiumIds
-            resolved[id] = when (detail.targetType) {
-                "idol" -> idolsById[id]?.let {
-                    PollResultShareItem(it.name, it.color, if (onPodium) localImage(id, GalleryKind.IDOL) else null, it.shortName)
-                }
-                "unit" -> unitsById[id]?.let {
-                    PollResultShareItem(it.displayName, BrandColors.hex(it.brandId), if (onPodium) localImage(id, GalleryKind.UNIT) else null)
-                }
-                else -> songsById[id]?.let {
-                    PollResultShareItem(it.title, BrandColors.hex(it.brandId), if (onPodium) ShareCardArtwork.load(context, it.artworkUrl) else null)
-                }
-            } ?: continue
-        }
-        items = resolved
+        items = resolvePollShareItems(
+            context = context,
+            targetType = detail.targetType,
+            ids = (built.podium + built.rest).map { it.entityId },
+            imageIds = built.podium.map { it.entityId }.toSet(),
+            songsById = songsById, idolsById = idolsById, unitsById = unitsById
+        )
         card = built
     }
 
@@ -148,6 +133,41 @@ fun PollResultShareSheet(
             }
         }
     }
+}
+
+/**
+ * 投票の画像 (結果・私の投票) に載せる候補の名前・色・画像を引く。`imageIds` の分だけ画像を読む
+ * (焼き込みは読み込みを待たないので、先に ImageBitmap にしておく)。iOS PollShareItems.resolve の移植。
+ */
+internal suspend fun resolvePollShareItems(
+    context: Context,
+    targetType: String,
+    ids: List<String>,
+    imageIds: Set<String>,
+    songsById: Map<String, Song>,
+    idolsById: Map<String, Idol>,
+    unitsById: Map<String, ImasUnit>
+): Map<String, PollResultShareItem> {
+    val store = AppModule.from(context).customImageStore
+    suspend fun localImage(id: String, kind: GalleryKind): ImageBitmap? = withContext(Dispatchers.IO) {
+        store.primaryImageFile(id, kind)?.let { ProducerCardFiles.decodeBounded(it, maxPixels = 600) }?.asImageBitmap()
+    }
+    val resolved = mutableMapOf<String, PollResultShareItem>()
+    for (id in ids) {
+        val withImage = id in imageIds
+        resolved[id] = when (targetType) {
+            "idol" -> idolsById[id]?.let {
+                PollResultShareItem(it.name, it.color, if (withImage) localImage(id, GalleryKind.IDOL) else null, it.shortName)
+            }
+            "unit" -> unitsById[id]?.let {
+                PollResultShareItem(it.displayName, BrandColors.hex(it.brandId), if (withImage) localImage(id, GalleryKind.UNIT) else null)
+            }
+            else -> songsById[id]?.let {
+                PollResultShareItem(it.title, BrandColors.hex(it.brandId), if (withImage) ShareCardArtwork.load(context, it.artworkUrl) else null)
+            }
+        } ?: continue
+    }
+    return resolved
 }
 
 /**
@@ -195,7 +215,7 @@ private fun PodiumSlot(row: PollCardRow, item: PollResultShareItem?, isFirst: Bo
             "${row.rank}", fontSize = if (isFirst) 44.sp else 32.sp, fontWeight = FontWeight.Black,
             color = if (row.rank == 1u) accent else Color.White.copy(alpha = 0.75f)
         )
-        PodiumVisual(item, side)
+        PollShareVisual(item, side)
         Text(
             item?.name.orEmpty(), fontSize = if (isFirst) 15.sp else 12.sp, fontWeight = FontWeight.Bold, color = Color.White,
             textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis,
@@ -210,7 +230,7 @@ private fun PodiumSlot(row: PollCardRow, item: PollResultShareItem?, isFirst: Bo
 
 /** 画像は大きさの決まった枠に上寄せで切る (縦長の写真で顔が切れにくい)。無ければアイドルは判子、曲・ユニットは名前の札。 */
 @Composable
-private fun PodiumVisual(item: PollResultShareItem?, side: Dp) {
+internal fun PollShareVisual(item: PollResultShareItem?, side: Dp) {
     val shape = RoundedCornerShape(side * 0.08f)
     val image = item?.image
     val monogram = item?.monogram

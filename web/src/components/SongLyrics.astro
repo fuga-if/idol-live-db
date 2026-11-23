@@ -52,6 +52,7 @@ const { lyrics } = Astro.props;
       data-source={lyrics.sourceUrl}
       data-call-guide={lyrics.callGuide ? JSON.stringify(lyrics.callGuide) : undefined}
       data-part-cast={lyrics.partCast.length > 0 ? JSON.stringify(lyrics.partCast) : undefined}
+      data-share-theme={lyrics.shareThemeKey}
     >
       <p class="note lyrics__license">{lyrics.licenseNote}</p>
       <button class="btn" type="button" data-lyrics-load>
@@ -62,6 +63,17 @@ const { lyrics } = Astro.props;
       {/* 本文はここに描かれる。サーバから配る HTML には入っていない。
           読み込んだらここへフォーカスを移す (押したボタンが消えて焦点が迷子にならない)。 */}
       <div class="lyrics__body" data-lyrics-body tabindex="-1" aria-labelledby="song-lyrics" hidden />
+      {/* 歌詞の一部へのリンクの共有。選び方の案内は読み込んだあとに出す (語は指の種類で変わる)。 */}
+      <p class="note lyrics__share-hint" data-lyrics-share-hint hidden />
+      <div class="lyrics-share" data-lyrics-share data-theme={lyrics.shareThemeKey} role="region" aria-label="選んだ歌詞の共有" hidden>
+        <p class="lyrics-share__what">
+          <span class="lyrics-share__lines" data-lyrics-share-lines />
+          <span class="lyrics-share__sub">この部分へのリンク</span>
+        </p>
+        <button class="btn btn--ghost lyrics-share__copy" type="button" data-lyrics-share-copy>リンクをコピー</button>
+        <button class="btn lyrics-share__native" type="button" data-lyrics-share-native hidden>共有</button>
+        <button class="lyrics-share__close" type="button" data-lyrics-share-close aria-label="選択を解除">×</button>
+      </div>
     </div>
   ) : (
     <div class="lyrics lyrics--pending">
@@ -112,6 +124,28 @@ const { lyrics } = Astro.props;
       ? (JSON.parse(root.dataset.partCast) as LyricPartCastMember[])
       : [];
     const castById = new Map(cast.map((m) => [m.id, m]));
+    const hint = root.querySelector<HTMLElement>("[data-lyrics-share-hint]")!;
+    /** 指で触る端末か (選び方の案内と、共有ボタンの主従が変わる)。 */
+    const coarse = window.matchMedia("(pointer: coarse)");
+    const scalars = (text: string): number => Array.from(text).length;
+
+    /** 描いた行と、行ごとの字のひと続き (元の本文の位置と、置いた文字ノード)。選択と共有に使う。 */
+    interface PlacedRun {
+      start: number;
+      end: number;
+      node: Text;
+      /** 字と元の位置が 1:1 (振り仮名や記号を外した字は丸ごとでしか選ばない)。 */
+      exact: boolean;
+    }
+    const lineEls: HTMLElement[] = [];
+    const lineRuns: PlacedRun[][] = [];
+    const lineLengths: number[] = [];
+    let placingRuns: PlacedRun[] = [];
+    /** 選んだ範囲の塗り (字の下に敷く層)。色は曲の歌い手 (Rust の shareThemeKey)。 */
+    const marks = document.createElement("span");
+    marks.className = "lyrics__marks";
+    marks.setAttribute("aria-hidden", "true");
+    if (root.dataset.shareTheme) marks.dataset.theme = root.dataset.shareTheme;
 
     // コピーを取りにくくする。コピー・切り取り・ドラッグを止める (選択は CSS、印刷も CSS)。
     // 完全には防げないが、まとめ取りの手間を上げる。
@@ -221,14 +255,16 @@ const { lyrics } = Astro.props;
         .map((id) => castById.get(id)?.themeKey)
         .filter((t): t is string => !!t)
         .slice(0, PART_COLORS_MAX);
-      if (!run.ruby && !run.aside && themes.length === 0) return document.createTextNode(run.text);
+      const text = document.createTextNode(run.text);
+      placingRuns.push({ start: run.start, end: run.end, node: text, exact: !run.ruby && scalars(run.text) === run.end - run.start });
+      if (!run.ruby && !run.aside && themes.length === 0) return text;
       const node = el("span", run.aside ? "lyrics__run lyrics__run--aside" : "lyrics__run");
       if (run.ruby) {
         const ruby = document.createElement("ruby");
-        ruby.append(run.text, el("rt", "lyrics__ruby", run.ruby));
+        ruby.append(text, el("rt", "lyrics__ruby", run.ruby));
         node.append(ruby);
       } else {
-        node.textContent = run.text;
+        node.append(text);
       }
       const [only] = themes;
       if (themes.length === 1 && only) {
@@ -449,7 +485,7 @@ const { lyrics } = Astro.props;
     const layoutCalls = (force = false): void => {
       // 自分の余白で高さだけ変わったとき (幅が同じ) は置き直さない。
       const width = body.clientWidth;
-      if (!force && width === laidOutWidth) return;
+      if (!force && width === laidOutWidth) return paintPick();
       laidOutWidth = width;
       for (const content of body.querySelectorAll<HTMLElement>(".lyrics__content[data-has-calls]")) {
         const slots = lineSlots.get(content);
@@ -458,6 +494,8 @@ const { lyrics } = Astro.props;
         if (result.intrusion > 0) result = placeCalls(content, slots, Math.ceil(result.intrusion));
         content.style.paddingBlockEnd = `${Math.max(0, Math.ceil(result.overflow) + CALL_GAP)}px`;
       }
+      // 行送りが変わるので、選んだ範囲の塗りも測り直す。
+      paintPick();
     };
     let layoutFrame = 0;
     const scheduleLayout = (force = false) => {
@@ -494,6 +532,9 @@ const { lyrics } = Astro.props;
 
     const render = (lines: LyricLine[], displays: LyricLineDisplay[]): void => {
       const nodes: HTMLElement[] = [];
+      lineEls.length = 0;
+      lineRuns.length = 0;
+      lineLengths.length = 0;
       const head = legend(lines);
       if (head) nodes.push(head);
       // 手拍子の記号は行頭の固定幅の列に置く。ある行だけ本文が右にズレないよう、
@@ -504,6 +545,8 @@ const { lyrics } = Astro.props;
         const display = displays[index] ?? plainDisplay(line);
         const kind = line.kind ?? "lyric";
         const p = el("p", `lyrics__line lyrics__line--${kind}`);
+        p.id = `lyric-line-${index + 1}`;
+        placingRuns = [];
         if (clapColumn) {
           const clap = vocabulary!.claps.find((k) => k.kind === line.clap);
           const glyph = el("span", "lyrics__clap", clap?.symbol ?? "");
@@ -516,40 +559,425 @@ const { lyrics } = Astro.props;
         if (names) main.append(names);
         p.append(main);
         nodes.push(p);
+        lineEls.push(p);
+        lineRuns.push(placingRuns);
+        lineLengths.push(display.runs.at(-1)?.end ?? 0);
       });
-      body.replaceChildren(...nodes);
+      body.replaceChildren(...nodes, marks);
     };
 
+    /** 1 曲ぶんを取りに行って描く。描けたら true (2 度目以降は取りに行かない)。 */
+    let loading: Promise<boolean> | null = null;
+    const load = (): Promise<boolean> =>
+      (loading ??= (async () => {
+        button.disabled = true;
+        say("読み込み中…");
+        try {
+          // **1 曲ぶんだけ。** まとめて取る道は用意しない。
+          const res = await fetch(source, { headers: { Accept: "application/json" } });
+          if (!res.ok) throw new Error(String(res.status));
+          const data = (await res.json()) as { lines: LyricLine[] };
+          // 字の置き方 (振り仮名・被せ・歌い分け) は wasm。読めなければ素の本文で出す (歌詞は読める)。
+          const displays = await lyricLinesDisplay(
+            data.lines,
+            cast.map((m) => m.id),
+          ).catch((e: unknown) => {
+            console.error("lyrics: 置き方を組めない", e);
+            return data.lines.map(plainDisplay);
+          });
+          render(data.lines, displays);
+          // 位置は見える状態で測る (隠れたままでは矩形が全部 0)。
+          body.hidden = false;
+          layoutCalls(true);
+          // 書体の読み込みで幅が変わることがあるので、揃ってからもう一度。
+          void document.fonts?.ready.then(() => scheduleLayout(true));
+          button.hidden = true;
+          hint.textContent = coarse.matches
+            ? "行をタップすると、その行へのリンクを共有できます。長押ししたままなぞると範囲を選べます。"
+            : "行をクリック、またはドラッグで範囲を選ぶと、その部分へのリンクを共有できます。";
+          hint.hidden = false;
+          say("歌詞を表示しました。");
+          return true;
+        } catch (e) {
+          say("歌詞を読み込めませんでした。アプリからご覧ください。");
+          button.disabled = false;
+          loading = null;
+          console.error("lyrics: 取得に失敗", e);
+          return false;
+        }
+      })());
+
     button.addEventListener("click", async () => {
-      button.disabled = true;
-      say("読み込み中…");
-      try {
-        // **1 曲ぶんだけ。** まとめて取る道は用意しない。
-        const res = await fetch(source, { headers: { Accept: "application/json" } });
-        if (!res.ok) throw new Error(String(res.status));
-        const data = (await res.json()) as { lines: LyricLine[] };
-        // 字の置き方 (振り仮名・被せ・歌い分け) は wasm。読めなければ素の本文で出す (歌詞は読める)。
-        const displays = await lyricLinesDisplay(
-          data.lines,
-          cast.map((m) => m.id),
-        ).catch((e: unknown) => {
-          console.error("lyrics: 置き方を組めない", e);
-          return data.lines.map(plainDisplay);
-        });
-        render(data.lines, displays);
-        // 位置は見える状態で測る (隠れたままでは矩形が全部 0)。
-        body.hidden = false;
-        layoutCalls(true);
-        // 書体の読み込みで幅が変わることがあるので、揃ってからもう一度。
-        void document.fonts?.ready.then(() => scheduleLayout(true));
-        button.hidden = true;
-        say("歌詞を表示しました。");
-        body.focus();
-      } catch (e) {
-        say("歌詞を読み込めませんでした。アプリからご覧ください。");
-        button.disabled = false;
-        console.error("lyrics: 取得に失敗", e);
-      }
+      if (await load()) body.focus();
     });
+
+    // --- 歌詞の一部へのリンク ------------------------------------------------------
+    // 歌詞は写せない (コピー・選択を止めている) ので、代わりに「ここ」を指す URL を渡す。
+    // ブラウザの文字選択は使わない (スマホの選択メニューの「共有」「コピー」から本文が出てしまう)。
+    // 自前で選ぶ: 行をタップ / クリックでその行、マウスはドラッグ、指は長押ししてなぞる。
+    // 位置は元の本文のスカラー位置 (振り仮名の記号を含む、DB の本文の数え方) で持つ。
+    // URL は `#lyric-12` (1 行)、`#lyric-12-14` (行ごと)、`#lyric-12.3-14.8` (行内の位置まで)。
+
+    interface Pos {
+      /** 行 (0 始まり)。 */
+      line: number;
+      /** 行内の位置 (元の本文のスカラー単位)。 */
+      off: number;
+    }
+    interface Pick {
+      from: Pos;
+      to: Pos;
+    }
+    const cmp = (a: Pos, b: Pos): number => a.line - b.line || a.off - b.off;
+    const ordered = (a: Pos, b: Pos): Pick => (cmp(a, b) <= 0 ? { from: a, to: b } : { from: b, to: a });
+    const wholeLines = (a: number, b: number): Pick => ({
+      from: { line: Math.min(a, b), off: 0 },
+      to: { line: Math.max(a, b), off: lineLengths[Math.max(a, b)] ?? 0 },
+    });
+    const isWholeLines = (p: Pick): boolean => p.from.off === 0 && p.to.off === (lineLengths[p.to.line] ?? 0);
+
+    /** URL の断片。行ごとなら位置を省く (短く、読める)。 */
+    const fragmentOf = (p: Pick): string => {
+      const a = p.from.line + 1;
+      const b = p.to.line + 1;
+      if (isWholeLines(p)) return a === b ? `lyric-${a}` : `lyric-${a}-${b}`;
+      return `lyric-${a}.${p.from.off}-${b}.${p.to.off}`;
+    };
+    const parseFragment = (hash: string): Pick | null => {
+      const m = /^lyric-(\d+)(?:\.(\d+))?(?:-(\d+)(?:\.(\d+))?)?$/.exec(hash);
+      if (!m || lineEls.length === 0) return null;
+      const last = lineEls.length - 1;
+      const clampLine = (n: number) => Math.min(Math.max(n - 1, 0), last);
+      const a = clampLine(Number(m[1]));
+      const b = m[3] ? clampLine(Number(m[3])) : a;
+      const len = (l: number) => lineLengths[l] ?? 0;
+      const from = { line: a, off: m[2] ? Math.min(Number(m[2]), len(a)) : 0 };
+      const to = { line: b, off: m[4] ? Math.min(Number(m[4]), len(b)) : len(b) };
+      return ordered(from, to);
+    };
+    const urlOf = (p: Pick): string => `${location.origin}${location.pathname}#${fragmentOf(p)}`;
+    const linesLabel = (p: Pick): string =>
+      p.from.line === p.to.line ? `${p.from.line + 1}行目` : `${p.from.line + 1}〜${p.to.line + 1}行目`;
+
+    /** スカラー位置 → その字のひと続きの文字ノードの UTF-16 位置。 */
+    const utf16 = (text: string, k: number): number => Array.from(text).slice(0, k).join("").length;
+
+    /** 1 行の [s, e) を、字のひと続きごとの DOM の範囲にする (振り仮名つきの字は丸ごと)。 */
+    const rangesOf = (line: number, s: number, e: number): Range[] => {
+      const out: Range[] = [];
+      for (const run of lineRuns[line] ?? []) {
+        const lo = Math.max(s, run.start);
+        const hi = Math.min(e, run.end);
+        if (hi <= lo) continue;
+        const r = document.createRange();
+        const text = run.node.data;
+        if (run.exact) {
+          r.setStart(run.node, utf16(text, lo - run.start));
+          r.setEnd(run.node, utf16(text, hi - run.start));
+        } else {
+          r.selectNodeContents(run.node);
+        }
+        out.push(r);
+      }
+      return out;
+    };
+
+    /** 選んだ範囲を塗る。字の下に、表示行ごとに 1 枚の平らな面 (重ね塗りの濃淡を出さない)。 */
+    let pick: Pick | null = null;
+    const paintPick = (): void => {
+      if (!pick || body.hidden) {
+        marks.replaceChildren();
+        return;
+      }
+      const origin = marks.getBoundingClientRect();
+      const rows: { left: number; right: number; top: number; bottom: number }[] = [];
+      for (let line = pick.from.line; line <= pick.to.line; line++) {
+        const s = line === pick.from.line ? pick.from.off : 0;
+        const e = line === pick.to.line ? pick.to.off : (lineLengths[line] ?? 0);
+        for (const range of rangesOf(line, s, e)) {
+          for (const r of range.getClientRects()) {
+            if (r.width === 0) continue;
+            const row = rows.find((b) => Math.min(b.bottom, r.bottom) - Math.max(b.top, r.top) > Math.min(r.height, b.bottom - b.top) / 2);
+            if (row) {
+              row.left = Math.min(row.left, r.left);
+              row.right = Math.max(row.right, r.right);
+              row.top = Math.min(row.top, r.top);
+              row.bottom = Math.max(row.bottom, r.bottom);
+            } else rows.push({ left: r.left, right: r.right, top: r.top, bottom: r.bottom });
+          }
+        }
+      }
+      marks.replaceChildren(
+        ...rows.map((b) => {
+          const m = el("span", "lyrics__mark");
+          m.style.translate = `${b.left - origin.left - 2}px ${b.top - origin.top}px`;
+          m.style.inlineSize = `${b.right - b.left + 4}px`;
+          m.style.blockSize = `${b.bottom - b.top}px`;
+          return m;
+        }),
+      );
+      for (const [i, p] of lineEls.entries()) {
+        if (i >= pick.from.line && i <= pick.to.line) p.dataset.picked = "";
+        else delete p.dataset.picked;
+      }
+    };
+
+    /** 指 / ポインタの位置 → 行と行内の位置。字の矩形を測って、近いほうの字の境目を返す。 */
+    const hitTest = (x: number, y: number): Pos | null => {
+      if (lineEls.length === 0) return null;
+      let line = -1;
+      let best = Infinity;
+      for (const [i, p] of lineEls.entries()) {
+        const r = p.getBoundingClientRect();
+        if (y >= r.top && y <= r.bottom) {
+          line = i;
+          break;
+        }
+        const d = y < r.top ? r.top - y : y - r.bottom;
+        if (d < best) {
+          best = d;
+          line = i;
+        }
+      }
+      const cells: { start: number; end: number; rect: DOMRect }[] = [];
+      for (const run of lineRuns[line] ?? []) {
+        if (run.exact) {
+          const chars = Array.from(run.node.data);
+          let u = 0;
+          chars.forEach((c, k) => {
+            const r = document.createRange();
+            r.setStart(run.node, u);
+            r.setEnd(run.node, (u += c.length));
+            const rect = r.getClientRects()[0];
+            if (rect) cells.push({ start: run.start + k, end: run.start + k + 1, rect });
+          });
+        } else {
+          const r = document.createRange();
+          r.selectNodeContents(run.node);
+          const rect = r.getBoundingClientRect();
+          if (rect.width > 0) cells.push({ start: run.start, end: run.end, rect });
+        }
+      }
+      if (cells.length === 0) return { line, off: 0 };
+      // y に一番近い表示行の字だけを見る。
+      const dy = (r: DOMRect) => (y < r.top ? r.top - y : y > r.bottom ? y - r.bottom : 0);
+      const nearest = Math.min(...cells.map((c) => dy(c.rect)));
+      const row = cells.filter((c) => dy(c.rect) <= nearest + 1);
+      const first = row[0]!;
+      const last = row[row.length - 1]!;
+      if (x <= first.rect.left) return { line, off: first.start };
+      if (x >= last.rect.right) return { line, off: last.end };
+      const cell = row.find((c) => x >= c.rect.left && x <= c.rect.right) ?? last;
+      return { line, off: x < (cell.rect.left + cell.rect.right) / 2 ? cell.start : cell.end };
+    };
+
+    // 共有の帯。
+    const share = root.querySelector<HTMLElement>("[data-lyrics-share]")!;
+    const shareLines = share.querySelector<HTMLElement>("[data-lyrics-share-lines]")!;
+    const copyButton = share.querySelector<HTMLButtonElement>("[data-lyrics-share-copy]")!;
+    const nativeButton = share.querySelector<HTMLButtonElement>("[data-lyrics-share-native]")!;
+    const closeButton = share.querySelector<HTMLButtonElement>("[data-lyrics-share-close]")!;
+    const canShare = typeof navigator.share === "function" && coarse.matches;
+    // 指の端末では OS の共有を主に、コピーは脇に。マウスではコピーが主。
+    nativeButton.hidden = !canShare;
+    copyButton.classList.toggle("btn--ghost", canShare);
+
+    const COPY_LABEL = copyButton.textContent ?? "";
+    let copiedTimer = 0;
+    const setPick = (next: Pick | null, opts: { bar: boolean } = { bar: true }): void => {
+      pick = next;
+      paintPick();
+      if (!next) {
+        for (const p of lineEls) delete p.dataset.picked;
+        share.hidden = true;
+        document.documentElement.classList.remove("has-lyrics-share");
+        return;
+      }
+      shareLines.textContent = linesLabel(next);
+      window.clearTimeout(copiedTimer);
+      copyButton.textContent = COPY_LABEL;
+      share.hidden = !opts.bar;
+      document.documentElement.classList.toggle("has-lyrics-share", opts.bar);
+    };
+
+    const copyLink = async (): Promise<boolean> => {
+      if (!pick) return false;
+      try {
+        await navigator.clipboard.writeText(urlOf(pick));
+        return true;
+      } catch {
+        return false;
+      }
+    };
+    copyButton.addEventListener("click", async () => {
+      const ok = await copyLink();
+      copyButton.textContent = ok ? "コピーしました" : "コピーできませんでした";
+      say(ok ? "この部分へのリンクをコピーしました。" : "リンクをコピーできませんでした。");
+      window.clearTimeout(copiedTimer);
+      copiedTimer = window.setTimeout(() => (copyButton.textContent = COPY_LABEL), 2000);
+    });
+    nativeButton.addEventListener("click", () => {
+      if (!pick) return;
+      // 本文は渡さない (写しを外へ出さない)。渡すのは場所だけ。
+      navigator.share({ title: document.title, url: urlOf(pick) }).catch(() => {});
+    });
+    closeButton.addEventListener("click", () => setPick(null));
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && pick) setPick(null);
+    });
+    // ⌘C / Ctrl+C は本文の代わりに、選んだ所へのリンクを写す。
+    document.addEventListener("copy", (e) => {
+      if (!pick || share.hidden || !(window.getSelection()?.isCollapsed ?? true)) return;
+      e.preventDefault();
+      e.clipboardData?.setData("text/plain", urlOf(pick));
+      say("歌詞は写せないため、この部分へのリンクをコピーしました。");
+      copyButton.textContent = "コピーしました";
+      window.clearTimeout(copiedTimer);
+      copiedTimer = window.setTimeout(() => (copyButton.textContent = COPY_LABEL), 2000);
+    });
+
+    // 選び方。
+    const LONG_PRESS_MS = 400;
+    const SLOP = 10; // これより動いたらスクロール (タップ / 長押しではない)
+    const EDGE = 56; // なぞっている指が画面の端に近づいたら送る
+    interface Gesture {
+      id: number;
+      touch: boolean;
+      x0: number;
+      y0: number;
+      x: number;
+      y: number;
+      press: Pos;
+      /** なぞり中 (マウスは押して動かしたら、指は長押しが成立したら)。 */
+      dragging: boolean;
+      moved: boolean;
+      timer: number;
+      shift: boolean;
+    }
+    let g: Gesture | null = null;
+    let edgeFrame = 0;
+
+    const dragTo = (x: number, y: number) => {
+      if (!g) return;
+      const at = hitTest(x, y);
+      if (!at) return;
+      // 指の長押しは押した行を丸ごと選んだ状態から始まる。同じ行の中でなぞれば字単位。
+      if (g.touch && at.line === g.press.line && at.off === g.press.off) {
+        setPick(wholeLines(at.line, at.line), { bar: false });
+      } else {
+        setPick(ordered(g.press, at), { bar: false });
+      }
+    };
+    const edgeScroll = () => {
+      if (!g?.dragging) return;
+      const dy = g.y < EDGE ? -10 : g.y > innerHeight - EDGE ? 10 : 0;
+      if (dy !== 0) {
+        window.scrollBy(0, dy);
+        dragTo(g.x, g.y);
+      }
+      edgeFrame = requestAnimationFrame(edgeScroll);
+    };
+    const startDrag = () => {
+      if (!g) return;
+      g.dragging = true;
+      if (g.touch) {
+        navigator.vibrate?.(10);
+        setPick(wholeLines(g.press.line, g.press.line), { bar: false });
+      }
+      cancelAnimationFrame(edgeFrame);
+      edgeFrame = requestAnimationFrame(edgeScroll);
+    };
+    const endGesture = () => {
+      if (g) window.clearTimeout(g.timer);
+      cancelAnimationFrame(edgeFrame);
+      g = null;
+    };
+
+    body.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0 || lineEls.length === 0) return;
+      const press = hitTest(e.clientX, e.clientY);
+      if (!press) return;
+      const touch = e.pointerType !== "mouse";
+      g = { id: e.pointerId, touch, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, press, dragging: false, moved: false, timer: 0, shift: e.shiftKey };
+      if (touch) g.timer = window.setTimeout(startDrag, LONG_PRESS_MS);
+      else body.setPointerCapture(e.pointerId);
+    });
+    body.addEventListener("pointermove", (e) => {
+      if (!g || e.pointerId !== g.id) return;
+      g.x = e.clientX;
+      g.y = e.clientY;
+      const far = Math.hypot(e.clientX - g.x0, e.clientY - g.y0) > SLOP;
+      if (!g.dragging) {
+        if (!far) return;
+        // 指: 長押しの前に動いたらスクロール。マウス: 押して動かしたらなぞり。
+        if (g.touch) return endGesture();
+        startDrag();
+      }
+      g.moved ||= far;
+      dragTo(e.clientX, e.clientY);
+    });
+    // なぞっている間はページを動かさない (長押しが成立する前は普通にスクロールする)。
+    body.addEventListener(
+      "touchmove",
+      (e) => {
+        if (g?.dragging) e.preventDefault();
+      },
+      { passive: false },
+    );
+    body.addEventListener("contextmenu", (e) => {
+      if (g?.touch) e.preventDefault();
+    });
+    body.addEventListener("pointerup", (e) => {
+      if (!g || e.pointerId !== g.id) return;
+      const done = g;
+      endGesture();
+      if (done.dragging) {
+        if (pick) setPick(pick);
+        return;
+      }
+      // タップ / クリック: その行。選んでいる 1 行をもう一度押したら外す。Shift+クリックは広げる。
+      const line = done.press.line;
+      if (done.shift && pick) {
+        const down = line >= pick.from.line;
+        setPick(ordered(down ? pick.from : pick.to, { line, off: down ? (lineLengths[line] ?? 0) : 0 }));
+        return;
+      }
+      const same = pick && pick.from.line === line && pick.to.line === line && isWholeLines(pick) && !share.hidden;
+      setPick(same ? null : wholeLines(line, line));
+    });
+    body.addEventListener("pointercancel", () => endGesture());
+    // 歌詞と帯の外を押したら選択を外す。
+    document.addEventListener("pointerdown", (e) => {
+      const t = e.target as Node | null;
+      if (!pick || !t || body.contains(t) || share.contains(t)) return;
+      setPick(null);
+    });
+
+    // --- 共有された URL で来たとき -------------------------------------------------
+    // 歌詞のタブを開き、1 曲ぶんを読み込み、その場所を塗ってそこまで送る。
+    const openLyricsTab = () => {
+      const panel = root.closest<HTMLElement>(".tabpanel");
+      const key = panel?.id.replace(/^tab-/, "");
+      const input = key
+        ? root.closest(".tabset")?.querySelector<HTMLInputElement>(`:scope > .tabset__input[value="${CSS.escape(key)}"]`)
+        : null;
+      if (input && !input.checked) input.checked = true;
+    };
+    const arrive = async () => {
+      const hash = decodeURIComponent(location.hash.slice(1));
+      if (!/^lyric-\d/.test(hash)) return;
+      openLyricsTab();
+      if (!(await load())) return;
+      const target = parseFragment(hash);
+      if (!target) return;
+      // 書体が揃って行送りが決まってから測る。
+      await document.fonts?.ready;
+      layoutCalls(true);
+      setPick(target, { bar: false });
+      lineEls[target.from.line]?.scrollIntoView({ block: "center" });
+      say(`共有された歌詞の位置 (${linesLabel(target)}) を表示しています。`);
+    };
+    void arrive();
+    addEventListener("hashchange", () => void arrive());
   }
 </script>

@@ -47,23 +47,26 @@ struct PollResultShareSheet: View {
             entries: entries.map { PollCardEntryInput(entityId: $0.entityId, voteCount: UInt32(clamping: $0.voteCount)) }
         )
         let built = pollResultCard(input: input)
-        items = await Self.resolveItems(
+        items = await PollShareItems.resolve(
             ids: (built.podium + built.rest).map(\.entityId),
-            podiumIds: Set(built.podium.map(\.entityId)),
+            imageIds: Set(built.podium.map(\.entityId)),
             target: poll.targetType
         )
         card = built
     }
+}
 
-    /// 候補の名前と色を master から引き、表彰台の分だけ画像を読む。
+/// 投票の画像 (結果・私の投票) に載せる候補の名前・色・画像を引く。
+enum PollShareItems {
+    /// 候補の名前と色を master から引き、`imageIds` の分だけ画像を読む。
     /// ImageRenderer は読み込みを待たないので、画像は UIImage にしてから渡す。
-    private static func resolveItems(ids: [String], podiumIds: Set<String>, target: PollTargetType) async -> [String: PollResultShareItem] {
+    static func resolve(ids: [String], imageIds: Set<String>, target: PollTargetType) async -> [String: PollResultShareItem] {
         var out: [String: PollResultShareItem] = [:]
         switch target {
         case .song:
             let songs = (try? await AppContainer.shared.songReading.songs(ids: ids)) ?? []
             for song in songs {
-                let image = podiumIds.contains(song.id) ? await ShareCardArtwork.load(from: song.artworkUrl) : nil
+                let image = imageIds.contains(song.id) ? await ShareCardArtwork.load(from: song.artworkUrl) : nil
                 out[song.id] = PollResultShareItem(name: song.title, seed: BrandColors.hex(for: song.brandId), image: image)
             }
         case .idol:
@@ -71,7 +74,7 @@ struct PollResultShareSheet: View {
             for idol in idols {
                 out[idol.id] = PollResultShareItem(
                     name: idol.name, seed: idol.color,
-                    image: podiumIds.contains(idol.id) ? await localImage(idol.id, kind: .idol) : nil,
+                    image: imageIds.contains(idol.id) ? await localImage(idol.id, kind: .idol) : nil,
                     monogram: idol.shortName)
             }
         case .unit:
@@ -80,7 +83,7 @@ struct PollResultShareSheet: View {
             for unit in units {
                 out[unit.id] = PollResultShareItem(
                     name: unit.displayName, seed: BrandColors.hex(for: unit.brandId),
-                    image: podiumIds.contains(unit.id) ? await localImage(unit.id, kind: .unit) : nil)
+                    image: imageIds.contains(unit.id) ? await localImage(unit.id, kind: .unit) : nil)
             }
         }
         return out
@@ -158,7 +161,7 @@ struct PollResultShareCard: View {
             Text("\(row.rank)")
                 .font(.system(size: isFirst ? 44 : 32, weight: .black).width(.compressed).monospacedDigit())
                 .foregroundStyle(row.rank == 1 ? palette.accent : .white.opacity(0.75))
-            visual(row, side: side)
+            PollShareVisual(item: items[row.entityId], side: side)
             Text(name(row))
                 .font(.system(size: isFirst ? 15 : 12, weight: .bold))
                 .foregroundStyle(.white)
@@ -177,48 +180,6 @@ struct PollResultShareCard: View {
             Text("票")
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.6))
-        }
-    }
-
-    /// 画像は大きさの決まった枠を先に作り、上寄せで重ねて切る (縦長の写真で顔が切れにくい)。
-    @ViewBuilder
-    private func visual(_ row: PollCardRow, side: CGFloat) -> some View {
-        let item = items[row.entityId]
-        let shape = RoundedRectangle(cornerRadius: side * 0.08, style: .continuous)
-        if let image = item?.image {
-            Color.clear
-                .frame(width: side, height: side)
-                .overlay(alignment: .top) {
-                    Image(uiImage: image).resizable().scaledToFill()
-                }
-                .clipShape(shape)
-        } else if let monogram = item?.monogram {
-            // 画像の無いアイドルは判子 (メンバーカラーの丸に略称)。
-            let palette = ShareCardPalette(seed: item?.seed)
-            Circle()
-                .fill(palette.accentDeep)
-                .overlay(Circle().stroke(palette.accent, lineWidth: side * 0.03))
-                .overlay(
-                    Text(monogram)
-                        .font(.system(size: side * (monogram.count >= 3 ? 0.24 : 0.32), weight: .black))
-                        .foregroundStyle(palette.accent)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.5)
-                        .padding(side * 0.12)
-                )
-                .frame(width: side, height: side)
-        } else {
-            shape
-                .fill(ShareCardPalette(seed: item?.seed).accentDeep)
-                .frame(width: side, height: side)
-                .overlay(
-                    Text(name(row))
-                        .font(.system(size: side * 0.12, weight: .bold))
-                        .foregroundStyle(.white.opacity(0.8))
-                        .multilineTextAlignment(.center)
-                        .lineLimit(3)
-                        .padding(side * 0.1)
-                )
         }
     }
 
@@ -257,5 +218,51 @@ struct PollResultShareCard: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// 投票の画像の候補 1 つの絵。画像は大きさの決まった枠を先に作り、上寄せで重ねて切る
+/// (縦長の写真で顔が切れにくい)。画像の無いアイドルは判子、曲・ユニットは名前の札。
+struct PollShareVisual: View {
+    let item: PollResultShareItem?
+    let side: CGFloat
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: side * 0.08, style: .continuous)
+        if let image = item?.image {
+            Color.clear
+                .frame(width: side, height: side)
+                .overlay(alignment: .top) {
+                    Image(uiImage: image).resizable().scaledToFill()
+                }
+                .clipShape(shape)
+        } else if let monogram = item?.monogram {
+            // 画像の無いアイドルは判子 (メンバーカラーの丸に略称)。
+            let palette = ShareCardPalette(seed: item?.seed)
+            Circle()
+                .fill(palette.accentDeep)
+                .overlay(Circle().stroke(palette.accent, lineWidth: side * 0.03))
+                .overlay(
+                    Text(monogram)
+                        .font(.system(size: side * (monogram.count >= 3 ? 0.24 : 0.32), weight: .black))
+                        .foregroundStyle(palette.accent)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                        .padding(side * 0.12)
+                )
+                .frame(width: side, height: side)
+        } else {
+            shape
+                .fill(ShareCardPalette(seed: item?.seed).accentDeep)
+                .frame(width: side, height: side)
+                .overlay(
+                    Text(item?.name ?? "")
+                        .font(.system(size: side * 0.12, weight: .bold))
+                        .foregroundStyle(.white.opacity(0.8))
+                        .multilineTextAlignment(.center)
+                        .lineLimit(3)
+                        .padding(side * 0.1)
+                )
+        }
     }
 }

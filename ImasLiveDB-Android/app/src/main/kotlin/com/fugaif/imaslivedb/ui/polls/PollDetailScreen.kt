@@ -64,6 +64,7 @@ import com.fugaif.imaslivedb.ui.share.SocialShareChip
 import com.fugaif.imaslivedb.ui.share.SocialShareIconButton
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
+import uniffi.imas_core.sharePayloadPlainText
 import uniffi.imas_core.pollCompetitionRanks
 import uniffi.imas_core.voteLimitPerTarget
 import uniffi.imas_core.votesRemaining
@@ -83,6 +84,7 @@ fun PollDetailScreen(
     var showDeleteConfirm by remember { mutableStateOf(false) }
     // 結果の画像をシェアするシート。
     var showResultShare by remember { mutableStateOf(false) }
+    var showVoteShare by remember { mutableStateOf(false) }
     val authService = remember { AppModule.from(context).authService }
     val authState by authService.state.collectAsState()
 
@@ -213,9 +215,17 @@ fun PollDetailScreen(
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                         Text("あなたの投票 ${myVoteNames.size}/${voteLimitPerTarget()}", style = ImasTextRole.META.style, color = DS.ink3)
                         Spacer(Modifier.weight(1f))
+                        // 画像 (私の投票) を先頭に。文字だけのシェア (X / その他) はその下。
                         SocialShareChip(
                             title = "投票をシェア",
-                            payload = ShareMessage.pollVotesPayload(detail.id, detail.title, myVoteNames)
+                            payload = ShareMessage.pollVotesPayload(detail.id, detail.title, myVoteNames),
+                            leadingItems = { close ->
+                                DropdownMenuItem(
+                                    text = { Text("画像でシェア") },
+                                    leadingIcon = { Icon(Icons.Filled.Image, contentDescription = null) },
+                                    onClick = { close(); showVoteShare = true }
+                                )
+                            }
                         )
                     }
                 }
@@ -252,6 +262,18 @@ fun PollDetailScreen(
                 onConfirm = { ordered -> viewModel.applyPickerSelection(ordered, unvoteDeselected = false); showPicker = false }
             )
         }
+    }
+
+    if (showVoteShare && detail != null) {
+        val myVoteNames = detail.entries.filter { it.mine }.map { state.entityNames[it.entityId] ?: it.entityId }
+        PollVoteShareSheet(
+            detail = detail,
+            songsById = state.songsById,
+            idolsById = state.idolsById,
+            unitsById = state.unitsById,
+            shareText = sharePayloadPlainText(ShareMessage.pollVotesPayload(detail.id, detail.title, myVoteNames)),
+            onDismiss = { showVoteShare = false }
+        )
     }
 
     if (showResultShare && detail != null) {

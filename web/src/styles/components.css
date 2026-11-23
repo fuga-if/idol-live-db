@@ -356,10 +356,101 @@ a.chip--selected:hover {
   border-radius: var(--r-card);
   background: var(--ds-surface);
   box-shadow: var(--ds-surface-edge);
-  /* コピー防止 (完全には防げないが、まとめ取りの手間を上げる)。 */
+  /* コピー防止 (完全には防げないが、まとめ取りの手間を上げる)。ブラウザの文字選択は使わず、
+     共有したい所は自前で選ぶ (SongLyrics.astro)。選んだ範囲の塗りを字の下に敷くため、
+     重なりの文脈をここで閉じる。 */
+  position: relative;
+  isolation: isolate;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+/* 行を押せば選べる (マウスでは文字の上でなぞれることを示す)。 */
+@media (pointer: fine) {
+  .lyrics__body .lyrics__text {
+    cursor: text;
+  }
+}
+/* 選んだ範囲 / 共有された範囲の塗り。字の下に、歌い手の色 (ソロはアイドル、ほかはブランド) の
+   平らな面と、下端にくっきりした線。光らせない・ぼかさない。 */
+.lyrics__marks {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+.lyrics__mark {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+.lyrics__share-hint {
+  font-size: var(--fs-caption);
+  color: var(--ds-ink2);
+}
+/* 選んだ歌詞へのリンクを渡す帯。画面の下に留める (お題の「アプリから投票する」と同じ置き方)。 */
+.lyrics-share {
+  position: fixed;
+  z-index: 26;
+  inset-inline: var(--sp4);
+  inset-block-end: calc(var(--sp4) + env(safe-area-inset-bottom));
+  max-inline-size: 36rem;
+  margin-inline: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--sp3);
+  padding: var(--sp3) var(--sp3) var(--sp3) var(--sp4);
+  border: 1px solid var(--ds-line);
+  border-inline-start: 4px solid var(--accent);
+  border-radius: var(--r-card);
+  background: var(--ds-surface);
+}
+@media (max-width: 62rem) {
+  .lyrics-share {
+    inset-block-end: calc(64px + var(--sp3) + env(safe-area-inset-bottom));
+  }
+}
+.lyrics-share[hidden] {
+  display: none;
+}
+.lyrics-share__what {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.3;
+}
+.lyrics-share__lines {
+  font-weight: 700;
+}
+.lyrics-share__sub {
+  font-size: var(--fs-caption2);
+  color: var(--ds-ink2);
+}
+.lyrics-share__copy,
+.lyrics-share__native {
+  border: 0;
+  min-block-size: 44px;
+  padding-inline: var(--sp4);
+}
+.lyrics-share__close {
+  flex: none;
+  border: 0;
+  border-radius: var(--r-ctl-md);
+  background: transparent;
+  inline-size: 44px;
+  block-size: 44px;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--ds-ink2);
+}
+/* 帯の下に歌詞の終わりが隠れないように。 */
+.has-lyrics-share .lyrics {
+  padding-block-end: 96px;
 }
 .lyrics__line {
   display: flex;

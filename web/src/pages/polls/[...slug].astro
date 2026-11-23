@@ -14,7 +14,7 @@ import type { PollListPage } from "../../lib/schema/PollListPage";
  *
  * 共有 URL (`/polls/#poll-<id>`) はアプリが入っていればアプリで開く (iOS Universal Links /
  * Android App Links)。ここに来たのはアプリが無い人か、アプリ内ブラウザでリンクが発火しなかった人。
- * 節ごとの「アプリで投票する」はアプリのスキーム (`imaslivedb://polls/<id>`) へ飛ばす
+ * 節ごとの「アプリから投票する」はアプリのスキーム (`imaslivedb://polls/<id>`) へ飛ばす
  * (同じサイト内の https リンクではアプリが開かない)。アプリが無い人には下の導線がストアを出す。
  * 立てたばかりで一覧にまだ無いお題は、`poll-missing.ts` が知らせを出す。
  */
@@ -43,7 +43,7 @@ const list = page<PollListPage>(Astro.props.data);
 
   {
     list.polls.map((poll) => (
-      <section class="poll" aria-labelledby={`poll-${poll.id}`}>
+      <section class="poll" id={`poll-${poll.id}`} aria-labelledby={`poll-${poll.id}-title`}>
         {/* ImasFeatureCard の形: 目印 (灰・12px 太字) と右上の数、題、添える日付。 */}
         <div class="poll__head">
           <div class="poll__top">
@@ -53,7 +53,7 @@ const list = page<PollListPage>(Astro.props.data);
               <span class="num__unit">票</span>
             </span>
           </div>
-          <h2 class="poll__title" id={`poll-${poll.id}`}>{poll.title}</h2>
+          <h2 class="poll__title" id={`poll-${poll.id}-title`}>{poll.title}</h2>
           {poll.endsOn && (
             <p class="poll__sub">
               {poll.endsLabel} <time datetime={poll.endsOn}>{poll.endsDisplay}</time>
@@ -85,6 +85,17 @@ const list = page<PollListPage>(Astro.props.data);
       </section>
     ))
   }
+
+  {/* 共有 URL で開いた人向けの、画面の下に留まる「アプリから投票する」。X などのアプリ内ブラウザでは
+      Universal Links が効かずこのページに着くので、ひと押しでアプリのそのお題へ渡す。
+      行き先と語は poll-missing.ts が着地したお題の節から写す。アプリが無い人にはストアを並べる。 */}
+  <div class="poll-jump" data-poll-jump hidden>
+    <a class="btn poll-jump__open" data-poll-jump-link href={list.missingPollAppUrlPrefix}>
+      {list.missingPollAppLabel}
+    </a>
+    <a class="poll-jump__store" href={list.app.appStoreUrl}>App Store</a>
+    {list.app.playStoreUrl && <a class="poll-jump__store" href={list.app.playStoreUrl}>Google Play</a>}
+  </div>
 
   <OpenInApp app={list.app} />
 </ListLayout>
