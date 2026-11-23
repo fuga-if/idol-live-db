@@ -170,6 +170,8 @@ struct ProduceTabView: View {
                 eyebrow: "お題",
                 title: "お題を読み込んでいます",
                 subtitle: "— 票 · — 候補",
+                // 右上の「あと N 日」も同じ高さで取っておく (無いと読み込み後に下が 22pt ずれる)。
+                metric: .init(prefix: "あと", value: "—", unit: "日"),
                 primary: .init(title: "投票する", systemImage: "hand.thumbsup") {
                     if NavThrottle.allow() { navPath.append(PollRoute.list) }
                 },
