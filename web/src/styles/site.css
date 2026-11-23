@@ -584,6 +584,48 @@ a.tl-list__row::before {
   padding: var(--sp3) var(--sp5);
   border-block-start: 1px solid var(--ds-sep);
 }
+/* 共有 URL で開いた人向けの、画面の下に留まる「アプリで投票する」(poll-missing.ts が出し入れする)。
+   タブバー (狭い画面) の上に浮かべる。平らな面と線だけ (光らせない)。 */
+.poll-jump {
+  position: fixed;
+  z-index: 25;
+  inset-inline: var(--sp4);
+  inset-block-end: calc(var(--sp4) + env(safe-area-inset-bottom));
+  max-inline-size: 36rem;
+  margin-inline: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--sp4);
+  padding: var(--sp3) var(--sp4);
+  border: 1px solid var(--ds-line);
+  border-radius: var(--r-card);
+  background: var(--ds-surface);
+}
+@media (max-width: 62rem) {
+  .poll-jump {
+    inset-block-end: calc(64px + var(--sp3) + env(safe-area-inset-bottom));
+  }
+}
+.poll-jump[hidden] {
+  display: none;
+}
+/* 浮かべた帯の下に一覧の末尾 (アプリで開く) が隠れないように。 */
+.has-poll-jump .open-in-app {
+  margin-block-end: 88px;
+}
+.poll-jump__open {
+  flex: 1;
+  min-block-size: 44px;
+  background: var(--ds-pick);
+  color: #fff;
+  font-weight: 700;
+}
+.poll-jump__store {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  color: var(--ds-ink2);
+  white-space: nowrap;
+}
 /* 共有 URL で開いたお題がまだ載っていないときの知らせ (poll-missing.ts が出し入れする)。 */
 .poll-missing {
   display: flex;

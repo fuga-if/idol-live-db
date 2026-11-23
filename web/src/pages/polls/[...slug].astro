@@ -86,6 +86,17 @@ const list = page<PollListPage>(Astro.props.data);
     ))
   }
 
+  {/* 共有 URL で開いた人向けの、画面の下に留まる「アプリで投票する」。X などのアプリ内ブラウザでは
+      Universal Links が効かずこのページに着くので、ひと押しでアプリのそのお題へ渡す。
+      行き先と語は poll-missing.ts が着地したお題の節から写す。アプリが無い人にはストアを並べる。 */}
+  <div class="poll-jump" data-poll-jump hidden>
+    <a class="btn poll-jump__open" data-poll-jump-link href={list.missingPollAppUrlPrefix}>
+      {list.missingPollAppLabel}
+    </a>
+    <a class="poll-jump__store" href={list.app.appStoreUrl}>App Store</a>
+    {list.app.playStoreUrl && <a class="poll-jump__store" href={list.app.playStoreUrl}>Google Play</a>}
+  </div>
+
   <OpenInApp app={list.app} />
 </ListLayout>
 

@@ -19,10 +19,35 @@ function update(): void {
   } catch {
     id = "";
   }
-  const missing = id !== "" && document.getElementById(`poll-${id}`) === null;
+  const section = id === "" ? null : document.getElementById(`poll-${id}`);
+  const missing = id !== "" && section === null;
   notice.hidden = !missing;
   // 載っていないお題の断片ではブラウザはどこへも飛ばないので、知らせは一覧の頭 (見出しの下) に出る。
-  if (missing) link.href = `${notice.dataset.appUrlPrefix ?? ""}${encodeURIComponent(id)}`;
+  const appUrl = `${notice.dataset.appUrlPrefix ?? ""}${encodeURIComponent(id)}`;
+  if (missing) link.href = appUrl;
+  updateJumpBar(id, section, appUrl);
+}
+
+/**
+ * 画面の下に留まる「アプリで投票する」。共有 URL で特定のお題を開いたときだけ出す。
+ * 行き先と語は着地したお題の節の「アプリで…」から写す (締切後は「アプリで見る」)。
+ * 一覧にまだ無いお題でもアプリには在るので、アプリのスキームへ id を付けて渡す。
+ */
+function updateJumpBar(id: string, section: HTMLElement | null, appUrl: string): void {
+  const bar = document.querySelector<HTMLElement>("[data-poll-jump]");
+  const open = bar?.querySelector<HTMLAnchorElement>("[data-poll-jump-link]");
+  if (!bar || !open) return;
+  if (id === "") {
+    bar.hidden = true;
+    document.documentElement.classList.remove("has-poll-jump");
+    return;
+  }
+  const own = section?.querySelector<HTMLAnchorElement>(".poll__app");
+  open.href = own?.href ?? appUrl;
+  const label = own?.textContent?.replace("›", "").trim();
+  if (label) open.textContent = label;
+  bar.hidden = false;
+  document.documentElement.classList.add("has-poll-jump");
 }
 
 /**
