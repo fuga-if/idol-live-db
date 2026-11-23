@@ -65,6 +65,9 @@ struct PollVoteShareCard: View {
         }
     }
 
+    /// 名前の欄は絵より 8pt 広い。3 つでも (140+8)×3 + 間 2 つ が横幅 468pt に収まる間隔。
+    private var slotSpacing: CGFloat { card.picks.count >= 3 ? 10 : 16 }
+
     private var nameHeight: CGFloat? {
         switch card.picks.count {
         case 0, 1: return nil
@@ -87,7 +90,7 @@ struct PollVoteShareCard: View {
                 sectionLabel.padding(.top, 22)
                 // 絵の並びは見出しと帯 (締切後は足下) の間の真ん中に置き、帯は足下の上に据える。
                 Spacer(minLength: 18)
-                HStack(alignment: .top, spacing: 16) {
+                HStack(alignment: .top, spacing: slotSpacing) {
                     ForEach(card.picks, id: \.entityId) { pick in
                         pickSlot(pick)
                     }

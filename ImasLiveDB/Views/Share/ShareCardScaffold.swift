@@ -342,7 +342,8 @@ struct PosterShareScaffold<Content: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            header
+            // 中身が残りの高さを取りに来ても (layoutPriority)、見出しは縦に縮めない。
+            header.fixedSize(horizontal: false, vertical: true)
             content
             Spacer(minLength: 22)
             ShareCardFooter(ink: .white.opacity(0.62), rule: .white.opacity(0.16))

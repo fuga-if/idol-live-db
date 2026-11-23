@@ -159,7 +159,8 @@ private fun PollVoteShareCard(card: PollVoteCard, items: Map<String, PollResultS
             Spacer(Modifier.weight(1f).heightIn(min = 18.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
+                // 名前の欄は絵より 8dp 広い。3 つでも (140+8)×3 + 間 2 つ が横幅 468dp に収まる間隔。
+                horizontalArrangement = Arrangement.spacedBy(if (many) 10.dp else 16.dp, Alignment.CenterHorizontally),
                 verticalAlignment = Alignment.Top
             ) {
                 card.picks.forEach { pick -> PickSlot(pick, items[pick.entityId], side, many, card.picks.size <= 1, palette.accent) }
