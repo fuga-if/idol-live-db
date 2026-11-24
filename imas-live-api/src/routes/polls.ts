@@ -70,7 +70,27 @@ export async function handlePolls(ctx: RouteContext): Promise<Response | null> {
         : "";
 
       // 日付は iOS デコーダ (.secondsSince1970) に合わせ epoch 秒の数値で返す
+      //
+      // 先にお題をページ分だけ選び (page)、そのお題の候補だけを 1 回なめて集計する (agg)。
+      // 旧実装は polls と poll_entries を JOIN して GROUP BY してから LIMIT していたので、
+      // 条件に合う全お題の候補を毎回読んでいた (1 回 4,000〜7,000 行。D1 の読みの 7 割)。
+      // 選ぶ順序・返す値は旧実装と同じ (本番データで突き合わせ済み、読みは約 1/5)。
       const { results } = await env.DB.prepare(`
+        WITH page AS (
+          SELECT * FROM polls p
+          WHERE p.status = 'active' AND ${timeCondition} ${monthCondition}
+          ORDER BY ${orderBy}
+          LIMIT ? OFFSET ?
+        ),
+        agg AS (
+          SELECT poll_id,
+                 SUM(vote_count) AS total_votes,
+                 COUNT(*) AS entry_count,
+                 MAX(vote_count) AS top_vote_count
+          FROM poll_entries
+          WHERE poll_id IN (SELECT id FROM page)
+          GROUP BY poll_id
+        )
         SELECT
           p.id,
           p.title,
@@ -83,20 +103,17 @@ export async function handlePolls(ctx: RouteContext): Promise<Response | null> {
           p.candidate_scope,
           p.scope_brand_ids,
           p.scope_entity_ids,
-          COALESCE(SUM(pe.vote_count), 0) AS total_votes,
-          COUNT(pe.entity_id) AS entry_count,
+          COALESCE(agg.total_votes, 0) AS total_votes,
+          COALESCE(agg.entry_count, 0) AS entry_count,
           (SELECT COUNT(*) FROM poll_votes pv WHERE pv.poll_id = p.id AND pv.user_id = ?) AS my_vote_count,
           (SELECT pe2.entity_id FROM poll_entries pe2 WHERE pe2.poll_id = p.id AND pe2.vote_count > 0
              ORDER BY pe2.vote_count DESC LIMIT 1) AS top_entity_id,
-          (SELECT MAX(pe3.vote_count) FROM poll_entries pe3 WHERE pe3.poll_id = p.id) AS top_vote_count
-        FROM polls p
-        LEFT JOIN poll_entries pe ON pe.poll_id = p.id
-        WHERE p.status = 'active' AND ${timeCondition} ${monthCondition}
-        GROUP BY p.id
+          agg.top_vote_count AS top_vote_count
+        FROM page p
+        LEFT JOIN agg ON agg.poll_id = p.id
         ORDER BY ${orderBy}
-        LIMIT ? OFFSET ?
       `)
-        .bind(uid, ...(monthStart ? [monthStart, monthStart] : []), limit, offset)
+        .bind(...(monthStart ? [monthStart, monthStart] : []), limit, offset, uid)
         .all();
 
       return json(
