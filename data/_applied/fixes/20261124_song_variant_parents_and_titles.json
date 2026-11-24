@@ -1,0 +1,167 @@
+{
+ "title": "ver 違いの親リンクの誤り 2 件と、ver 違いの曲名の原曲部分の表記揺れ",
+ "author": "claude",
+ "source": "derived:songs.parent_song_id と親の songs.title (原曲の表記に揃える)。Bloomy!/Fly High! は親が brand other・cover・原唱者なしの別曲であることから",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "sc_bloomy",
+   "fields": {
+    "parent_song_id": null
+   },
+   "note": "Bloomy! (アルストロメリア・シャニ) は other の「Bloomy」(cover・原唱者なし) の ver 違いではない別曲。親を外してシャニの原曲として数える"
+  },
+  {
+   "table": "songs",
+   "id": "765as_fly_high",
+   "fields": {
+    "parent_song_id": null
+   },
+   "note": "Fly High! (如月千早のソロ・765AS) は other の「Fly High」(cover・原唱者なし) の ver 違いではない別曲。親を外して 765AS の原曲として数える"
+  },
+  {
+   "table": "songs",
+   "id": "765as_きゅんっヴァンパイアガール_-keiichi_hirokawa_remix-",
+   "fields": {
+    "title": "きゅんっ！ヴァンパイアガール -Keiichi Hirokawa Remix-"
+   },
+   "note": "ver 違いの曲名の原曲部分を、親 (原曲) の表記に揃える (ver の表記部分はそのまま)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_ポジティブremster-a",
+   "fields": {
+    "title": "ポジティブ！(REM@STER-A)"
+   },
+   "note": "ver 違いの曲名の原曲部分を、親 (原曲) の表記に揃える (ver の表記部分はそのまま)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_ポジティブremster-b",
+   "fields": {
+    "title": "ポジティブ！(REM@STER-B)"
+   },
+   "note": "ver 違いの曲名の原曲部分を、親 (原曲) の表記に揃える (ver の表記部分はそのまま)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_隣に_-jazz_rearrange_mix-",
+   "fields": {
+    "title": "隣に… -JAZZ Rearrange Mix-"
+   },
+   "note": "ver 違いの曲名の原曲部分を、親 (原曲) の表記に揃える (ver の表記部分はそのまま)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_魔法をかけて_-ryo_watanabe_remix-",
+   "fields": {
+    "title": "魔法をかけて！ -Ryo Watanabe Remix-"
+   },
+   "note": "ver 違いの曲名の原曲部分を、親 (原曲) の表記に揃える (ver の表記部分はそのまま)"
+  },
+  {
+   "table": "songs",
+   "id": "876_ソライロ_vα-liv_ver",
+   "fields": {
+    "title": "ソライロ！ (vα-liv ver)"
+   },
+   "note": "ver 違いの曲名の原曲部分を、親 (原曲) の表記に揃える (ver の表記部分はそのまま)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_華蕾夢ミル狂詩曲_魂ノ導_-for_anzu_rearrange_mix-",
+   "fields": {
+    "title": "華蕾夢ミル狂詩曲〜魂ノ導〜 -For Anzu rearrange MIX-"
+   },
+   "note": "ver 違いの曲名の原曲部分を、親 (原曲) の表記に揃える (ver の表記部分はそのまま)"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_yellow_big_bang_cosmo_remix",
+   "fields": {
+    "title": "Yellow Big Bang！ (cosMo@暴走P Remix)"
+   },
+   "note": "ver 違いの曲名の原曲部分を、親 (原曲) の表記に揃える (ver の表記部分はそのまま)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_be_my_boynyankobrq_remix",
+   "fields": {
+    "title": "Be My Boy (nyankobrq Remix)"
+   },
+   "note": "ver 違いの曲名の原曲部分を、親 (原曲) の表記に揃える (ver の表記部分はそのまま)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_detective_high_恋探偵物語_giga_remix",
+   "fields": {
+    "title": "DETECTIVE HIGH! 〜恋探偵物語〜 (Giga Remix)"
+   },
+   "note": "ver 違いの曲名の原曲部分を、親 (原曲) の表記に揃える (ver の表記部分はそのまま)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_maria_traptanchiky_remix",
+   "fields": {
+    "title": "Maria Trap (Tanchiky Remix)"
+   },
+   "note": "ver 違いの曲名の原曲部分を、親 (原曲) の表記に揃える (ver の表記部分はそのまま)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_parade_damour_les_amis_denfance_ver",
+   "fields": {
+    "title": "Parade d’amour (les amis d'enfance ver.)"
+   },
+   "note": "ver 違いの曲名の原曲部分を、親 (原曲) の表記に揃える (ver の表記部分はそのまま)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_wow_i_need_シンギングモンキー_歌唱拳_toriena_remix",
+   "fields": {
+    "title": "WOW! I NEED!! 〜シンギングモンキー 歌唱拳〜 (TORIENA Remix)"
+   },
+   "note": "ver 違いの曲名の原曲部分を、親 (原曲) の表記に揃える (ver の表記部分はそのまま)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_チョー元気showアイドルchng_giga_remix",
+   "fields": {
+    "title": "チョー↑元気Show☆アイドルch@ng! (Giga Remix)"
+   },
+   "note": "ver 違いの曲名の原曲部分を、親 (原曲) の表記に揃える (ver の表記部分はそのまま)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_デコレーションドリミンッ_toriena_remix",
+   "fields": {
+    "title": "デコレーション・ドリ〜ミンッ♪ (TORIENA Remix)"
+   },
+   "note": "ver 違いの曲名の原曲部分を、親 (原曲) の表記に揃える (ver の表記部分はそのまま)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_ハッピ_エフェクト_チバニャン_remix",
+   "fields": {
+    "title": "ハッピ〜 エフェクト！ (チバニャン Remix)"
+   },
+   "note": "ver 違いの曲名の原曲部分を、親 (原曲) の表記に揃える (ver の表記部分はそのまま)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_プリティッニャンニャンッ_beatnine_remix",
+   "fields": {
+    "title": "プリティ〜〜〜ッ→ニャンニャンッ！ (BEATNINE Remix)"
+   },
+   "note": "ver 違いの曲名の原曲部分を、親 (原曲) の表記に揃える (ver の表記部分はそのまま)"
+  },
+  {
+   "table": "songs",
+   "id": "ml_微笑んだから気づいたんだkan_takahiko_remix",
+   "fields": {
+    "title": "微笑んだから、気づいたんだ。 (KAN TAKAHIKO Remix)"
+   },
+   "note": "ver 違いの曲名の原曲部分を、親 (原曲) の表記に揃える (ver の表記部分はそのまま)"
+  }
+ ]
+}
