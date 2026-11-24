@@ -37,15 +37,22 @@ struct CoreStatsRepository: StatsReading {
                 collectedSongIds: Array(collectedSongIds), pickIdolIds: Array(pickIdolIds),
                 today: today, chanceLimit: UInt32(max(0, chanceLimit)))
             return CollectionDashboard(
-                overallCollected: Int(record.overallCollected),
-                overallTotal: Int(record.overallTotal),
+                overall: CollectionProgress(
+                    collected: Int(record.overallCollected), total: Int(record.overallTotal),
+                    performedCollected: Int(record.overallPerformedCollected),
+                    performedTotal: Int(record.overallPerformedTotal)),
                 brandProgress: record.brandProgress.map {
                     BrandCollectionProgress(
                         brandId: $0.brandId, shortName: $0.shortName, color: $0.color,
-                        collected: Int($0.collected), total: Int($0.total))
+                        progress: CollectionProgress(
+                            collected: Int($0.collected), total: Int($0.total),
+                            performedCollected: Int($0.performedCollected), performedTotal: Int($0.performedTotal)))
                 },
                 myPickCollected: Int(record.myPickCollected),
                 myPickTotal: Int(record.myPickTotal),
+                pickProgress: Dictionary(
+                    record.pickProgress.map { ($0.idolId, (collected: Int($0.collected), total: Int($0.total))) },
+                    uniquingKeysWith: { first, _ in first }),
                 pickUncollected: record.pickUncollected.map(Self.uncollected(from:)),
                 allUncollected: record.allUncollected.map(Self.uncollected(from:)),
                 catchChances: record.catchChances.map {
@@ -58,10 +65,32 @@ struct CoreStatsRepository: StatsReading {
         }
     }
 
+    func uncollectedSongs(collectedSongIds: Set<String>, scope: CollectionScope) async throws -> UncollectedSongList {
+        try await snapshot.withStore { store in
+            let record = try store.uncollectedSongs(collectedSongIds: Array(collectedSongIds), scope: scope)
+            return UncollectedSongList(
+                progress: CollectionProgress(
+                    collected: Int(record.collected), total: Int(record.total),
+                    performedCollected: Int(record.performedCollected), performedTotal: Int(record.performedTotal)),
+                performed: record.performed.map(Self.uncollected(from:)),
+                unperformed: record.unperformed.map(Self.uncollected(from:)))
+        }
+    }
+
+    func collectedOriginalSongCount(collectedSongIds: Set<String>) async throws -> Int {
+        try await snapshot.withStore { store in
+            Int(try store.collectedOriginalSongCount(collectedSongIds: Array(collectedSongIds)))
+        }
+    }
+
     private static func uncollected(from record: UncollectedSongRecord) -> UncollectedSong {
         UncollectedSong(
             song: CoreRecordMapping.song(from: record.song), playCount: Int(record.playCount),
-            frequency: record.frequency, frequencyLabel: record.frequencyLabel)
+            frequency: record.frequency, frequencyLabel: record.frequencyLabel,
+            ownPlayCount: Int(record.ownPlayCount),
+            variants: record.variants.map {
+                UncollectedVariant(song: CoreRecordMapping.song(from: $0.song), playCount: Int($0.playCount))
+            })
     }
 
     func lyricCoverage(publishedSongIds: [String]) async throws -> LyricCoverageRecord {

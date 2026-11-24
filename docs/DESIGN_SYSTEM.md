@@ -650,7 +650,7 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 ### 10.4 メーター
 | 部品 | 用途 |
 |---|---|
-| `ImasStatBar` | 項目ごとの割合 (ブランド別の回収率) |
+| `ImasStatBar` | 項目ごとの割合 (ブランド別の回収率)。`note` で棒の下に別の見方を 1 行 (「披露済み 60/116（52%）」)、`tappable` で › を出して中身へ進める |
 | `ImasProportionLine` | 行の下端の細い線 (票・確率の大きさ) |
 | `ImasProgressRing` | 1 つの割合を大きく (回収率・習熟度) |
 | `ImasMeter` | 段階 (習熟度の 10 段・クイズの点数)。塗りは実体の色 1 色、段の高さはすべて同じ |

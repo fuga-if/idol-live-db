@@ -43,9 +43,11 @@ enum ProducerCardAssembler {
         let c = AppContainer.shared
         let oshi = try await c.markReading.markedEntityIds(entity: .idol, kind: .myPick)
         let attended = try await c.producerCards.attendedShowRefs()
-        let songs = try await c.markReading.autoCollectedSongIds()
+        // 回収曲は回収ダッシュボードと同じ数え方 (ver 違いは原曲にまとめる)。
+        let songs = try await c.statsReading.collectedOriginalSongCount(
+            collectedSongIds: try await c.markReading.autoCollectedSongIds())
         return ProducerCardMyRecord(oshiIds: oshi, oshiEntries: await oshiEntries(oshi), attended: attended,
-                                    songCount: songs.count)
+                                    songCount: songs)
     }
 
     /// 担当の名前とブランド (名刺に載せる担当を選ぶ材料。端末のマスタで引けない担当は入れない)。

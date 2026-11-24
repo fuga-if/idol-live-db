@@ -27,33 +27,23 @@ struct CollectionShareStats {
     /// メンバーカラー seed: 先頭の担当カラー → なければニュートラル。
     var seed: String? { idolLines.first?.color }
 
-    /// 現在のマーク状態と DB から回収率を集計する。
+    /// 現在のマーク状態から回収率を集計する。数え方は回収ダッシュボードと同じ
+    /// (imas-core `collection_dashboard`。ver 違いは原曲にまとめる)。
     @MainActor
     static func load() async -> CollectionShareStats {
-        // brand_id 非 NULL の曲のみに絞り、分子と分母の母集合を brandSongCounts と揃える。
-        let allCollected = UserMarkService.shared.autoCollectedSongIds()
-        let brandedSongIds = (try? await AppContainer.shared.songReading.brandedSongIds()) ?? []
-        let collected = allCollected.intersection(brandedSongIds)
-        let brandCounts = (try? await AppContainer.shared.statsReading.brandSongCounts()) ?? []
-        let overallTotal = brandCounts.map(\.songCount).reduce(0, +)
-
         let pickIds = UserMarkService.shared.allMarked(kind: .myPick, entity: .idol)
+        let dashboard = try? await AppContainer.shared.statsReading.collectionDashboard(
+            collectedSongIds: UserMarkService.shared.autoCollectedSongIds(),
+            pickIdolIds: Set(pickIds), today: JSTDay.today(), chanceLimit: 0)
         let pickIdols = (try? await AppContainer.shared.idolReading.idols(ids: pickIds)) ?? []
-        var lines: [IdolLine] = []
-        for idol in pickIdols.prefix(4) {
-            let songIds = ((try? await AppContainer.shared.idolReading.idolSongs(idolId: idol.id, role: "original")) ?? []).map(\.id)
-            lines.append(IdolLine(
-                id: idol.id,
-                name: idol.name,
-                color: idol.color,
-                collected: songIds.filter { collected.contains($0) }.count,
-                total: songIds.count
-            ))
+        let lines = pickIdols.prefix(4).map { idol in
+            let progress = dashboard?.pickProgress[idol.id]
+            return IdolLine(id: idol.id, name: idol.name, color: idol.color,
+                            collected: progress?.collected ?? 0, total: progress?.total ?? 0)
         }
-
         return CollectionShareStats(
-            overallCollected: collected.count,
-            overallTotal: overallTotal,
+            overallCollected: dashboard?.overall.collected ?? 0,
+            overallTotal: dashboard?.overall.total ?? 0,
             idolLines: lines
         )
     }

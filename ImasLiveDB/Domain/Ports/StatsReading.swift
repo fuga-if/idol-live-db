@@ -24,6 +24,10 @@ protocol StatsReading: Sendable {
     func collectionDashboard(
         collectedSongIds: Set<String>, pickIdolIds: Set<String>, today: String, chanceLimit: Int
     ) async throws -> CollectionDashboard
+    /// 未回収一覧の画面 1 つぶん (範囲の回収率と、未回収を披露済み/未披露に分けたもの)。原曲単位。
+    func uncollectedSongs(collectedSongIds: Set<String>, scope: CollectionScope) async throws -> UncollectedSongList
+    /// 回収した原曲の数 (P名刺・プロフィール帳の「回収曲」。ダッシュボードの全体の回収数と同じ)。
+    func collectedOriginalSongCount(collectedSongIds: Set<String>) async throws -> Int
     /// 歌詞の投稿状況 (全体とブランド別)。`publishedSongIds` はサーバの公開曲 id。
     func lyricCoverage(publishedSongIds: [String]) async throws -> LyricCoverageRecord
     /// 歌詞のある曲の id (`lyricCoverage` と同じ母集合)。`brandId` が nil なら全ブランド。

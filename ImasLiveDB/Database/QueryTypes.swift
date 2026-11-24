@@ -231,28 +231,68 @@ struct DatabaseStats: Sendable {
 
 // MARK: - Collection Dashboard Query Types
 
-/// ブランド別の現地回収進捗 (回収済み曲数 / そのブランドの全曲数)。
-struct BrandCollectionProgress: Identifiable, Sendable {
+/// 回収率 1 つぶん (原曲単位)。全曲と、披露済み (一族のどれかがリアルライブで演られた) の原曲。
+struct CollectionProgress: Sendable, Hashable {
+    let collected: Int
+    let total: Int
+    let performedCollected: Int
+    let performedTotal: Int
+
+    /// 0.0–1.0。total=0 のときは 0。
+    var fraction: Double { total > 0 ? Double(collected) / Double(total) : 0 }
+    /// 披露済みのうち何割回収したか。0.0–1.0。
+    var performedFraction: Double { performedTotal > 0 ? Double(performedCollected) / Double(performedTotal) : 0 }
+    /// 「披露済み 120/253 (47%)」。
+    var performedText: String {
+        "披露済み \(performedCollected)/\(performedTotal)（\(Int((performedFraction * 100).rounded()))%）"
+    }
+}
+
+/// ブランド別の現地回収進捗 (原曲単位)。
+struct BrandCollectionProgress: Identifiable, Hashable, Sendable {
     var id: String { brandId }
     let brandId: String
     let shortName: String
     let color: String?
-    let collected: Int
-    let total: Int
+    let progress: CollectionProgress
 
-    /// 0.0–1.0。total=0 のときは 0。
-    var fraction: Double { total > 0 ? Double(collected) / Double(total) : 0 }
+    var collected: Int { progress.collected }
+    var total: Int { progress.total }
+    var fraction: Double { progress.fraction }
 }
 
-/// 未回収曲 + その曲の生涯披露回数 (= よく演る/レアの目安)。
+/// ver 違い 1 曲と、その ver だけの披露回数。
+struct UncollectedVariant: Identifiable, Sendable {
+    var id: String { song.id }
+    let song: Song
+    let playCount: Int
+}
+
+/// 未回収の原曲 + 一族の生涯披露回数 (= よく演る/レアの目安)。
+/// 未回収 = 一族 (ver 違い) のどれも生で聴いていない。
 struct UncollectedSong: Identifiable, Sendable {
     var id: String { song.id }
     let song: Song
-    /// この曲がリアルライブで披露された累計回数 (全ユーザ共通の客観値)。
+    /// 一族 (原曲 + ver 違い) がリアルライブで披露された累計回数 (全ユーザ共通の客観値)。
     let playCount: Int
     /// 披露頻度の区分とその文言。閾値は imas-core (`PlayFrequency`) が持つ。
     let frequency: PlayFrequency
     let frequencyLabel: String
+    /// 原曲そのものの披露回数。
+    let ownPlayCount: Int
+    /// ver 違い (披露回数の多い順)。
+    let variants: [UncollectedVariant]
+}
+
+/// 未回収一覧の画面 1 つぶん (imas-core `uncollected_songs` の写し)。
+struct UncollectedSongList: Sendable {
+    let progress: CollectionProgress
+    /// 披露済みで未回収 (いま回収できる曲)。
+    let performed: [UncollectedSong]
+    /// まだ一度も披露されていない曲。
+    let unperformed: [UncollectedSong]
+
+    var uncollectedCount: Int { performed.count + unperformed.count }
 }
 
 /// 未来公演ごとの「未回収が聴けるかも」。
@@ -270,11 +310,12 @@ struct UpcomingCatchChance: Identifiable, Sendable {
 
 /// 回収ダッシュボード 1 画面ぶん (imas-core `collection_dashboard` の写し)。
 struct CollectionDashboard: Sendable {
-    let overallCollected: Int
-    let overallTotal: Int
+    let overall: CollectionProgress
     let brandProgress: [BrandCollectionProgress]
     let myPickCollected: Int
     let myPickTotal: Int
+    /// 担当 1 人ずつの回収率 (idol id → (回収済み, 総数))。
+    let pickProgress: [String: (collected: Int, total: Int)]
     let pickUncollected: [UncollectedSong]
     let allUncollected: [UncollectedSong]
     let catchChances: [UpcomingCatchChance]

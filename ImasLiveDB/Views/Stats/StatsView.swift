@@ -21,9 +21,8 @@ struct StatsView: View {
 
     // MARK: 回収ダッシュボード state
 
-    /// 全体の回収進捗 (回収済み / branded 全曲)。
-    @State private var overallCollected = 0
-    @State private var overallTotal = 0
+    /// 全体の回収進捗 (原曲単位。全曲と披露済み)。
+    @State private var overall = CollectionProgress(collected: 0, total: 0, performedCollected: 0, performedTotal: 0)
     /// ブランド別回収進捗。
     @State private var brandProgress: [BrandCollectionProgress] = []
     /// 未回収曲一覧 (スコープ依存)。
@@ -41,6 +40,8 @@ struct StatsView: View {
     @State private var allUncollectedCache: [UncollectedSong] = []
 
     private enum UncollectedScope: Int { case myPick, all }
+    /// DEBUG の `INITIAL_UNCOLLECTED_BRAND` で開くブランドの未回収一覧 (シミュレータで撮るため)。
+    @State private var debugBrandList: BrandCollectionProgress?
     /// 「イベント名を省略」の設定 (既定 ON)。省略した名前はコアが返す。
     @AppStorage(eventNameAbbreviateKey) private var abbreviateEventNames = true
 
@@ -58,6 +59,9 @@ struct StatsView: View {
                 brandSongSection
             }
             .navigationTitle("回収ダッシュボード")
+            .navigationDestination(item: $debugBrandList) { item in
+                UncollectedSongsView(scope: .brand(id: item.brandId, name: item.shortName, color: item.color))
+            }
             .task { await loadStats() }
             .sheet(item: $selectedSong) { song in
                 DetailSheetView(destination: .song(song))
@@ -80,21 +84,30 @@ struct StatsView: View {
     private var collectionSummarySection: some View {
         ImasSection("あなたの回収率", style: .small) {
             ImasCard {
-                HStack(spacing: DS.Space.card) {
-                    ImasProgressRing(fraction: overallTotal > 0 ? Double(overallCollected) / Double(overallTotal) : 0,
-                                      size: 92)
-                    VStack(alignment: .leading, spacing: DS.Space.gap) {
-                        ImasBoard(cells: [
-                            .init(value: "\(overallCollected) / \(overallTotal)", unit: "曲", label: "現地ライブで聴けた曲"),
-                        ])
-                        Button {
-                            showCollectionShare = true
-                        } label: {
-                            ImasChip(text: "カードでシェア", systemImage: "square.and.arrow.up", style: .selected)
+                VStack(alignment: .leading, spacing: DS.Space.gap) {
+                    HStack(spacing: DS.Space.card) {
+                        ImasProgressRing(fraction: overall.fraction, size: 92)
+                        VStack(alignment: .leading, spacing: DS.Space.gap) {
+                            ImasBoard(cells: [
+                                .init(value: "\(overall.collected) / \(overall.total)", unit: "曲", label: "現地ライブで聴けた曲"),
+                            ])
+                            Button {
+                                showCollectionShare = true
+                            } label: {
+                                ImasChip(text: "カードでシェア", systemImage: "square.and.arrow.up", style: .selected)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
+                        Spacer(minLength: 0)
                     }
-                    Spacer(minLength: 0)
+                    // 披露済みの曲 (ライブで 1 回以上演られた原曲) のうち何割回収したか。
+                    ImasStatBar(
+                        label: "披露済みの曲",
+                        value: "\(overall.performedCollected)/\(overall.performedTotal)",
+                        percent: overall.performedFraction * 100,
+                        valueWidth: 84,
+                        note: "ライブで披露された曲のうち \(Int((overall.performedFraction * 100).rounded()))% を回収"
+                    )
                 }
             }
         }
@@ -106,16 +119,25 @@ struct StatsView: View {
     private var brandProgressSection: some View {
         let rows = brandProgress.filter { $0.total > 0 }
         if !rows.isEmpty {
-            ImasSection("ブランド別の回収率", style: .small) {
+            ImasSection("ブランド別の回収率", style: .small,
+                        footer: "ver違いは原曲にまとめて数えています。バーを押すと未回収の曲が見られます。") {
                 ImasCard {
                     VStack(spacing: 0) {
                         ForEach(rows) { item in
-                            ImasStatBar(
-                                label: item.shortName,
-                                value: "\(item.collected)/\(item.total)",
-                                percent: item.fraction * 100,
-                                seed: item.color
-                            )
+                            NavigationLink {
+                                UncollectedSongsView(scope: .brand(id: item.brandId, name: item.shortName, color: item.color))
+                            } label: {
+                                ImasStatBar(
+                                    label: item.shortName,
+                                    value: "\(item.collected)/\(item.total)",
+                                    percent: item.fraction * 100,
+                                    seed: item.color,
+                                    tappable: true,
+                                    note: item.progress.performedText
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityHint("\(item.shortName)の未回収曲を見る")
                         }
                     }
                 }
@@ -175,20 +197,26 @@ struct StatsView: View {
                         )
                     }
                 } else {
-                    let shown = Array(uncollectedSongs.prefix(30))
+                    let shown = Array(uncollectedSongs.prefix(Self.uncollectedPreviewLimit))
                     ImasCardList(shown) { item in
                         Button {
                             selectedSong = item.song
                         } label: {
                             ImasSongRow(
                                 song: item.song,
-                                subtitle: brandShortName(for: item.song.brandId),
+                                subtitle: uncollectedSubtitle(item),
                                 playsPreview: false,
-                                trailing: .custom(AnyView(frequencyBadge(item)))
+                                trailing: .custom(AnyView(UncollectedFrequencyBadge(item: item)))
                             )
                         }
                         .buttonStyle(.imasRow)
                     }
+                    NavigationLink {
+                        UncollectedSongsView(scope: uncollectedScope == .myPick ? .myPick : .all)
+                    } label: {
+                        ImasNavRow(title: "すべて見る", value: "\(uncollectedSongs.count)曲")
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }
@@ -202,21 +230,15 @@ struct StatsView: View {
         return ImasSegmented(labels: ["担当のオリ曲", "全体"], selection: binding)
     }
 
-    /// 披露頻度バッジ。 定番=attention(墨の線)、ときどき=neutral(灰)、レア/未披露=negative(薄字)。
-    private func frequencyBadge(_ item: UncollectedSong) -> some View {
-        let kind: ImasBadge.Kind
-        switch item.frequency {
-        case .staple: kind = .attention
-        case .sometimes: kind = .neutral
-        case .rare, .never: kind = .negative
-        }
-        return VStack(alignment: .trailing, spacing: DS.Space.gapTight) {
-            ImasBadge(text: item.frequencyLabel, kind: kind)
-            if item.playCount > 0 {
-                ImasMetric(value: "\(item.playCount)", unit: "回披露", size: .small)
-            }
-        }
+    /// 未回収の行の副題: ブランド名 (+ ver違いの数)。
+    private func uncollectedSubtitle(_ item: UncollectedSong) -> String? {
+        let parts = [brandShortName(for: item.song.brandId), item.variants.isEmpty ? nil : "ver違い \(item.variants.count)"]
+        let line = parts.compactMap { $0 }.joined(separator: " ・ ")
+        return line.isEmpty ? nil : line
     }
+
+    /// ダッシュボードに並べる未回収曲の数 (残りは「すべて見る」の先)。
+    private static let uncollectedPreviewLimit = 30
 
     // MARK: - 最新の動き
 
@@ -403,8 +425,7 @@ struct StatsView: View {
                 pickIdolIds: Set(UserMarkService.shared.allMarked(kind: .myPick, entity: .idol)),
                 today: JSTDay.today(),
                 chanceLimit: Self.catchChanceLimit)
-            overallCollected = dashboard.overallCollected
-            overallTotal = dashboard.overallTotal
+            overall = dashboard.overall
             brandProgress = dashboard.brandProgress
             pickUncollectedCache = dashboard.pickUncollected
             allUncollectedCache = dashboard.allUncollected
@@ -412,6 +433,11 @@ struct StatsView: View {
             myPickTotal = dashboard.myPickTotal
             catchChances = dashboard.catchChances
             applyUncollectedScope()
+            #if DEBUG
+            if let id = ProcessInfo.processInfo.environment["INITIAL_UNCOLLECTED_BRAND"], debugBrandList == nil {
+                debugBrandList = brandProgress.first { $0.brandId == id }
+            }
+            #endif
         } catch {
             Logger.database.error("load_failed dashboard: \(error.localizedDescription)")
         }

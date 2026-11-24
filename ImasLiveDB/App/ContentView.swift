@@ -14,6 +14,11 @@ struct ContentView: View {
            let tab = RootTab(rawValue: idx) {
             return tab.destination
         }
+        #if DEBUG
+        // RootTab に無い回収ダッシュボードを開いて撮るため (`INITIAL_TAB` と同じ流儀)。
+        // タブバーに載っていない行き先は狭い画面で戻されるので、`tab_bar_order` にも stats を載せておく。
+        if ProcessInfo.processInfo.environment["INITIAL_DESTINATION"] == "stats" { return .stats }
+        #endif
         return .schedule
     }()
     /// 下のタブバーの並び (設定で選ぶ)。空なら既定。

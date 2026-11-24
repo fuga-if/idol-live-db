@@ -1086,7 +1086,8 @@ private struct FeedbackPage: View {
                         VStack(alignment: .leading, spacing: 0) {
                             ImasStatBar(label: "765AS", value: "7/446", percent: 1.6, brand: Sample.as765)
                             ImasStatBar(label: "ミリオン", value: "31/1,075", percent: 2.9, brand: Sample.ml)
-                            ImasStatBar(label: "学マス", value: "60/125", percent: 48, brand: Sample.gakuen, tappable: true)
+                            ImasStatBar(label: "学マス", value: "60/125", percent: 48, brand: Sample.gakuen, tappable: true,
+                                        note: "披露済み 60/116（52%）")
                         }
                     }
                 }

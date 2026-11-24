@@ -345,32 +345,45 @@ struct ImasStatBar: View {
     var valueWidth: CGFloat = 52
     /// 押して中身へ進める行か。右端に ›  を出す (押す処理は呼び出し側の Button)。
     var tappable: Bool = false
+    /// 棒の下に添える 1 行 (「披露済み 120/253（47%）」など、同じ割合の別の見方)。
+    var note: String? = nil
 
     @Environment(\.colorScheme) private var scheme
 
+    private static let labelWidth: CGFloat = 92
+
     var body: some View {
         let t = ImasTheme.derive(seed: seed, brand: brand, scheme: scheme)
-        HStack(spacing: DS.Space.gapLoose) {
-            Text(label).font(.imasFootnote).foregroundStyle(DS.ink).lineLimit(1)
-                .frame(width: 92, alignment: .leading)
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Rectangle().fill(DS.fill)
-                    Rectangle().fill(t.bar).frame(width: geo.size.width * min(1, max(0, percent / 100)))
+        VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+            HStack(spacing: DS.Space.gapLoose) {
+                Text(label).font(.imasFootnote).foregroundStyle(DS.ink).lineLimit(1)
+                    .frame(width: Self.labelWidth, alignment: .leading)
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Rectangle().fill(DS.fill)
+                        Rectangle().fill(t.bar).frame(width: geo.size.width * min(1, max(0, percent / 100)))
+                    }
+                }
+                .frame(height: 6)
+                Text(value)
+                    .font(ImasNumeralSize.small.font)
+                    .foregroundStyle(DS.ink2)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .frame(width: valueWidth, alignment: .trailing)
+                if tappable {
+                    Image(systemName: "chevron.right")
+                        .font(.imasScaled(10, weight: .bold))
+                        .foregroundStyle(DS.ink3)
+                        .accessibilityHidden(true)
                 }
             }
-            .frame(height: 6)
-            Text(value)
-                .font(ImasNumeralSize.small.font)
-                .foregroundStyle(DS.ink2)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-                .frame(width: valueWidth, alignment: .trailing)
-            if tappable {
-                Image(systemName: "chevron.right")
-                    .font(.imasScaled(10, weight: .bold))
-                    .foregroundStyle(DS.ink3)
-                    .accessibilityHidden(true)
+            if let note {
+                Text(note)
+                    .imasText(.meta)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .padding(.leading, Self.labelWidth + DS.Space.gapLoose)
             }
         }
         .padding(.vertical, DS.Space.gap)

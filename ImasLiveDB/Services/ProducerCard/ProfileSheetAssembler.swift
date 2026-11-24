@@ -55,7 +55,9 @@ enum ProfileSheetAssembler {
         let ownedReleases = (try? await c.markReading.markedEntityIds(entity: .release, kind: .owned))?.count ?? 0
         let attendedRefs = (try? await c.producerCards.attendedShowRefs()) ?? []
         let shows = (try? await c.producerCards.showInfos(ids: attendedRefs.map(\.showId))) ?? [:]
-        let songCount = (try? await c.markReading.autoCollectedSongIds())?.count ?? 0
+        // 回収曲は回収ダッシュボードと同じ数え方 (ver 違いは原曲にまとめる)。
+        let collectedIds = (try? await c.markReading.autoCollectedSongIds()) ?? []
+        let songCount = (try? await c.statsReading.collectedOriginalSongCount(collectedSongIds: collectedIds)) ?? 0
         let brands = (try? await c.brandReading.brands()) ?? []
         let brandById = Dictionary(brands.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         let idols = oshiIds.isEmpty ? [] : ((try? await c.idolReading.idols(ids: oshiIds)) ?? [])
