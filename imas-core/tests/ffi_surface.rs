@@ -654,6 +654,8 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_method_snapshotstore_cd_series_list,
     uniffi_imas_core_checksum_method_snapshotstore_co_occurring_songs,
     uniffi_imas_core_checksum_method_snapshotstore_collection_dashboard,
+    uniffi_imas_core_checksum_method_snapshotstore_collected_family_song_ids,
+    uniffi_imas_core_checksum_method_snapshotstore_collected_original_song_ids,
     uniffi_imas_core_checksum_method_snapshotstore_collected_original_song_count,
     uniffi_imas_core_checksum_method_snapshotstore_costume_event_records,
     uniffi_imas_core_checksum_method_snapshotstore_costume_record,

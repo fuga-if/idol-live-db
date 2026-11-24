@@ -24,6 +24,7 @@
 use crate::domain::collection_gap::attended_real_live_shows;
 use crate::domain::display_join::non_empty;
 use crate::domain::snapshot::Snapshot;
+use crate::domain::song_family::SongFamilies;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use crate::domain::text_search_index::FoldedNeedle;
@@ -516,11 +517,9 @@ pub fn song_list_indexes(
             });
         }
         SongListSort::PerformanceCount => {
+            let performances = family_performance_counts(snap);
             indexes.sort_by(|&l, &r| {
-                let (ca, cb) = (
-                    snap.performance_counts[l as usize],
-                    snap.performance_counts[r as usize],
-                );
+                let (ca, cb) = (performances[l as usize], performances[r as usize]);
                 cmp_dir(&ca, &cb, asc).then_with(|| kana_tiebreak(snap, l, r))
             });
         }
@@ -535,9 +534,10 @@ pub fn song_list_indexes(
         SongListSort::CollectedRate => {
             let attended =
                 collected_counts_by_song(snap, attended_show_ids, attended_event_ids, false);
+            let performances = family_performance_counts(snap);
             // 回収率 = 回収数 / 披露数 (披露 0 回は 0 扱い)。iOS と同じ Double (f64) 演算。
             let rate = |i: u32| {
-                let total = snap.performance_counts[i as usize];
+                let total = performances[i as usize];
                 if total > 0 {
                     f64::from(attended[i as usize]) / f64::from(total)
                 } else {
@@ -650,12 +650,23 @@ pub fn songs_by_ids_ordered(snap: &Snapshot, ids: &[String]) -> Vec<u32> {
 
 // ---- 一覧バッジ用集計 (披露回数・現地回収数) ----
 
+/// 曲一覧の披露回数 (songs と同じ添字)。原曲の行は一族 (ver 違い) の披露を足す。ver 違いの行は
+/// その曲だけ。一覧は ver 違いを隠して原曲が一族を代表するので、回収数 (一族) と揃えるため。
+fn family_performance_counts(snap: &Snapshot) -> Vec<u32> {
+    let families = SongFamilies::new(snap);
+    (0..snap.songs.len() as u32)
+        .map(|song| {
+            families.counted_members(song).iter().map(|&m| snap.performance_counts[m as usize]).sum()
+        })
+        .collect()
+}
+
 /// song_id → 全公演での披露回数 (iOS `totalSongPerformanceCountMap`)。
 /// SQL の `GROUP BY song_id` と同じく、披露 0 回の曲はマップに載せない。
 pub fn performance_count_map(snap: &Snapshot) -> HashMap<String, u32> {
     snap.songs
         .iter()
-        .zip(&snap.performance_counts)
+        .zip(&family_performance_counts(snap))
         .filter(|&(_, &count)| count > 0)
         .map(|(song, &count)| (song.id.clone(), count))
         .collect()
@@ -685,17 +696,21 @@ pub fn collected_counts_by_song(
     // 回収 (real_live_only) は披露に数える行だけ。並び替え用は iOS の現行どおり何も絞らない。
     let by_song =
         if real_live_only { &snap.setlist_items_by_song } else { &snap.all_setlist_items_by_song };
-    for (song, items) in by_song.iter().enumerate() {
+    // 原曲の行は一族 (ver 違い) のどれかを聴いた公演を数える (回収は原曲単位。song_family)。
+    let families = SongFamilies::new(snap);
+    for (song, count) in counts.iter_mut().enumerate() {
         seen.clear();
-        for &item in items {
-            let show = snap.setlist_items[item as usize].show;
-            if !attended.contains(&show) {
-                continue;
+        for member in families.counted_members(song as u32) {
+            for &item in &by_song[member as usize] {
+                let show = snap.setlist_items[item as usize].show;
+                if !attended.contains(&show) {
+                    continue;
+                }
+                // COUNT(DISTINCT show_id): 同一公演でのアンコール再披露・同じ公演の別 ver は 1 回。
+                seen.insert(show);
             }
-            // COUNT(DISTINCT show_id): 同一公演でのアンコール再披露は 1 回。
-            seen.insert(show);
         }
-        counts[song] = seen.len() as u32;
+        *count = seen.len() as u32;
     }
     counts
 }
@@ -1149,9 +1164,12 @@ mod tests {
         let db = bundle_conn();
         let mut stmt = db
             .prepare(
-                "SELECT si.song_id, COUNT(*) FROM setlist_items si JOIN shows sh ON sh.id = si.show_id
-                 WHERE COALESCE(sh.performer_type, '') <> 'screening'
-                   AND COALESCE(sh.venue_mode, '') <> 'online' GROUP BY si.song_id",
+                &format!(
+                    "SELECT s.id, COUNT(*) FROM songs s JOIN setlist_items si ON {FAMILY_JOIN}
+                     JOIN shows sh ON sh.id = si.show_id
+                     WHERE COALESCE(sh.performer_type, '') <> 'screening'
+                       AND COALESCE(sh.venue_mode, '') <> 'online' GROUP BY s.id"
+                ),
             )
             .unwrap();
         let expected: HashMap<String, u32> = stmt
@@ -1230,6 +1248,10 @@ mod tests {
     }
 
     /// プラットフォーム側の user_marks → id 集合の解決 (Wire 実装がやる SQL の写経)。
+    /// 曲 s の行が数えるセトリの行: s 自身と、s が原曲 (親無し) なら s を親とする ver 違い。
+    const FAMILY_JOIN: &str = "(si.song_id = s.id OR (COALESCE(s.parent_song_id, '') = ''
+        AND si.song_id IN (SELECT c.id FROM songs c WHERE c.parent_song_id = s.id)))";
+
     fn resolve_marks(db: &Connection, sql: &str) -> Vec<String> {
         let mut stmt = db.prepare(sql).unwrap();
         stmt.query_map([], |r| r.get(0)).unwrap().collect::<Result<_, _>>().unwrap()
@@ -1296,21 +1318,24 @@ mod tests {
     fn collected_sort_counts_match_sql() {
         let db = marks_db();
         // iOS attendedSongCountMap (並び替え用) の SQL そのまま。kind も参加種別も絞らない。
+        // 原曲の行は一族 (ver 違い) の披露も数える (FAMILY_JOIN)。
         let expected = count_map_from_sql(
             &db,
-            "SELECT si.song_id, COUNT(DISTINCT si.show_id)
-             FROM setlist_items si
-             WHERE si.show_id IN (
-                 SELECT entity_id FROM user_marks
-                 WHERE entity_type='show' AND kind='attended' AND bool_value=1
-             ) OR si.show_id IN (
-                 SELECT id FROM shows
-                 WHERE event_id IN (
+            &format!(
+                "SELECT s.id, COUNT(DISTINCT si.show_id)
+                 FROM songs s JOIN setlist_items si ON {FAMILY_JOIN}
+                 WHERE si.show_id IN (
                      SELECT entity_id FROM user_marks
-                     WHERE entity_type='event' AND kind='attended' AND bool_value=1
+                     WHERE entity_type='show' AND kind='attended' AND bool_value=1
+                 ) OR si.show_id IN (
+                     SELECT id FROM shows
+                     WHERE event_id IN (
+                         SELECT entity_id FROM user_marks
+                         WHERE entity_type='event' AND kind='attended' AND bool_value=1
+                     )
                  )
-             )
-             GROUP BY si.song_id",
+                 GROUP BY s.id"
+            ),
         );
         let show_ids = resolve_marks(
             &db,
@@ -1351,6 +1376,7 @@ mod tests {
              WHERE entity_type='event' AND kind='attended' AND bool_value=1",
         );
         let attended = collected_counts_by_song(bundle_snapshot(), &show_ids, &event_ids, false);
+        let performances = family_performance_counts(bundle_snapshot());
 
         for sort in [SongListSort::PerformanceCount, SongListSort::CollectedCount, SongListSort::CollectedRate] {
             let indexes = song_list_indexes(bundle_snapshot(), &filter, sort, None, &show_ids, &event_ids);
@@ -1359,10 +1385,10 @@ mod tests {
 
             let key = |i: u32| -> f64 {
                 match sort {
-                    SongListSort::PerformanceCount => f64::from(bundle_snapshot().performance_counts[i as usize]),
+                    SongListSort::PerformanceCount => f64::from(performances[i as usize]),
                     SongListSort::CollectedCount => f64::from(attended[i as usize]),
                     SongListSort::CollectedRate => {
-                        let total = bundle_snapshot().performance_counts[i as usize];
+                        let total = performances[i as usize];
                         if total > 0 { f64::from(attended[i as usize]) / f64::from(total) } else { 0.0 }
                     }
                     _ => unreachable!(),
@@ -1376,15 +1402,48 @@ mod tests {
 
         // 同数グループ内は 50 音 (決定性規約)。披露回数順の先頭グループで確認。
         let indexes = song_list_indexes(bundle_snapshot(), &filter, SongListSort::PerformanceCount, None, &[], &[]);
-        let top = bundle_snapshot().performance_counts[indexes[0] as usize];
+        let top = performances[indexes[0] as usize];
         let group: Vec<u32> = indexes
             .iter()
             .copied()
-            .take_while(|&i| bundle_snapshot().performance_counts[i as usize] == top)
+            .take_while(|&i| performances[i as usize] == top)
             .collect();
         for pair in group.windows(2) {
             assert_ne!(kana_tiebreak(bundle_snapshot(), pair[0], pair[1]), Ordering::Greater);
         }
+    }
+
+    /// ver 違いだけを聴いた公演も、原曲の行の回収数に入る (ver 違いの行は自分の分だけ)。
+    #[test]
+    fn a_heard_variant_counts_for_its_original_song_row() {
+        let snap = bundle_snapshot();
+        let families = SongFamilies::new(snap);
+        // 原曲が演られていないリアルライブの公演で、ver 違いが演られたもの。
+        let (variant, root, show) = families
+            .variants
+            .iter()
+            .flat_map(|(&root, vs)| vs.iter().map(move |&v| (v, root)))
+            .find_map(|(v, root)| {
+                snap.setlist_items_by_song[v as usize].iter().find_map(|&item| {
+                    let show = snap.setlist_items[item as usize].show;
+                    let root_played = snap.setlist_items_by_song[root as usize]
+                        .iter()
+                        .any(|&i| snap.setlist_items[i as usize].show == show);
+                    (!root_played).then_some((v, root, show))
+                })
+            })
+            .expect("原曲抜きで ver 違いだけが演られた公演がある");
+        let show_ids = [snap.shows[show as usize].id.clone()];
+        let counts = collected_counts_by_song(snap, &show_ids, &[], true);
+        assert_eq!(counts[variant as usize], 1);
+        assert_eq!(counts[root as usize], 1, "原曲の行は一族のどれかを聴いた公演を数える");
+        let shows = crate::domain::collection_gap::song_collected_shows(
+            snap,
+            &snap.songs[root as usize].id,
+            &show_ids,
+            &[],
+        );
+        assert_eq!(shows.len(), 1, "曲詳細の現地回収も同じ数");
     }
 
     // ---- 単体 (SQL 非依存の境界ケース) ----

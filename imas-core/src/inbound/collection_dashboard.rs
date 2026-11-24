@@ -35,4 +35,16 @@ impl SnapshotStore {
         let snap = self.current()?;
         Ok(domain::collected_original_song_count(&snap, &collected_song_ids))
     }
+
+    /// 回収済みの集合を一族に広げたもの (聴いた曲 + その原曲)。曲一覧の回収の絞り込み・回収の印用。
+    pub fn collected_family_song_ids(&self, collected_song_ids: Vec<String>) -> Result<Vec<String>, SnapshotError> {
+        let snap = self.current()?;
+        Ok(domain::collected_family_song_ids(&snap, &collected_song_ids))
+    }
+
+    /// 回収した原曲の id (プロデュースの「回収した楽曲」の一覧。数は `collected_original_song_count`)。
+    pub fn collected_original_song_ids(&self, collected_song_ids: Vec<String>) -> Result<Vec<String>, SnapshotError> {
+        let snap = self.current()?;
+        Ok(domain::collected_original_song_ids(&snap, &collected_song_ids))
+    }
 }

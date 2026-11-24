@@ -326,7 +326,7 @@ pub fn show_collection_summary(
     })
 }
 
-/// 曲詳細の「現地回収 N 公演」: その曲を回収した公演 (Q-08c)。
+/// 曲詳細の「現地回収 N 公演」: その曲を回収した公演 (Q-08c)。原曲なら ver 違いを聴いた公演も入る。
 ///
 /// 一覧の回収バッジ・セトリの「未回収」と**同じ規則で絞る**: 催しはリアルライブ
 /// ([`REAL_LIVE_KINDS`]) だけ、参加マークは [`collection_attended_show_ids`] を通したもの
@@ -339,8 +339,11 @@ pub fn song_collected_shows(
 ) -> Vec<crate::domain::event_detail_queries::ShowWithEventNameRecord> {
     let Some(&song) = snap.song_index_by_id.get(song_id) else { return Vec::new() };
     let attended = attended_real_live_shows(snap, attended_show_ids, attended_event_ids, true);
-    let mut shows: Vec<u32> = snap.setlist_items_by_song[song as usize]
+    // 原曲は一族 (ver 違い) のどれかを聴いた公演も数える (一覧の回収バッジと同じ。song_family)。
+    let members = crate::domain::song_family::SongFamilies::new(snap).counted_members(song);
+    let mut shows: Vec<u32> = members
         .iter()
+        .flat_map(|&m| snap.setlist_items_by_song[m as usize].iter())
         .map(|&item| snap.setlist_items[item as usize].show)
         .filter(|show| attended.contains(show))
         .collect();

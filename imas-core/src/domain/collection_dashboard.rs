@@ -29,12 +29,10 @@ use crate::domain::event_grouping::is_upcoming_on;
 use crate::domain::event_naming::event_short_name;
 use crate::domain::snapshot::Snapshot;
 use crate::domain::song_detail_queries::SongDetailRecord;
+use crate::domain::song_family::SongFamilies;
 
 /// 「聴けるかも」の公演を何件まで出すか (両 OS の今の値)。
 pub const DEFAULT_CATCH_CHANCE_LIMIT: u32 = 8;
-
-/// `parent_song_id` を遡る上限 (今のデータは 1 段だけ。壊れて輪になっていても止まる)。
-const MAX_VARIANT_DEPTH: usize = 8;
 
 /// リアルライブでの披露の多さ。未回収曲の札の文言と色の根拠。
 #[derive(uniffi::Enum, Clone, Copy, Debug, PartialEq, Eq)]
@@ -203,13 +201,7 @@ struct Families<'a> {
 impl<'a> Families<'a> {
     fn new(snap: &'a Snapshot, collected_song_ids: &[String]) -> Self {
         let n = snap.songs.len();
-        let root_of: Vec<u32> = (0..n as u32).map(|song| family_root(snap, song)).collect();
-        let mut variants: HashMap<u32, Vec<u32>> = HashMap::new();
-        for (song, &root) in root_of.iter().enumerate() {
-            if root as usize != song {
-                variants.entry(root).or_default().push(song as u32);
-            }
-        }
+        let SongFamilies { root_of, variants } = SongFamilies::new(snap);
         let mut collected = vec![false; n];
         for id in collected_song_ids {
             if let Some(&song) = snap.song_index_by_id.get(id) {
@@ -318,34 +310,6 @@ impl<'a> Families<'a> {
     }
 }
 
-/// ver 違いの一族の根: `parent_song_id` を辿れるだけ辿る (空文字・未知の id は親無しと同じ)。
-/// 辿り着いた先が根でない (親が輪になっている・深すぎる壊れたデータ) ときは自分を根にする
-/// (数えから落ちないように)。
-fn family_root(snap: &Snapshot, song: u32) -> u32 {
-    let root = walk_to_root(snap, song);
-    if walk_to_root(snap, root) == root {
-        root
-    } else {
-        song
-    }
-}
-
-fn walk_to_root(snap: &Snapshot, song: u32) -> u32 {
-    let mut root = song;
-    for _ in 0..MAX_VARIANT_DEPTH {
-        let parent = snap.songs[root as usize]
-            .parent_song_id
-            .as_deref()
-            .filter(|id| !id.is_empty())
-            .and_then(|id| snap.song_index_by_id.get(id).copied());
-        match parent {
-            Some(parent) if parent != root => root = parent,
-            _ => break,
-        }
-    }
-    root
-}
-
 /// 回収ダッシュボードを組む。
 ///
 /// - `collected_song_ids`: 回収済みの曲 (参加したリアルライブのセトリの曲)。未知の id は無視する。
@@ -416,6 +380,27 @@ pub fn uncollected_songs(snap: &Snapshot, collected_song_ids: &[String], scope: 
 pub fn collected_original_song_count(snap: &Snapshot, collected_song_ids: &[String]) -> u32 {
     let f = Families::new(snap, collected_song_ids);
     f.progress(&f.branded_roots).0
+}
+
+/// 回収済みの集合を一族に広げたもの: 聴いた曲に、その原曲を足す (曲一覧の回収の絞り込み・
+/// 習熟度の回収の印など、「この曲は回収済みか」を曲 id で引く所が使う)。songs の順、重複なし。
+pub fn collected_family_song_ids(snap: &Snapshot, collected_song_ids: &[String]) -> Vec<String> {
+    SongFamilies::new(snap)
+        .with_roots(snap, collected_song_ids)
+        .into_iter()
+        .map(|song| snap.songs[song as usize].id.clone())
+        .collect()
+}
+
+/// 回収した原曲 (`brand_id` を持つもの) の id。songs の順。数は [`collected_original_song_count`] と同じ
+/// (プロデュースの「回収した楽曲」の一覧)。
+pub fn collected_original_song_ids(snap: &Snapshot, collected_song_ids: &[String]) -> Vec<String> {
+    let f = Families::new(snap, collected_song_ids);
+    f.branded_roots
+        .iter()
+        .filter(|&&root| f.is_collected(root))
+        .map(|&root| snap.songs[root as usize].id.clone())
+        .collect()
 }
 
 /// 曲ごとの、リアルライブのセトリに載った回数 (songs と同じ添字)。
@@ -525,6 +510,7 @@ fn catch_chances(f: &Families, uncollected: &[u32], today: &str, limit: u32) -> 
 mod tests {
     use super::*;
     use crate::domain::idol_song_queries::song_ids_with_any_artist;
+    use crate::domain::song_family::family_root;
     use crate::test_support::{bundle_conn, bundle_snapshot};
 
     /// SQL で曲 → 原曲 (根) を引く式 (親が空文字・未知の id なら自分)。

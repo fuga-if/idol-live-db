@@ -123,6 +123,7 @@ pub mod singer_compact;
 pub mod song_credit_label;
 pub mod song_dates;
 pub mod song_detail_queries;
+pub mod song_family;
 pub mod song_list_filtering;
 pub mod song_list_queries;
 pub mod song_tag_queries;
