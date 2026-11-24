@@ -152,6 +152,22 @@ pub fn featured_poll_index(my_vote_counts: &[u32], current: Option<u32>, seed: u
     Some(pool[(seed % pool.len() as u64) as usize] as u32)
 }
 
+/// お題の一覧の行に出す「自分の投票」の札の文言。まだ 1 票も入れていなければ `None` (札を出さない)。
+///
+/// 開催中は「投票済 2/3」のように入れた数を添え、あと何票入れられるかを一覧で読めるようにする
+/// (上限を入れる前に 3 票を超えて入れていた人は 3/3 に丸める)。終わったお題はもう入れられないので
+/// 「投票済」だけにする。
+pub fn poll_my_vote_badge(my_vote_count: u32, is_active: bool) -> Option<String> {
+    if my_vote_count == 0 {
+        return None;
+    }
+    if !is_active {
+        return Some("投票済".to_string());
+    }
+    let used = my_vote_count.min(VOTE_LIMIT_PER_TARGET);
+    Some(format!("投票済 {used}/{VOTE_LIMIT_PER_TARGET}"))
+}
+
 /// 選び直した結果から、投票・取り消しを決めたもの。
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
 pub struct VoteSelectionPlan {
@@ -198,6 +214,17 @@ pub fn plan_vote_selection(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn poll_my_vote_badge_marks_only_voted_polls() {
+        assert_eq!(poll_my_vote_badge(0, true), None);
+        assert_eq!(poll_my_vote_badge(0, false), None);
+        assert_eq!(poll_my_vote_badge(1, true).as_deref(), Some("投票済 1/3"));
+        assert_eq!(poll_my_vote_badge(3, true).as_deref(), Some("投票済 3/3"));
+        // 上限を入れる前に超えて入れていた人も 3/3 に丸める。
+        assert_eq!(poll_my_vote_badge(5, true).as_deref(), Some("投票済 3/3"));
+        assert_eq!(poll_my_vote_badge(2, false).as_deref(), Some("投票済"));
+    }
 
     #[test]
     fn featured_poll_prefers_unvoted_and_never_shows_used_up_polls() {

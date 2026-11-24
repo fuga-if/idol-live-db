@@ -46,6 +46,13 @@ pub fn featured_poll_index(my_vote_counts: Vec<u32>, current: Option<u32>, seed:
     domain::featured_poll_index(&my_vote_counts, current, seed)
 }
 
+/// お題の一覧の行に出す「自分の投票」の札の文言 (開催中は「投票済 2/3」、終了は「投票済」)。
+/// まだ 1 票も入れていなければ None (札を出さない)。
+#[uniffi::export]
+pub fn poll_my_vote_badge(my_vote_count: u32, is_active: bool) -> Option<String> {
+    domain::poll_my_vote_badge(my_vote_count, is_active)
+}
+
 /// 選択肢で選んだ結果から、入れる対象・取り消す対象・溢れた数を決める。
 /// `selected_in_order` は選択肢の並び順で渡す。
 #[uniffi::export]

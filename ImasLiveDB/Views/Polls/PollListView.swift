@@ -188,6 +188,11 @@ private struct PollRowView: View {
         ImasRow(title: poll.title, leading: leading, trailing: .chevron) {
             VStack(alignment: .leading, spacing: DS.Space.gapTight) {
                 HStack(spacing: DS.Space.gapTight) {
+                    // 自分が入れたお題か。先頭に置いて、一覧を流し見しても入れたかどうかが拾えるように。
+                    // 票数はサインインして読んだ一覧にだけ入る (匿名は nil = 投票できないので札なし)。
+                    if let mine = CommunityVoteLimit.myVoteBadge(myVoteCount: poll.myVoteCount ?? 0, isActive: poll.isActive) {
+                        ImasBadge(text: mine, kind: .positive, systemImage: "checkmark")
+                    }
                     scopeBadge
                     ImasBadge(text: poll.statusLabel, kind: poll.isActive ? .attention : .neutral)
                     if let totalVotes = poll.totalVotes, totalVotes > 0 {

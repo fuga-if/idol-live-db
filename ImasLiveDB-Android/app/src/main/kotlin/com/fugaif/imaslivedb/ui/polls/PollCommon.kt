@@ -3,6 +3,7 @@ package com.fugaif.imaslivedb.ui.polls
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Sell
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -10,6 +11,7 @@ import com.fugaif.imaslivedb.data.community.CommunityApi
 import com.fugaif.imaslivedb.ui.designsystem.ImasBadge
 import com.fugaif.imaslivedb.ui.designsystem.ImasBadgeKind
 import com.fugaif.imaslivedb.ui.theme.DS
+import uniffi.imas_core.pollMyVoteBadge
 
 /** お題の候補スコープ (ブランド限定 / 指定候補) を示す小さな札。 `all` の時は何も出さない。 */
 @Composable
@@ -33,3 +35,14 @@ private fun ScopeBadge(scope: CommunityApi.PollCandidateScope, brandCount: Int, 
     ImasBadge(text = label, icon = icon, kind = ImasBadgeKind.NEUTRAL, modifier = modifier.padding(start = DS.Space.gapTight))
 }
 
+
+/**
+ * 自分が入れたお題の札 (開催中は「投票済 2/3」、終了は「投票済」)。まだ入れていなければ何も出さない。
+ * 票数はサインインして読んだ一覧にだけ入る (匿名は 0 = 投票できないので札なし)。文言はコア (`pollMyVoteBadge`)。
+ * iOS PollRowView の先頭の札と対。
+ */
+@Composable
+fun MyVoteBadge(poll: CommunityApi.PollSummary, modifier: Modifier = Modifier) {
+    val text = pollMyVoteBadge(poll.myVoteCount.coerceAtLeast(0).toUInt(), poll.isActive) ?: return
+    ImasBadge(text = text, icon = Icons.Filled.Check, kind = ImasBadgeKind.POSITIVE, modifier = modifier.padding(end = DS.Space.gap))
+}

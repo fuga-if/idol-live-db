@@ -382,6 +382,12 @@ enum CommunityVoteLimit {
     static func remaining(myVoteCount: Int) -> Int {
         Int(votesRemaining(myVoteCount: UInt32(clamping: max(0, myVoteCount))))
     }
+
+    /// お題の一覧の行に出す「自分の投票」の札 (開催中は「投票済 2/3」、終了は「投票済」)。
+    /// まだ入れていなければ nil。文言はコア (`poll_my_vote_badge`)。
+    static func myVoteBadge(myVoteCount: Int, isActive: Bool) -> String? {
+        pollMyVoteBadge(myVoteCount: UInt32(clamping: max(0, myVoteCount)), isActive: isActive)
+    }
 }
 
 enum PollTargetType: String, Codable, Sendable {

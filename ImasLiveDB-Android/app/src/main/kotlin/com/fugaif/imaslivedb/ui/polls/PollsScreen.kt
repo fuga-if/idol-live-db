@@ -212,6 +212,8 @@ private fun PollRow(
         }
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            // 自分が入れたお題か。先頭に置いて、一覧を流し見しても入れたかどうかが拾えるように。
+            MyVoteBadge(poll)
             Text(
                 poll.statusLabel, style = ImasTextRole.META.style,
                 color = if (poll.isActive) DS.pick else DS.ink3
