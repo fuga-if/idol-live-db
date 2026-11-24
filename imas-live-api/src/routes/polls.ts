@@ -410,7 +410,7 @@ export async function handlePolls(ctx: RouteContext): Promise<Response | null> {
     }
 
     // ----------------------------------------------------------------
-    // POST /polls/:id/votes — 投票 (auth必須・rate limit "poll_vote")
+    // POST /polls/:id/votes — 投票 (auth必須。1 お題 3 票の上限だけで、1 日の枠は持たない)
     // ----------------------------------------------------------------
     const pollVotePostMatch = path.match(/^\/polls\/([^/]+)\/votes$/);
     if (pollVotePostMatch && request.method === "POST") {
@@ -419,8 +419,9 @@ export async function handlePolls(ctx: RouteContext): Promise<Response | null> {
       const user = await getAuthUser(request, env);
       if (!user) return error("Unauthorized", 401);
 
-      // 投票の枠 (poll_vote) は、実際に票を入れると決まってから消費する (出演者予想と同じ順)。
-      // 本文やお題の状態で断る投票・再投票まで数えると、正しい投票が枠切れになる。
+      // 1 日の枠 (旧 poll_vote、60 票) は 2026-11-25 に外した。開催中のお題が 79 件に増え、
+      // 全部に入れたい人が枠切れで投票できなくなっていた。1 お題 3 票の上限 (VOTE_LIMIT) が
+      // 1 人が動かせる票数をお題ごとに抑えているので、日次の枠は要らない。
       const body = await readJsonBody(ctx);
       if (body instanceof Response) return body;
       const entity_id = requireOpaqueKey(ctx, body.entity_id, "entity_id");
@@ -494,9 +495,6 @@ export async function handlePolls(ctx: RouteContext): Promise<Response | null> {
           .first<{ vote_count: number }>();
         return json({ entity_id, vote_count: entry?.vote_count ?? 0, my_vote_count: myVoteCount }, 200);
       }
-
-      const rl = await checkRateLimit(env.DB, user.uid, "poll_vote");
-      if (!rl.allowed) return rateLimitResponse(rl.used, rl.limit, rl.reset_at);
 
       await upsertUser(env, user.uid);
 

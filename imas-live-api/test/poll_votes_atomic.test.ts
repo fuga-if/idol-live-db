@@ -1,6 +1,6 @@
-// お題の投票 (POST /polls/:id/votes, DELETE /polls/:id/votes/:entityId) の原子性と、枠の消費の順序。
+// お題の投票 (POST /polls/:id/votes, DELETE /polls/:id/votes/:entityId) の原子性と、1 日の枠が無いこと。
 //   - 票数は read-modify-write せず相対で動かすので、同時に投票・取り消ししても取りこぼさない。
-//   - 本文やお題の状態で断る投票・同じ候補への再投票は、投票の枠 (poll_vote) を消費しない。
+//   - 1 日の枠は持たない (1 お題 3 票の上限だけ)。rate_limits に行を書かない。
 // ⚠️ 1 人 3 票の上限は、書き込み前の COUNT で判定する (出演者予想と同じ)。同じ人が同時に
 //    投げた投票の上限のすり抜けは、D1 の読み取りを増やさずには防げないので残している。
 
@@ -26,33 +26,23 @@ async function unvote(pollId: string, entityId: string, uid = UID, env = makeEnv
   return callJson("DELETE", `/polls/${pollId}/votes/${entityId}`, { headers: await bearer(uid), env });
 }
 
-const usedVoteQuota = async (uid = UID) =>
-  (await row<{ count: number }>("SELECT count FROM rate_limits WHERE user_id = ? AND action = 'poll_vote'", uid))
-    ?.count ?? 0;
-
-describe("投票の枠 (poll_vote) は、実際に票を入れるときだけ消費する", () => {
-  it("本文が不正・無いお題・終了・候補外は消費しない", async () => {
+describe("お題の投票に 1 日の枠は無い (1 お題 3 票の上限だけ)", () => {
+  it("お題をまたいで何票入れても断られず、rate_limits に行を書かない", async () => {
     await insertUser(UID);
-    await insertPoll("ended", { endsIn: "-1 minute" });
-    await insertPoll("m", { scope: "manual", entities: ["s1", "s2"] });
-    expect((await vote("m", undefined)).status).toBe(400);
-    expect((await vote("none", "s1")).status).toBe(404);
-    expect((await vote("ended", "s1")).status).toBe(409);
-    expect((await vote("m", "s9")).status).toBe(422);
-    expect(await usedVoteQuota()).toBe(0);
+    // 旧枠 (60) を超える 25 お題 × 3 票 = 75 票。
+    for (let i = 0; i < 25; i++) {
+      await insertPoll(`p${i}`);
+      for (const e of ["s1", "s2", "s3"]) expect((await vote(`p${i}`, e)).status).toBe(201);
+    }
+    expect(await rows("SELECT * FROM rate_limits WHERE user_id = ?", UID)).toHaveLength(0);
   });
 
-  it("同じ候補への再投票 (200) と、3 票を使い切った後の投票 (409) は消費しない", async () => {
+  it("1 お題 3 票の上限は今までどおり 409", async () => {
     await insertUser(UID);
     await insertPoll("p");
-    expect((await vote("p", "s1")).status).toBe(201);
-    expect((await vote("p", "s1")).status).toBe(200);
-    expect(await usedVoteQuota()).toBe(1);
-    for (const e of ["s2", "s3"]) expect((await vote("p", e)).status).toBe(201);
-    expect((await vote("p", "s4")).status).toBe(409);
-    // 使い切った後は、同じ候補への再投票も今までどおり上限の 409 を返す。
+    for (const e of ["s1", "s2", "s3"]) expect((await vote("p", e)).status).toBe(201);
     expect((await vote("p", "s1")).status).toBe(409);
-    expect(await usedVoteQuota()).toBe(3);
+    expect((await vote("p", "s4")).status).toBe(409);
   });
 });
 
