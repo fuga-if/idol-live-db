@@ -102,7 +102,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.model.ImasUnit
+import androidx.compose.foundation.combinedClickable
 import com.fugaif.imaslivedb.ui.designsystem.ImasAccentCardStyle
+import com.fugaif.imaslivedb.ui.designsystem.ImasLyricShareBar
+import com.fugaif.imaslivedb.ui.designsystem.imasLyricSharePicked
 import com.fugaif.imaslivedb.ui.designsystem.ImasActionRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasActionRowKind
 import com.fugaif.imaslivedb.ui.designsystem.ImasArtwork
@@ -353,6 +356,7 @@ enum class DesignCatalogPage(val id: String, val title: String) {
     SETUP("setup", "ゲームの設定・読みもの"),
     COMMUNITY("community", "コミュニティ (タグ・記録)"),
     STAGE("stage", "あそぶ (ステージ)"),
+    LYRIC_SHARE("lyricShare", "歌詞の共有 (選んだ行・帯)"),
 
     /** Android だけ: iOS のカタログに載っていない部品 (行を引く・横に払う・値を選ぶ・絞り込みの帯ほか)。 */
     EXTRAS("extras", "指の操作・そのほか (Android の見本)");
@@ -455,6 +459,7 @@ fun DesignCatalogScreen(
                     DesignCatalogPage.SETUP -> SetupPage()
                     DesignCatalogPage.COMMUNITY -> CommunityPage()
                     DesignCatalogPage.STAGE -> StagePage()
+                    DesignCatalogPage.LYRIC_SHARE -> LyricSharePage()
                     DesignCatalogPage.EXTRAS -> ExtrasPage()
                 }
             }
@@ -2121,6 +2126,45 @@ private fun SetupPage() {
 }
 
 // MARK: - コミュニティ (タグ・記録)
+
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+@Composable
+private fun LyricSharePage() {
+    var picked by remember { mutableStateOf<IntRange?>(1..2) }
+    val lines = listOf("見本の行です 1", "見本の行です 2", "見本の行です 3", "見本の行です 4")
+    CatalogPage {
+        ImasSection("選んだ行", style = Small,
+            footer = "imasLyricSharePicked。字の下に曲の色の平らな面と下端の線。長押しで選び、タップで広げる。") {
+            Column {
+                lines.forEachIndexed { index, text ->
+                    ImasText(
+                        text, ImasTextRole.BODY,
+                        modifier = Modifier.fillMaxWidth()
+                            .imasLyricSharePicked(picked?.contains(index) == true, Sample.haruka, null)
+                            .combinedClickable(
+                                onClick = { picked = picked?.let { minOf(it.first, index)..maxOf(it.last, index) } },
+                                onLongClick = { picked = index..index },
+                            )
+                    )
+                }
+            }
+        }
+        ImasSection("帯", style = Small, footer = "ImasLyricShareBar。浮いている枠 (Android は平らな面)。渡すのは URL だけ。") {
+            Column(verticalArrangement = Arrangement.spacedBy(DS.sp3)) {
+                ImasLyricShareBar(
+                    linesLabel = "2〜3行目",
+                    url = "https://idollivedb.fugaapp.site/songs/song_sample/#lyric-2-3",
+                    seed = Sample.haruka, brand = null, onClose = { picked = null },
+                )
+                ImasLyricShareBar(
+                    linesLabel = "5行目", note = "ほかの行をタップで範囲を広げる",
+                    url = "https://idollivedb.fugaapp.site/songs/song_sample/#lyric-5",
+                    seed = Sample.chihaya, brand = null, onClose = {},
+                )
+            }
+        }
+    }
+}
 
 @Composable
 private fun CommunityPage() {

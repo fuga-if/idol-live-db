@@ -4,6 +4,9 @@ import uniffi.imas_core.authAdminCapabilities
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import com.fugaif.imaslivedb.ui.designsystem.imasLyricSharePicked
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -124,7 +127,8 @@ import uniffi.imas_core.lyricRubyChoices
  * 歌詞タブを初めて開いたときに [LyricsApi.lyrics] を呼ぶ形)。
  *
  * ⚠️ JASRAC / NexTone 許諾の条件により、歌詞は保存も一括取得もさせない:
- * - 本文にテキスト選択 (`SelectionContainer`) や共有の口を**付けない**。
+ * - 本文にテキスト選択 (`SelectionContainer`) や共有の口を**付けない**。共有できるのは
+ *   **公開サイトの曲ページへのリンク (URL) だけ** (行を長押しで選ぶ。[LyricShareSelection] は添字しか持たない)。
  * - コールの保存で歌詞本文を送らない ([LyricsApi.saveTimings] / `editStructure` は
  *   行 ID・位置・時刻しか送らない)。
  */
@@ -140,6 +144,11 @@ fun SongLyricsTab(
     originalArtists: List<Idol> = emptyList(),
     /** 歌詞が無い曲で「歌詞を投稿」を出すときの開き方。null なら出さない (投稿の対象外・受付停止)。 */
     onSubmitLyrics: (() -> Unit)? = null,
+    /** 共有のために選んだ行 (長押しで始める)。帯は親 (`SongSheetContent`) が画面の下に出す。 */
+    shareSelection: LyricShareSelection? = null,
+    onShareSelectionChange: (LyricShareSelection?) -> Unit = {},
+    /** 選んだ行を塗る色のブランド (ソロでない曲はブランド色)。 */
+    brand: String? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -147,6 +156,7 @@ fun SongLyricsTab(
     val scope = rememberCoroutineScope()
     val authState by module.authService.state.collectAsState()
     val canEdit = authState.isSignedIn
+    val haptics = LocalHapticFeedback.current
 
     var isEditingStructure by remember { mutableStateOf(false) }
     // 非 null = この行の文字を直すシートを開いている。
@@ -171,6 +181,12 @@ fun SongLyricsTab(
     }
 
     LaunchedEffect(song.id) { likes = module.userMarkRepository.lyricLikes(song.id) }
+
+    // 歌詞が差し替わった (再読み込み・行の区切りの編集) ら添字がずれるので選択を外す。
+    // 編集に入るときも外す (編集の画面には帯の出番が無い)。
+    LaunchedEffect(lyrics?.updatedAt, lyrics?.lines?.size, isEditingStructure) {
+        onShareSelectionChange(null)
+    }
 
     // フル再生中の曲なら、再生中バーから今の行・歌詞プレイヤーを出せるよう預ける (メモリだけ)。
     val loadedSongId by playback.loadedSongId.collectAsState()
@@ -316,6 +332,13 @@ fun SongLyricsTab(
                                 lyrics = lyrics, seed = seed, likes = likes, activeLineId = activeLineId,
                                 heatTick = heatTick, song = song, cast = partCast,
                                 onToggleLike = { line -> toggleLike(line) },
+                                shareSelection = shareSelection, brand = brand,
+                                // 長押しの手応えは combinedClickable が鳴らす (二重に鳴らさない)。
+                                onBeginShare = { index -> onShareSelectionChange(LyricShareSelection(song.id, index)) },
+                                onExtendShare = { index ->
+                                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onShareSelectionChange(shareSelection?.copy(focus = index))
+                                },
                                 // 再生中の曲なら、タップした行の歌い出しへ飛ぶ (時刻の入った行だけ)。
                                 onSeekLine = { line ->
                                     val start = line.startMs
@@ -426,6 +449,10 @@ private fun ViewingBody(
     song: Song,
     cast: LyricPartCast,
     onToggleLike: (LyricLine) -> Unit,
+    shareSelection: LyricShareSelection?,
+    brand: String?,
+    onBeginShare: (Int) -> Unit,
+    onExtendShare: (Int) -> Unit,
     onSeekLine: (LyricLine) -> Unit
 ) {
     val emphases = lyrics.usedEmphases
@@ -436,14 +463,20 @@ private fun ViewingBody(
     }
     LikeHeatBar(lyrics = lyrics, seed = seed, song = song, heatTick = heatTick)
     if (likes.isEmpty()) {
-        ImasNote("好きな行をダブルタップで「ここ好き」", modifier = Modifier.padding(bottom = DS.sp3))
+        ImasNote("好きな行をダブルタップで「ここ好き」。長押しでその部分へのリンクを共有", modifier = Modifier.padding(bottom = DS.sp3))
     }
     val theme = imasTheme(seed = seed)
-    lyrics.lines.forEach { line ->
+    lyrics.lines.forEachIndexed { index, line ->
         val state = if (line.id == activeLineId) ImasLyricLineState.CURRENT else ImasLyricLineState.NORMAL
-        ImasLyricLineRow(state = state, seed = seed) {
+        val picked = shareSelection?.contains(index) == true && line.kind != LyricLineKind.BLANK
+        ImasLyricLineRow(state = state, seed = seed, modifier = Modifier.imasLyricSharePicked(picked, seed, brand)) {
             ViewingRow(line = line, isLiked = likes.contains(line.id), accent = theme.accent, cast = cast,
-                onToggleLike = onToggleLike, onSeekLine = onSeekLine)
+                onToggleLike = onToggleLike,
+                // 選択中のタップは範囲を広げる (その行まで)。選択していなければ、その行へシーク。
+                onTap = { if (shareSelection != null) onExtendShare(index) else onSeekLine(line) },
+                // 長押しで、その行へのリンクを共有する選択を始める (選択中に長押しすると、その行から選び直す)。
+                onLongPress = { onBeginShare(index) },
+                isSharing = shareSelection != null)
         }
     }
 }
@@ -456,7 +489,9 @@ private fun ViewingRow(
     accent: Color,
     cast: LyricPartCast,
     onToggleLike: (LyricLine) -> Unit,
-    onSeekLine: (LyricLine) -> Unit
+    onTap: () -> Unit,
+    onLongPress: () -> Unit,
+    isSharing: Boolean
 ) {
     when (line.kind) {
         LyricLineKind.LYRIC -> {
@@ -465,7 +500,13 @@ private fun ViewingRow(
                     .fillMaxWidth()
                     .height(IntrinsicSize.Min)
                     .padding(vertical = DS.sp1)
-                    .combinedClickable(onClick = { onSeekLine(line) }, onDoubleClick = { onToggleLike(line) }),
+                    .combinedClickable(
+                        onClick = onTap,
+                        onDoubleClick = { onToggleLike(line) },
+                        onLongClick = onLongPress,
+                        onLongClickLabel = if (isSharing) "ここから選び直す" else "この行へのリンクを共有",
+                        onClickLabel = if (isSharing) "ここまで範囲を広げる" else null,
+                    ),
                 horizontalArrangement = Arrangement.spacedBy(DS.sp2),
                 verticalAlignment = Alignment.Top
             ) {

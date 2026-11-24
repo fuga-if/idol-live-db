@@ -69,7 +69,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.ui.Alignment
+import com.fugaif.imaslivedb.ui.designsystem.ImasLyricShareBar
+import com.fugaif.imaslivedb.data.lyrics.LyricsResult
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
@@ -474,6 +481,9 @@ private fun SongSheetContent(
     // 配色シード: ソロ (歌唱1人) はその個人カラー、それ以外はブランド色 (brand は各部品に別途渡す)。
     val seed = if (state.originalArtists.size == 1) state.originalArtists.first().color else null
     var segment by rememberSaveable(song.id) { mutableIntStateOf(0) }
+    // 歌詞タブで共有のために選んだ行 (長押しで始まる)。帯は画面の下に浮かべる。タブを替えたら外す。
+    var lyricShare by remember(song.id) { mutableStateOf<LyricShareSelection?>(null) }
+    LaunchedEffect(segment) { lyricShare = null }
 
     // 歌詞タブを初めて開いたとき (または曲を切り替えて戻ってきたとき) に取りに行く。
     // iOS は曲詳細の束ね取得に同梱されるが、Android にその経路が無いので遅延取得。
@@ -505,8 +515,9 @@ private fun SongSheetContent(
         kotlinx.coroutines.delay(150)
         if (singersTop >= 0) scroll.animateScrollTo(singersTop)
     }
+    Box(modifier) {
     Column(
-        modifier = modifier.verticalScroll(scroll)
+        modifier = Modifier.fillMaxSize().verticalScroll(scroll)
             .onGloballyPositioned { columnTop = it.positionInRoot().y.toInt() + scroll.value }
     ) {
         Hero(song, state, seed, onToggleFavorite, onToggleCardOwned, onAddToPlaylist,
@@ -557,7 +568,10 @@ private fun SongSheetContent(
                         song = song, seed = seed, artistLine = artistLine,
                         lyricsResult = state.lyrics, isLyricsLoading = state.isLyricsLoading,
                         onReload = onLoadLyrics, originalArtists = state.originalArtists,
-                        onSubmitLyrics = if (canSubmitLyrics) onSubmitLyrics else null
+                        onSubmitLyrics = if (canSubmitLyrics) onSubmitLyrics else null,
+                        shareSelection = lyricShare,
+                        onShareSelectionChange = { lyricShare = it },
+                        brand = song.brandId
                     )
                 } else {
                     // 歌詞の表示を閉じている間は、投稿の入口だけを出す (歌詞は取りに行かない)。
@@ -570,6 +584,27 @@ private fun SongSheetContent(
             }
         }
         Box(Modifier.size(DS.sp9))
+        // 帯の下に歌詞の終わりが隠れないように。
+        if (lyricShare != null) Box(Modifier.size(DS.sp9 + DS.sp9))
+    }
+    // 歌詞の一部へのリンクを渡す帯 (選んでいる間だけ)。渡すのは URL だけ。
+    val shareLyrics = (state.lyrics as? LyricsResult.Loaded)?.lyrics
+    AnimatedVisibility(
+        visible = segment == 3 && lyricShare != null && shareLyrics != null,
+        enter = slideInVertically { it } + fadeIn(),
+        exit = slideOutVertically { it } + fadeOut(),
+        modifier = Modifier.align(Alignment.BottomCenter),
+    ) {
+        val selection = lyricShare
+        if (selection != null && shareLyrics != null) {
+            ImasLyricShareBar(
+                linesLabel = selection.linesLabel(shareLyrics), note = selection.note,
+                url = selection.url, seed = seed, brand = song.brandId,
+                onClose = { lyricShare = null },
+                modifier = Modifier.padding(horizontal = DS.sp3).padding(bottom = DS.sp2),
+            )
+        }
+    }
     }
 }
 
