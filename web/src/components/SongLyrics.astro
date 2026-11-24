@@ -656,8 +656,19 @@ const { lyrics } = Astro.props;
       return ordered(from, to);
     };
     const urlOf = (p: Pick): string => `${location.origin}${location.pathname}#${fragmentOf(p)}`;
-    const linesLabel = (p: Pick): string =>
-      p.from.line === p.to.line ? `${p.from.line + 1}行目` : `${p.from.line + 1}〜${p.to.line + 1}行目`;
+    /** 画面に高さを持つ行か (区切りだけの空の行は見えない。行の番号は見える行で数える)。 */
+    const shown = (p: HTMLElement): boolean => p.getBoundingClientRect().height > 0;
+    /** 人に見せる行の番号 (見える行だけで数える)。URL の番号は元の行の並び (データと 1:1) のまま。 */
+    const shownNo = (line: number): number => {
+      let n = 0;
+      for (let i = 0; i <= line && i < lineEls.length; i++) if (shown(lineEls[i]!)) n++;
+      return Math.max(n, 1);
+    };
+    const linesLabel = (p: Pick): string => {
+      const a = shownNo(p.from.line);
+      const b = shownNo(p.to.line);
+      return a === b ? `${a}行目` : `${a}〜${b}行目`;
+    };
 
     /** スカラー位置 → その字のひと続きの文字ノードの UTF-16 位置。 */
     const utf16 = (text: string, k: number): number => Array.from(text).slice(0, k).join("").length;
@@ -729,6 +740,7 @@ const { lyrics } = Astro.props;
       let best = Infinity;
       for (const [i, p] of lineEls.entries()) {
         const r = p.getBoundingClientRect();
+        if (r.height === 0) continue;
         if (y >= r.top && y <= r.bottom) {
           line = i;
           break;
