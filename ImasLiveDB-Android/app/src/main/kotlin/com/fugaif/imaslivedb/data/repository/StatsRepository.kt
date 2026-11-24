@@ -103,6 +103,10 @@ class StatsRepository(
     suspend fun fetchCollectedOriginalSongCount(collectedIds: Set<String>): Int =
         snapshots.query { store -> store.collectedOriginalSongCount(collectedIds.toList()).toInt() }
 
+    /** 回収した原曲の id (プロデュースの「回収した楽曲」。数は [fetchCollectedOriginalSongCount] と同じ)。 */
+    suspend fun fetchCollectedOriginalSongIds(collectedIds: Set<String>): List<String> =
+        snapshots.query { store -> store.collectedOriginalSongIds(collectedIds.toList()) }
+
     // MARK: - コミュニティの熱量 (人気・急上昇・お気に入り・試聴・フル再生のランキング)
 
     /**

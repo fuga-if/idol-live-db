@@ -128,8 +128,9 @@ class CollectedSongsViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             // 回収済みの判定 (どの参加形態を数えるか・リアルライブか) はコア。
             // ここで参加形態を見て絞り直すと、設定「配信も回収に含める」と食い違う。
-            val ids = module.songRepository.fetchCollectedSongIds()
-            val songs = module.songRepository.fetchSongsByIds(ids.toList())
+            // 一覧は原曲単位 (ver 違いは原曲にまとめる。プロデュースの「回収」の数と同じ)。
+            val ids = module.statsRepository.fetchCollectedOriginalSongIds(module.songRepository.fetchCollectedSongIds())
+            val songs = module.songRepository.fetchSongsByIds(ids)
                 .sortedBy { it.title }
             _uiState.value = CollectedSongsUiState(songs = songs, isLoading = false)
         }

@@ -135,7 +135,8 @@ class ProduceViewModel(app: Application) : AndroidViewModel(app) {
                 attendedEvents = attended,
                 nextLive = resolveNextLive(attended, favoriteEvents),
                 favoriteCount = favoriteCount,
-                collectedCount = module.songRepository.fetchCollectedSongIds().size,
+                // 回収は原曲単位 (ver 違いは原曲にまとめる。回収ダッシュボードと同じ数)。
+                collectedCount = module.statsRepository.fetchCollectedOriginalSongCount(module.songRepository.fetchCollectedSongIds()),
                 masteryCount = marks.masteryLevels().size,
                 voteCount = module.localPollVoteLog.allEntries().size,
                 recents = resolveRecents(),

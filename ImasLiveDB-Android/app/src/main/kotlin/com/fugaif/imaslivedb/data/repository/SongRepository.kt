@@ -133,6 +133,10 @@ class SongRepository(
      * 回収済みの曲 (一覧の回収バッジと同じ集合)。参加の条件 (設定「配信も回収に含める」) と
      * リアルライブに絞るのは [fetchSongCollectedCounts] と同じくコア。
      */
+    /**
+     * 回収済みの曲 id。回収数の表 (コア) の鍵なので、聴いた曲に加えて、ver 違いを聴いた原曲も入る
+     * (回収は原曲単位。iOS `UserMarkService.autoCollectedSongIds` と同じ集合)。
+     */
     suspend fun fetchCollectedSongIds(): Set<String> = fetchSongCollectedCounts().keys
 
     /** song_id → 現地回収回数 (行アイコン/回収済みフィルタ用の bulk 取得)。 */
