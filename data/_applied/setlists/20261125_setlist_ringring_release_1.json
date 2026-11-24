@@ -1,0 +1,10 @@
+{
+ "title": "Ring Ring Ringの魔法 / 街角メランコリー 発売記念イベント 第一回",
+ "author": "daily-data-crawl",
+ "source": "GitHub issue #432 (利用者投稿。公式の披露曲記載は見つからず投稿内容で登録) / 出演者: https://shinycolors.lantis.jp/event/260429_1/",
+ "show_id": "sh_the_idolm@ster_shiny_colors_song_for_prism_ring_ring_ringの魔法_街角メランコリー_発売記念イベント_1",
+ "all_performers": ["sc_櫻木真乃", "sc_郁田はるき"],
+ "songs": [
+  {"position": 1, "song_id": "sc_ring_ring_ringの魔法", "performers": "all"}
+ ]
+}
