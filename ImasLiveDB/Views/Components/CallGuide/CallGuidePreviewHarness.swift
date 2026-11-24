@@ -34,6 +34,9 @@ struct CallGuidePreviewHarness: View {
         case parts
         /// プレイリスト (見本のプレイリストを 1 つ作って開く。端末 DB に書く)。
         case playlist
+        /// 歌詞の一部の共有 (行を選んだところと画面の下の帯)。`LYRIC_SHARE=3-5` で最初から選んでおく
+        /// (`lines` の添字の範囲。未指定なら何も選ばずに出し、長押しから試せる)。
+        case share
         /// カラオケモード (歌唱者は DB の実在曲から借りて行に順に振る。歌詞はダミー)。
         /// `KARAOKE_STATE=sing` で合わせた後、`parts` でパートのシートを開いたところ。
         case karaoke
@@ -52,6 +55,7 @@ struct CallGuidePreviewHarness: View {
     @State private var scrollTarget: String?
     @State private var playlistPath = NavigationPath()
     @State private var karaoke: (lyrics: Lyrics, cast: LyricPartCast)?
+    @State private var lyricShare: LyricShareSelection?
 
     init(mode: Mode) {
         self.mode = mode
@@ -90,6 +94,33 @@ struct CallGuidePreviewHarness: View {
                     }
                 }
                 .background(DS.bg)
+            case .share:
+                ScrollView {
+                    SongLyricsTab(song: Self.sampleSong, seed: Self.shareSeed, vm: vm, shareSelection: $lyricShare, reload: {})
+                        .padding(.bottom, DS.sp8)
+                }
+                // 曲詳細 (`SongSheetContent.lyricShareBar`) と同じ置き方。
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    if let selection = lyricShare, let lyrics = vm.lyrics {
+                        ImasLyricShareBar(linesLabel: selection.linesLabel(lyrics), note: selection.note,
+                                          url: selection.url, seed: Self.shareSeed) { lyricShare = nil }
+                            .padding(.horizontal, DS.sp3)
+                            .padding(.bottom, DS.sp2)
+                    }
+                }
+                .background(DS.bg)
+                .onChange(of: vm.lyrics) { _, lyrics in
+                    guard lyrics != nil, let preset = ProcessInfo.processInfo.environment["LYRIC_SHARE"] else { return }
+                    let ends = preset.split(separator: "-").compactMap { Int($0) }
+                    guard let from = ends.first else { return }
+                    var selection = LyricShareSelection(songId: Self.sampleSong.id, line: from)
+                    selection.focus = ends.last ?? from
+                    // 歌詞タブも歌詞の差し替えで選択を外すので、それより後に入れる。
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .milliseconds(300))
+                        lyricShare = selection
+                    }
+                }
             case .karaoke:
                 if let karaoke {
                     KaraokeModeView(song: Self.sampleSong, seed: nil, artistLine: nil, artworkURL: nil,
@@ -158,6 +189,9 @@ struct CallGuidePreviewHarness: View {
         karaoke = (Lyrics(songId: base.songId, source: base.source, updatedAt: base.updatedAt, lines: lines, status: base.status),
                    LyricPartCast(artists: artists))
     }
+
+    /// 共有の見本の配色 (ソロ曲の担当色の見え方)。
+    static let shareSeed = "#E22B30"
 
     /// パート分けの確認で歌唱者だけ借りる実在曲 (原唱者 3 人)。
     static var partsArtistSource: Song {

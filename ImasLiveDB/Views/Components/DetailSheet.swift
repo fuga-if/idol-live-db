@@ -302,6 +302,8 @@ struct SongSheetContent: View {
     @State private var tabsScrolledPast = false
     /// 歌唱者行を押した回数。増えるたびに「歌唱アイドル」まで流す。
     @State private var singersScrollRequest = 0
+    /// 歌詞タブで共有のために選んだ行 (長押しで始まる)。帯は画面の下に浮かべる。
+    @State private var lyricShare: LyricShareSelection?
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -332,6 +334,8 @@ struct SongSheetContent: View {
                 }
             }
             .coordinateSpace(name: Self.scrollSpace)
+            .safeAreaInset(edge: .bottom, spacing: 0) { lyricShareBar }
+            .animation(.easeOut(duration: 0.2), value: lyricShare == nil)
             .onChange(of: vm.lyrics) { _, lyrics in scrollToFocus(lyrics, proxy: proxy) }
             .onChange(of: lyricsScrollTarget) { _, target in
                 guard let target, tab.resolved == .lyrics, Date() >= lyricsFollowPausedUntil else { return }
@@ -340,6 +344,7 @@ struct SongSheetContent: View {
             .modifier(PausesFollowWhileScrolling(until: $lyricsFollowPausedUntil))
             // タブを替えたら、前のタブで下まで流していても次のタブは頭 (タブの見出しの下) から見せる。
             .onChange(of: tab) { _, _ in
+                lyricShare = nil
                 if tabsScrolledPast { proxy.scrollTo(Self.tabsAnchor, anchor: .top) }
             }
             // 歌唱者行 (全体曲の名義) を押したら「歌唱アイドル」まで流す。タブの切り替えで
@@ -692,12 +697,25 @@ struct SongSheetContent: View {
         if LyricsFeature.isAvailable {
             SongLyricsTab(song: song, seed: songSeed, vm: vm, focusLineIds: Set(lyricsFocus),
                           playback: lyricsPlayback,
-                          onSubmitLyrics: canSubmitLyrics ? { openLyricSubmission() } : nil) {
+                          onSubmitLyrics: canSubmitLyrics ? { openLyricSubmission() } : nil,
+                          shareSelection: $lyricShare) {
                 Task { await vm.loadServerData(song: song) }
             }
         } else {
             // 歌詞の表示を閉じている間は、投稿の入口だけを出す (歌詞は取りに行かない)。
             lyricSubmissionInvite
+        }
+    }
+
+    /// 歌詞の一部へのリンクを渡す帯 (選んでいる間だけ)。渡すのは URL だけ。
+    @ViewBuilder
+    private var lyricShareBar: some View {
+        if tab.resolved == .lyrics, let selection = lyricShare, selection.songId == song.id, let lyrics = vm.lyrics {
+            ImasLyricShareBar(linesLabel: selection.linesLabel(lyrics), note: selection.note,
+                              url: selection.url, seed: songSeed) { lyricShare = nil }
+                .padding(.horizontal, DS.sp3)
+                .padding(.bottom, DS.sp2)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
         }
     }
 

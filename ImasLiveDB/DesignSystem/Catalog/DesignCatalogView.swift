@@ -10,7 +10,7 @@ import SwiftUI
 
 enum DesignCatalogPage: String, CaseIterable, Identifiable {
     case venue, venueRows, application, buttons, chips, rows, rows2, sections, heroSong, heroIdol, heroIdolColor, idolProfile, hub, hubColor,
-         feedback, setlist, list, form, setup, community, stage, karaoke
+         feedback, setlist, list, form, setup, community, stage, karaoke, lyricShare
 
     var id: String { rawValue }
 
@@ -38,6 +38,7 @@ enum DesignCatalogPage: String, CaseIterable, Identifiable {
         case .community: return "コミュニティ (タグ・記録)"
         case .stage: return "あそぶ (ステージ)"
         case .karaoke: return "カラオケモード"
+        case .lyricShare: return "歌詞の共有 (選んだ行・帯)"
         }
     }
 }
@@ -80,6 +81,7 @@ struct DesignCatalogPageView: View {
             case .community: CommunityPage()
             case .stage: StagePage()
             case .karaoke: KaraokePage()
+            case .lyricShare: LyricSharePage()
             }
         }
         .navigationTitle(page.title)
@@ -1096,6 +1098,39 @@ private struct FeedbackPage: View {
 // MARK: - カラオケモード
 
 /// カラオケモードの部品。画面はいつも暗い地なので、見本も暗い地で並べる。
+private struct LyricSharePage: View {
+    @State private var picked: ClosedRange<Int>? = 1...2
+    private let lines = ["見本の行です 1", "見本の行です 2", "見本の行です 3", "見本の行です 4"]
+
+    var body: some View {
+        ImasPage {
+            ImasSection("選んだ行", style: .small,
+                        footer: "imasLyricSharePicked。字の下に曲の色の平らな面と下端の線。長押しで選び、タップで広げる。") {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(lines.enumerated()), id: \.offset) { index, text in
+                        Text(text).imasText(.body)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .imasLyricSharePicked(picked?.contains(index) == true, seed: Sample.haruka)
+                            .contentShape(Rectangle())
+                            .onTapGesture { picked = picked.map { min($0.lowerBound, index)...max($0.upperBound, index) } ?? index...index }
+                    }
+                }
+            }
+            ImasSection("帯", style: .small,
+                        footer: "ImasLyricShareBar。浮いている枠 (iOS 26 は Liquid Glass)。渡すのは URL だけ。") {
+                VStack(spacing: DS.sp3) {
+                    ImasLyricShareBar(linesLabel: "2〜3行目",
+                                      url: URL(string: "https://idollivedb.fugaapp.site/songs/song_sample/#lyric-2-3")!,
+                                      seed: Sample.haruka) { picked = nil }
+                    ImasLyricShareBar(linesLabel: "5行目", note: "ほかの行をタップで範囲を広げる",
+                                      url: URL(string: "https://idollivedb.fugaapp.site/songs/song_sample/#lyric-5")!,
+                                      seed: Sample.chihaya) {}
+                }
+            }
+        }
+    }
+}
+
 private struct KaraokePage: View {
     @State private var tapped = 0
 

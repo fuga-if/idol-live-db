@@ -17,7 +17,8 @@ import SwiftUI
 ///   `imasCopyable` を**付けない**。コピー導線を作ると一括取り出しの入口になる。
 ///   編集モードの範囲選択もシステムのテキスト選択ではなく独自実装
 ///   (`CallGuideSelectableLine`) で、コピーメニューは一切生えない。
-/// - 共有 / 画像化 (`ShareCardScaffold`) にも繋がない。
+/// - 共有 / 画像化 (`ShareCardScaffold`) にも繋がない。共有できるのは**公開サイトの曲ページへの
+///   リンク (URL) だけ** (行を長押しで選ぶ。`LyricShareSelection` は添字しか持たない)。
 /// - コールの保存で歌詞本文を送らない (`CallGuidePayload`)。
 struct SongLyricsTab: View {
     typealias Playback = LyricsPlayback
@@ -33,6 +34,8 @@ struct SongLyricsTab: View {
     var playback = Playback()
     /// 歌詞が無い曲で「歌詞を投稿」を出すときの開き方。nil なら出さない (投稿の対象外・受付停止)。
     var onSubmitLyrics: (() -> Void)? = nil
+    /// 共有のために選んだ行 (長押しで始める)。帯は親 (`SongSheetContent`) が画面の下に出す。
+    var shareSelection: Binding<LyricShareSelection?> = .constant(nil)
     /// 通信失敗時の再試行 (束ね取得のやり直し)。
     let reload: () -> Void
 
@@ -193,6 +196,17 @@ struct SongLyricsTab: View {
             }
         }
         .sensoryFeedback(.impact(weight: .light), trigger: likeToken)
+        // 選び始めは手応えを強めに、広げるたびは軽く。
+        .sensoryFeedback(trigger: shareSelection.wrappedValue) { old, new in
+            guard let new else { return nil }
+            return old == nil || old?.anchor != new.anchor ? .impact(weight: .medium) : .selection
+        }
+        // 歌詞が差し替わった (再読み込み・行の区切りの編集) ら添字がずれるので選択を外す。
+        // 編集に入るときも外す (編集の画面には帯の出番が無い)。
+        .onChange(of: vm.lyrics) { _, _ in shareSelection.wrappedValue = nil }
+        .onChange(of: editor == nil && !isEditingStructure) { _, viewing in
+            if !viewing { shareSelection.wrappedValue = nil }
+        }
         #if DEBUG
         .onChange(of: vm.lyrics) { _, lyrics in beginDebugEditingIfNeeded(lyrics) }
         .onAppear { beginDebugEditingIfNeeded(vm.lyrics) }
@@ -317,13 +331,15 @@ struct SongLyricsTab: View {
         let likes = markService.lyricLikes(songId: song.id)
         if likes.isEmpty {
             // 付け方は見ただけでは分からないので、1 つも付いていない曲でだけ添える。
-            ImasNote("好きな行をダブルタップで「ここ好き」", systemImage: "hand.tap")
+            ImasNote("好きな行をダブルタップで「ここ好き」。長押しでその部分へのリンクを共有", systemImage: "hand.tap")
                 .padding(.bottom, DS.sp3)
         }
         let firstFocus = lyrics.lines.first { focusLineIds.contains($0.id) }?.id
-        ForEach(lyrics.lines) { line in
+        let picked = shareSelection.wrappedValue
+        ForEach(Array(lyrics.lines.enumerated()), id: \.element.id) { index, line in
             if line.id == firstFocus { focusCaption }
-            viewingRow(line, isLiked: likes.contains(line.id))
+            viewingRow(line, index: index, isLiked: likes.contains(line.id))
+                .imasLyricSharePicked(picked?.contains(index) == true && line.kind != .blank, seed: seed)
                 .imasLyricLine(line.id == activeLineId ? .current : .normal, seed: seed)
                 .modifier(FocusedLineStyle(isFocused: focusLineIds.contains(line.id), seed: seed))
                 .id(line.id)
@@ -354,7 +370,7 @@ struct SongLyricsTab: View {
     }
 
     @ViewBuilder
-    private func viewingRow(_ line: LyricLine, isLiked: Bool) -> some View {
+    private func viewingRow(_ line: LyricLine, index: Int, isLiked: Bool) -> some View {
         switch line.kind {
         case .lyric:
             HStack(alignment: .top, spacing: DS.sp2) {
@@ -393,8 +409,13 @@ struct SongLyricsTab: View {
             // 行のどこをダブルタップしても付け外しできるように、余白も当たりにする。
             .contentShape(Rectangle())
             .onTapGesture(count: 2) { toggleLike(line) }
-            .onTapGesture { seekToLine(line) }
+            .onTapGesture { tapLine(line, index: index) }
+            // 長押しで、その行へのリンクを共有する選択を始める (選択中に長押しすると、その行から選び直す)。
+            .onLongPressGesture(minimumDuration: 0.45) { beginShare(at: index) }
             .accessibilityAction(named: isLiked ? "ここ好きを外す" : "ここ好き") { toggleLike(line) }
+            .accessibilityAction(named: shareSelection.wrappedValue == nil ? "この行へのリンクを共有" : "ここまで範囲を広げる") {
+                if shareSelection.wrappedValue == nil { beginShare(at: index) } else { tapLine(line, index: index) }
+            }
         case .marker:
             VStack(alignment: .leading, spacing: 0) {
                 marker(line.text)
@@ -963,6 +984,24 @@ struct SongLyricsTab: View {
         } catch {
             saveErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }
+    }
+
+    // MARK: - 歌詞の一部の共有
+
+    /// 選択中のタップは範囲を広げる (その行まで)。選択していなければ、その行へシーク。
+    private func tapLine(_ line: LyricLine, index: Int) {
+        guard var selection = shareSelection.wrappedValue else {
+            seekToLine(line)
+            return
+        }
+        selection.focus = index
+        shareSelection.wrappedValue = selection
+        AppAnalytics.tap("song_lyrics.share_extend")
+    }
+
+    private func beginShare(at index: Int) {
+        shareSelection.wrappedValue = LyricShareSelection(songId: song.id, line: index)
+        AppAnalytics.tap("song_lyrics.share_begin")
     }
 
     // MARK: - ここ好き
