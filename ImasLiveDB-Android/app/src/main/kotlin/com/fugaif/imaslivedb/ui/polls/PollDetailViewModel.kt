@@ -11,6 +11,7 @@ import com.fugaif.imaslivedb.di.AppModule
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import uniffi.imas_core.planVoteSelection
 
@@ -127,7 +128,7 @@ class PollDetailViewModel(app: Application) : AndroidViewModel(app) {
     fun vote(entityId: String) {
         val id = pollId ?: return
         mutate("投票できませんでした") {
-            val result = runCatching { api.votePoll(id, entityId) }.getOrNull() ?: return@mutate false
+            val result = voteCall { api.votePoll(id, entityId) } ?: return@mutate false
             voteLog.recordVote(id, entityId)
             applyVoteResult(entityId, result, mine = true)
             true
@@ -137,7 +138,7 @@ class PollDetailViewModel(app: Application) : AndroidViewModel(app) {
     fun unvote(entityId: String) {
         val id = pollId ?: return
         mutate("取消できませんでした") {
-            val result = runCatching { api.unvotePoll(id, entityId) }.getOrNull() ?: return@mutate false
+            val result = voteCall { api.unvotePoll(id, entityId) } ?: return@mutate false
             voteLog.removeVote(id, entityId)
             applyVoteResult(entityId, result, mine = false)
             true
@@ -160,12 +161,12 @@ class PollDetailViewModel(app: Application) : AndroidViewModel(app) {
         )
         mutate("投票できませんでした") {
             for (entityId in plan.toUnvote) {
-                val result = runCatching { api.unvotePoll(id, entityId) }.getOrNull() ?: return@mutate false
+                val result = voteCall { api.unvotePoll(id, entityId) } ?: return@mutate false
                 voteLog.removeVote(id, entityId)
                 applyVoteResult(entityId, result, mine = false)
             }
             for (entityId in plan.toVote) {
-                val result = runCatching { api.votePoll(id, entityId) }.getOrNull() ?: return@mutate false
+                val result = voteCall { api.votePoll(id, entityId) } ?: return@mutate false
                 voteLog.recordVote(id, entityId)
                 applyVoteResult(entityId, result, mine = true)
             }
@@ -177,14 +178,33 @@ class PollDetailViewModel(app: Application) : AndroidViewModel(app) {
         _uiState.value = _uiState.value.copy(voteError = null)
     }
 
-    /** 投票系の共通ガード。多重実行を弾き、[body] が false を返したら [errorText] を出す。 */
+    /**
+     * 投票系の共通ガード。多重実行を弾き、[body] が false を返したら [errorText] を出す。
+     * 1 日の枠を使い切ったとき ([CommunityApi.PollVoteRateLimited]) は、通信失敗と同じ文言にせず
+     * 枠切れと言う (以前は「投票できませんでした」だけで、壊れているように見えた)。iOS の文言と同じ。
+     */
     private fun mutate(errorText: String, body: suspend () -> Boolean) {
         if (_uiState.value.isVoting) return
         _uiState.value = _uiState.value.copy(isVoting = true, voteError = null)
         viewModelScope.launch {
-            val ok = body()
-            _uiState.value = _uiState.value.copy(isVoting = false, voteError = if (ok) null else errorText)
+            val error = try {
+                if (body()) null else errorText
+            } catch (_: CommunityApi.PollVoteRateLimited) {
+                RATE_LIMITED_MESSAGE
+            }
+            _uiState.value = _uiState.value.copy(isVoting = false, voteError = error)
         }
+    }
+
+    /** 投票・取消を 1 件送る。枠切れだけは投げ直して [mutate] に知らせ、それ以外の失敗は null。 */
+    private suspend fun <T> voteCall(block: suspend () -> T?): T? = try {
+        block()
+    } catch (e: CommunityApi.PollVoteRateLimited) {
+        throw e
+    } catch (e: CancellationException) {
+        throw e
+    } catch (_: Exception) {
+        null
     }
 
     /** 投票/取消の結果をローカルに楽観反映 (票数降順で並べ替え)。新規候補は名前を解決して追加する。 */
@@ -219,5 +239,9 @@ class PollDetailViewModel(app: Application) : AndroidViewModel(app) {
             idolsById = idols,
             unitsById = units
         )
+    }
+
+    private companion object {
+        const val RATE_LIMITED_MESSAGE = "1日の上限に達しました。明日また試してください"
     }
 }

@@ -891,9 +891,22 @@ class CommunityApi(private val http: WorkerHttpClient) {
     /** サーバは ends_at を epoch 秒の数値で返す (`CAST(strftime('%s', ...) AS INTEGER)`)。0/欠損は Long.MAX_VALUE (常に「開催中」扱い)。 */
     private fun epochSecToMs(sec: Long): Long = if (sec <= 0) Long.MAX_VALUE else sec * 1000L
 
+    /**
+     * 投票・取消の 1 日の枠 (サーバの rate_limit "poll_vote") を使い切った。
+     * 通信失敗 (null) と分けて、詳細画面で「今日はもう入れられない」と案内するために投げる。
+     */
+    class PollVoteRateLimited : Exception("poll_vote rate limit")
+
+    /** 投票・取消の送信。429 は [PollVoteRateLimited] を投げ、それ以外の失敗は null。 */
+    private fun sendVoteJson(method: String, path: String, body: JSONObject?): JSONObject? {
+        val (code, json) = sendJsonWithStatus(method, path, body)
+        if (code == 429) throw PollVoteRateLimited()
+        return json
+    }
+
     /** POST /polls/{id}/votes — entity に投票 (新規候補も可。サーバが未存在なら作る)。 */
     suspend fun votePoll(pollId: String, entityId: String): PollVoteResult? = withContext(Dispatchers.IO) {
-        val json = sendJson("POST", "/polls/${enc(pollId)}/votes", JSONObject().put("entity_id", entityId))
+        val json = sendVoteJson("POST", "/polls/${enc(pollId)}/votes", JSONObject().put("entity_id", entityId))
             ?: return@withContext null
         PollVoteResult(
             entityId = json.strOrNull("entity_id") ?: entityId,
@@ -904,7 +917,7 @@ class CommunityApi(private val http: WorkerHttpClient) {
 
     /** DELETE /polls/{id}/votes/{entityId} — 自分の票を取り消す。 */
     suspend fun unvotePoll(pollId: String, entityId: String): PollVoteResult? = withContext(Dispatchers.IO) {
-        val json = sendJson("DELETE", "/polls/${enc(pollId)}/votes/${enc(entityId)}", null)
+        val json = sendVoteJson("DELETE", "/polls/${enc(pollId)}/votes/${enc(entityId)}", null)
             ?: return@withContext null
         PollVoteResult(
             entityId = json.strOrNull("entity_id") ?: entityId,
