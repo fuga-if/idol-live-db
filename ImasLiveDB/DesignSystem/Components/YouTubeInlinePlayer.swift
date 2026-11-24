@@ -76,6 +76,8 @@ private struct YouTubeWebView: UIViewRepresentable {
         webView.backgroundColor = .black
         webView.scrollView.isScrollEnabled = false
         webView.scrollView.bounces = false
+        // 2 本指のつまみは小窓の大きさ変えに使う (ページの拡大はしない)。
+        webView.scrollView.pinchGestureRecognizer?.isEnabled = false
         webView.navigationDelegate = context.coordinator
         context.coordinator.parent = self
         webView.loadHTMLString(player.html, baseURL: URL(string: player.baseUrl))
