@@ -77,7 +77,10 @@ object ProfileSheetAssembler {
         val repo = module.producerCardRepository
         val attendedRefs = runCatching { repo.attendedShowRefs() }.getOrDefault(emptyList())
         val shows = runCatching { repo.showInfos(attendedRefs.map { it.showId }) }.getOrDefault(emptyMap())
-        val songCount = runCatching { module.songRepository.fetchCollectedSongIds().size }.getOrDefault(0)
+        // 回収曲は回収ダッシュボードと同じ数え方 (ver 違いは原曲にまとめる)。
+        val songCount = runCatching {
+            module.statsRepository.fetchCollectedOriginalSongCount(module.songRepository.fetchCollectedSongIds())
+        }.getOrDefault(0)
         val brands = runCatching { module.statsRepository.fetchBrands() }.getOrDefault(emptyList())
         val brandById = brands.associateBy { it.id }
         val idols = if (oshiIds.isEmpty()) emptyList()

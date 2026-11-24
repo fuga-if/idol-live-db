@@ -9,6 +9,8 @@ import com.fugaif.imaslivedb.data.model.BrandSongCount
 import com.fugaif.imaslivedb.data.model.DatabaseStats
 import com.fugaif.imaslivedb.data.model.YearlyShowCount
 import uniffi.imas_core.CollectionDashboardRecord
+import uniffi.imas_core.CollectionScope
+import uniffi.imas_core.UncollectedListRecord
 import uniffi.imas_core.CommunityRankingKind
 
 /**
@@ -89,6 +91,17 @@ class StatsRepository(
                 collectedIds.toList(), pickIdolIds.toList(), JstDay.today(), CATCH_CHANCE_LIMIT.toUInt()
             )
         }
+
+    /**
+     * 未回収一覧の画面 1 つ分 (範囲の回収率と、未回収を披露済み/未披露に分けたもの)。原曲単位でコア
+     * (`uncollectedSongs`) が組む。iOS `StatsReading.uncollectedSongs` と対。
+     */
+    suspend fun fetchUncollectedSongs(collectedIds: Set<String>, scope: CollectionScope): UncollectedListRecord =
+        snapshots.query { store -> store.uncollectedSongs(collectedIds.toList(), scope) }
+
+    /** 回収した原曲の数 (P名刺・プロフィール帳の「回収曲」。ダッシュボードの全体の回収数と同じ)。 */
+    suspend fun fetchCollectedOriginalSongCount(collectedIds: Set<String>): Int =
+        snapshots.query { store -> store.collectedOriginalSongCount(collectedIds.toList()).toInt() }
 
     // MARK: - コミュニティの熱量 (人気・急上昇・お気に入り・試聴・フル再生のランキング)
 

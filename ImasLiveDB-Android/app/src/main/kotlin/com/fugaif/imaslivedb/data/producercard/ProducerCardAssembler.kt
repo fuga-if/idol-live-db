@@ -73,7 +73,8 @@ object ProducerCardAssembler {
         return ProducerCardMyRecord(
             oshiIds = oshi,
             attended = module.producerCardRepository.attendedShowRefs(),
-            songCount = module.songRepository.fetchCollectedSongIds().size,
+            // 回収曲は回収ダッシュボードと同じ数え方 (ver 違いは原曲にまとめる)。
+            songCount = module.statsRepository.fetchCollectedOriginalSongCount(module.songRepository.fetchCollectedSongIds()),
             oshiEntries = oshiEntries(module, oshi)
         )
     }

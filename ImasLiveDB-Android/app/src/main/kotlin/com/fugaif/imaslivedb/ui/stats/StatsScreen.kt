@@ -36,7 +36,6 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasArtwork
 import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
 import com.fugaif.imaslivedb.ui.designsystem.ImasBadgeKind
 import com.fugaif.imaslivedb.ui.designsystem.ImasBadgeSpec
-import com.fugaif.imaslivedb.ui.designsystem.ImasBadge
 import com.fugaif.imaslivedb.ui.designsystem.ImasBoard
 import com.fugaif.imaslivedb.ui.designsystem.ImasBoardCell
 import com.fugaif.imaslivedb.ui.designsystem.ImasCard
@@ -47,7 +46,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.designsystem.ImasFullScreenDialog
 import com.fugaif.imaslivedb.ui.designsystem.ImasInlineLoading
 import com.fugaif.imaslivedb.ui.designsystem.ImasLoadingState
-import com.fugaif.imaslivedb.ui.designsystem.ImasMetric
+import com.fugaif.imaslivedb.ui.designsystem.ImasNavRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasPage
 import com.fugaif.imaslivedb.ui.designsystem.ImasProgressRing
 import com.fugaif.imaslivedb.ui.designsystem.ImasRankingRow
@@ -64,13 +63,11 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasTicket
 import com.fugaif.imaslivedb.ui.designsystem.ImasTicketCountdown
 import com.fugaif.imaslivedb.ui.theme.AppPreferences
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.ImasNumeralSize
 import com.fugaif.imaslivedb.ui.events.SetlistScreen
 import com.fugaif.imaslivedb.ui.share.CollectionShareSheet
 import com.fugaif.imaslivedb.ui.songs.SongDetailScreen
 import com.fugaif.imaslivedb.ui.theme.imasRowPress
 import uniffi.imas_core.CatchChanceRecord
-import uniffi.imas_core.PlayFrequency
 import uniffi.imas_core.UncollectedSongRecord
 
 /**
@@ -87,6 +84,8 @@ fun StatsScreen(onBack: (() -> Unit)? = null, onOpenRanking: (() -> Unit)? = nul
     val state by viewModel.uiState.collectAsState()
     var selectedSongId by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedShowId by rememberSaveable { mutableStateOf<String?>(null) }
+    // 開いている未回収一覧 ("all" / "pick" / "brand:<id>")。回転しても閉じないよう文字で持つ。
+    var uncollectedListKey by rememberSaveable { mutableStateOf<String?>(null) }
 
     Scaffold(
         topBar = {
@@ -105,11 +104,18 @@ fun StatsScreen(onBack: (() -> Unit)? = null, onOpenRanking: (() -> Unit)? = nul
             ImasLoadingState(modifier = Modifier.padding(padding))
         } else {
             ImasPage(modifier = Modifier.padding(padding)) {
-                CollectionSummarySection(state.overallCollected, state.overallTotal)
+                CollectionSummarySection(
+                    state.overallCollected, state.overallTotal,
+                    state.overallPerformedCollected, state.overallPerformedTotal
+                )
 
                 val brandProgress = state.brandProgress.filter { it.total > 0u }
                 if (brandProgress.isNotEmpty()) {
-                    ImasSection("ブランド別の回収率", style = ImasSectionHeaderStyle.SMALL) {
+                    ImasSection(
+                        "ブランド別の回収率",
+                        style = ImasSectionHeaderStyle.SMALL,
+                        footer = "ver違いは原曲にまとめて数えています。バーを押すと未回収の曲が見られます。"
+                    ) {
                         ImasCard {
                             Column {
                                 brandProgress.forEach { item ->
@@ -118,7 +124,9 @@ fun StatsScreen(onBack: (() -> Unit)? = null, onOpenRanking: (() -> Unit)? = nul
                                         value = "${item.collected}/${item.total}",
                                         percent = item.collected.toDouble() / item.total.toDouble() * 100,
                                         seed = item.color,
-                                        contentPadding = InCardStatBarPadding
+                                        contentPadding = InCardStatBarPadding,
+                                        note = performedText(item.performedCollected, item.performedTotal),
+                                        onClick = { uncollectedListKey = "brand:${item.brandId}" }
                                     )
                                 }
                             }
@@ -144,7 +152,10 @@ fun StatsScreen(onBack: (() -> Unit)? = null, onOpenRanking: (() -> Unit)? = nul
                     isLoading = state.isLoadingDashboard,
                     myPickCollected = state.myPickCollected,
                     myPickTotal = state.myPickTotal,
-                    onSongClick = { selectedSongId = it }
+                    onSongClick = { selectedSongId = it },
+                    onSeeAll = {
+                        uncollectedListKey = if (state.uncollectedScope == UncollectedScope.MY_PICK) "pick" else "all"
+                    }
                 )
 
                 state.latestShow?.let { show ->
@@ -248,6 +259,16 @@ fun StatsScreen(onBack: (() -> Unit)? = null, onOpenRanking: (() -> Unit)? = nul
         }
     }
 
+    val uncollectedListScope = when (val key = uncollectedListKey) {
+        null -> null
+        "all" -> UncollectedListScope.All
+        "pick" -> UncollectedListScope.MyPick
+        else -> state.brandProgress.firstOrNull { "brand:${it.brandId}" == key }
+            ?.let { UncollectedListScope.Brand(it.brandId, it.shortName, it.color) }
+    }
+    uncollectedListScope?.let { scope ->
+        UncollectedSongsDialog(scope = scope, onDismiss = { uncollectedListKey = null })
+    }
     selectedSongId?.let { id ->
         ImasFullScreenDialog(onDismissRequest = { selectedSongId = null }) {
             SongDetailScreen(
@@ -276,8 +297,14 @@ private val InCardStatBarPadding = androidx.compose.foundation.layout.PaddingVal
 
 // MARK: - 回収サマリー (全体リング + シェア導線)
 
+/** 「披露済み 120/253（47%）」(iOS `CollectionProgress.performedText`)。 */
+private fun performedText(collected: UInt, total: UInt): String {
+    val percent = if (total > 0u) Math.round(collected.toDouble() / total.toDouble() * 100).toInt() else 0
+    return "披露済み $collected/$total（$percent%）"
+}
+
 @Composable
-private fun CollectionSummarySection(collected: Int, total: Int) {
+private fun CollectionSummarySection(collected: Int, total: Int, performedCollected: Int, performedTotal: Int) {
     var showShareCard by rememberSaveable { mutableStateOf(false) }
 
     ImasSection("あなたの回収率", style = ImasSectionHeaderStyle.SMALL) {
@@ -298,6 +325,17 @@ private fun CollectionSummarySection(collected: Int, total: Int) {
                         )
                     }
                 }
+                // 披露済みの曲 (ライブで 1 回以上演られた原曲) のうち何割回収したか。
+                val performedPercent =
+                    if (performedTotal > 0) Math.round(performedCollected.toDouble() / performedTotal * 100).toInt() else 0
+                ImasStatBar(
+                    label = "披露済みの曲",
+                    value = "$performedCollected/$performedTotal",
+                    percent = performedPercent.toDouble(),
+                    valueWidth = 84.dp,
+                    contentPadding = InCardStatBarPadding,
+                    note = "ライブで披露された曲のうち $performedPercent% を回収"
+                )
             }
         }
     }
@@ -335,7 +373,8 @@ private fun UncollectedSection(
     isLoading: Boolean,
     myPickCollected: Int,
     myPickTotal: Int,
-    onSongClick: (String) -> Unit
+    onSongClick: (String) -> Unit,
+    onSeeAll: () -> Unit
 ) {
     ImasSection(
         "まだ生で聴けていない曲",
@@ -359,33 +398,32 @@ private fun UncollectedSection(
                             else "参加ライブを記録すると、未回収曲がここに並びます。"
                     )
                 }
-                else -> ImasCardList(items = songs.take(30)) { item ->
-                    ImasSongRow(
-                        title = item.song.title,
-                        artworkUrl = item.song.artworkUrl,
-                        brand = item.song.brandId,
-                        trailing = ImasRowTrailing.Custom { FrequencyBadge(item) },
-                        onClick = { onSongClick(item.song.id) }
-                    )
+                else -> {
+                    ImasCardList(items = songs.take(UNCOLLECTED_PREVIEW_LIMIT)) { item ->
+                        val subtitle = listOfNotNull(
+                            brands.firstOrNull { it.id == item.song.brandId }?.shortName,
+                            item.variants.takeIf { it.isNotEmpty() }?.let { "ver違い ${it.size}" }
+                        ).joinToString(" ・ ").ifEmpty { null }
+                        ImasSongRow(
+                            title = item.song.title,
+                            subtitle = subtitle,
+                            artworkUrl = item.song.artworkUrl,
+                            brand = item.song.brandId,
+                            trailing = ImasRowTrailing.Custom { UncollectedFrequencyBadge(item) },
+                            onClick = { onSongClick(item.song.id) }
+                        )
+                    }
+                    ImasCardList {
+                        ImasNavRow(title = "すべて見る", value = "${songs.size}曲", onClick = onSeeAll)
+                    }
                 }
             }
         }
     }
 }
 
-@Composable
-private fun FrequencyBadge(item: UncollectedSongRecord) {
-    // 披露頻度の種類 (閾値はコア。画面で回数を比べない)。
-    val kind = when (item.frequency) {
-        PlayFrequency.STAPLE -> ImasBadgeKind.ATTENTION
-        PlayFrequency.SOMETIMES -> ImasBadgeKind.NEUTRAL
-        PlayFrequency.RARE, PlayFrequency.NEVER -> ImasBadgeKind.NEGATIVE
-    }
-    Column(horizontalAlignment = androidx.compose.ui.Alignment.End, verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
-        ImasBadge(item.frequencyLabel, kind = kind)
-        if (item.playCount > 0u) ImasMetric("${item.playCount}", unit = "回披露", size = ImasNumeralSize.SMALL)
-    }
-}
+/** ダッシュボードに並べる未回収曲の数 (残りは「すべて見る」の先)。 */
+private const val UNCOLLECTED_PREVIEW_LIMIT = 30
 
 // MARK: - 最新の動き
 

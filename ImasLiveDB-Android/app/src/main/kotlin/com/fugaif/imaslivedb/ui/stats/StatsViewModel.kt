@@ -27,9 +27,11 @@ enum class UncollectedScope { MY_PICK, ALL }
 data class StatsUiState(
     val isLoading: Boolean = true,
 
-    // 回収サマリー + ブランド別回収率
+    // 回収サマリー + ブランド別回収率 (原曲単位。全曲と披露済み)
     val overallCollected: Int = 0,
     val overallTotal: Int = 0,
+    val overallPerformedCollected: Int = 0,
+    val overallPerformedTotal: Int = 0,
     val brandProgress: List<BrandCollectionProgressRecord> = emptyList(),
 
     // この公演で聴けるかも
@@ -125,6 +127,8 @@ class StatsViewModel(app: Application) : AndroidViewModel(app) {
             _uiState.value = _uiState.value.copy(
                 overallCollected = dashboard.overallCollected.toInt(),
                 overallTotal = dashboard.overallTotal.toInt(),
+                overallPerformedCollected = dashboard.overallPerformedCollected.toInt(),
+                overallPerformedTotal = dashboard.overallPerformedTotal.toInt(),
                 brandProgress = dashboard.brandProgress,
                 pickUncollected = dashboard.pickUncollected,
                 allUncollected = dashboard.allUncollected,

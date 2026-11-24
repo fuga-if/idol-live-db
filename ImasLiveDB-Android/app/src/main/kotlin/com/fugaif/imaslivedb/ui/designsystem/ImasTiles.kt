@@ -393,6 +393,8 @@ fun ImasStatGrid(modifier: Modifier = Modifier, columns: Int = 2, content: @Comp
  * @param valueWidth 右端の値の幅。金額のように桁が伸びる値は広げる。
  * @param contentPadding 行の余白。既定は Android の今の呼び出し (画面いっぱいに置く) の左右 16・上下 8。
  *   カードの中では左右 0 を渡す (iOS は上下 8 だけ)。
+ * @param note 棒の下に添える 1 行 (「披露済み 120/253（47%）」など、同じ割合の別の見方)。
+ * @param onClick 押して中身へ進める行のとき。右端に › を出す (iOS の `tappable`)。
  */
 @Composable
 fun ImasStatBar(
@@ -403,43 +405,64 @@ fun ImasStatBar(
     brand: String? = null,
     valueWidth: Dp = 52.dp,
     modifier: Modifier = Modifier,
-    contentPadding: PaddingValues = PaddingValues(horizontal = DS.Space.screen, vertical = DS.Space.gap)
+    contentPadding: PaddingValues = PaddingValues(horizontal = DS.Space.screen, vertical = DS.Space.gap),
+    note: String? = null,
+    onClick: (() -> Unit)? = null
 ) {
     val t = imasThemeForBrand(seed, brand)
     val fraction = (percent / 100.0).coerceIn(0.0, 1.0).toFloat()
-    Row(
+    Column(
         modifier
             .fillMaxWidth()
+            .then(if (onClick != null) Modifier.imasRowPress(onClick = onClick) else Modifier)
             .padding(contentPadding)
             .semantics(mergeDescendants = true) { },
-        horizontalArrangement = Arrangement.spacedBy(DS.Space.gapLoose),
-        verticalAlignment = Alignment.CenterVertically
+        verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)
     ) {
         Row(
-            Modifier.width(92.dp),
-            horizontalArrangement = Arrangement.spacedBy(7.dp),
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(DS.Space.gapLoose),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(label, style = ImasType.text(13.sp), color = DS.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-        Box(
-            Modifier
-                .weight(1f)
-                .height(6.dp)
-                .background(DS.fill)
-        ) {
+            Row(
+                Modifier.width(StatBarLabelWidth),
+                horizontalArrangement = Arrangement.spacedBy(7.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(label, style = ImasType.text(13.sp), color = DS.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
             Box(
                 Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth(fraction)
-                    .background(t.bar)
-            )
+                    .weight(1f)
+                    .height(6.dp)
+                    .background(DS.fill)
+            ) {
+                Box(
+                    Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(fraction)
+                        .background(t.bar)
+                )
+            }
+            Box(Modifier.width(valueWidth), contentAlignment = Alignment.CenterEnd) {
+                ImasFitText(value, style = ImasNumeralSize.SMALL.style, color = DS.ink2, minScale = 0.7f)
+            }
+            if (onClick != null) ImasRowChevron()
         }
-        Box(Modifier.width(valueWidth), contentAlignment = Alignment.CenterEnd) {
-            ImasFitText(value, style = ImasNumeralSize.SMALL.style, color = DS.ink2, minScale = 0.7f)
+        if (note != null) {
+            Text(
+                note,
+                style = ImasTextRole.META.style,
+                color = ImasTextRole.META.color,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(start = StatBarLabelWidth + DS.Space.gapLoose)
+            )
         }
     }
 }
+
+private val StatBarLabelWidth = 92.dp
 
 // MARK: - 割合の輪
 

@@ -1762,7 +1762,8 @@ private fun FeedbackPage() {
                         val pad = PaddingValues(vertical = DS.Space.gapTight)
                         ImasStatBar("765AS", "7/446", 1.6, seed = Sample.as765, contentPadding = pad)
                         ImasStatBar("ミリオン", "31/1,075", 2.9, seed = Sample.ml, contentPadding = pad)
-                        ImasStatBar("学マス", "60/125", 48.0, seed = Sample.gakuen, contentPadding = pad)
+                        ImasStatBar("学マス", "60/125", 48.0, seed = Sample.gakuen, contentPadding = pad,
+                            note = "披露済み 60/116（52%）", onClick = {})
                     }
                 }
             }

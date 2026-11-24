@@ -76,19 +76,22 @@ data class CollectionShareStats(
          * 担当アイドル別の内訳を読む。
          *
          * 全体の分子/分母はダッシュボードが既に持っているので呼び出し側から受け取り、
-         * ここでは「担当のオリ曲がどれだけ回収済みか」だけを引く (集計の二重定義を作らない)。
+         * 担当ごとの数もダッシュボードと同じコア (`collectionDashboard` の pickProgress。ver 違いは原曲に
+         * まとめる) から引く (集計の二重定義を作らない)。
          */
         suspend fun load(context: Context, overallCollected: Int, overallTotal: Int): CollectionShareStats {
             val module = AppModule.from(context)
-            val collected = module.songRepository.fetchCollectedSongIds()
-            val lines = module.userMarkRepository.pickedIdols().take(4).map { idol ->
-                val songIds = module.songRepository.fetchIdolSongs(idol.id, role = "original").map { it.id }
+            val idols = module.userMarkRepository.pickedIdols().take(4)
+            val progress = module.statsRepository
+                .fetchCollectionDashboard(module.songRepository.fetchCollectedSongIds(), idols.map { it.id }.toSet())
+                .pickProgress.associateBy { it.idolId }
+            val lines = idols.map { idol ->
                 IdolLine(
                     id = idol.id,
                     name = idol.name,
                     color = idol.color,
-                    collected = songIds.count { it in collected },
-                    total = songIds.size
+                    collected = progress[idol.id]?.collected?.toInt() ?: 0,
+                    total = progress[idol.id]?.total?.toInt() ?: 0
                 )
             }
             return CollectionShareStats(overallCollected, overallTotal, lines)
