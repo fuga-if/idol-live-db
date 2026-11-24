@@ -209,6 +209,84 @@ pub fn poll_id_from_url(url: &str) -> Option<String> {
     (!decoded.is_empty() && !decoded.contains('/')).then_some(decoded)
 }
 
+// ---------------------------------------------------------------------------
+// 歌詞の一部への共有リンク (公開サイトの曲ページ)
+// ---------------------------------------------------------------------------
+
+/// 歌詞の範囲を指す断片の接頭辞。公開サイトの曲ページ (`SongLyrics.astro` の
+/// `fragmentOf` / `parseFragment`) と同じ形。
+const LYRIC_FRAGMENT_PREFIX: &str = "lyric-";
+
+/// 歌詞の範囲の端。`line` は歌詞 API (`/songs/{id}/lyrics`) が返す `lines` の
+/// **0 始まりの添字** (空行・区切りの行も数える)。`offset` は行内の位置
+/// (元本文の Unicode スカラー単位)。`None` は「行の頭 (始点) / 行の終わり (終点)」=
+/// 行ごと。
+#[derive(uniffi::Record, Clone, Copy, Debug, PartialEq, Eq)]
+pub struct LyricShareEnd {
+    pub line: u32,
+    pub offset: Option<u32>,
+}
+
+/// 公開サイトの曲ページの URL (`{WEB_ORIGIN}/songs/{key}/`)。
+///
+/// パスは出面の書き出しと同じ規約 ([`crate::domain::web_path`]: 危険な id だけ
+/// フォールバック名、`encodeURIComponent` と同じエスケープ) で組む。
+/// [`event_url`] などの `escaped_id` (Universal Links の互換用) とは別物。
+pub fn song_page_url(song_id: &str) -> String {
+    use crate::domain::web_path::{detail_path, path_key, reserved_for};
+    let key = path_key(song_id, reserved_for("songs"), "songs");
+    format!("{WEB_ORIGIN}{}", detail_path("songs", &key))
+}
+
+/// 歌詞の一部への共有リンク。公開サイトの曲ページで、その範囲を塗って開く。
+///
+/// 断片の形は公開サイトと完全に同じ (番号は `lines` の添字 + 1):
+/// - 行ごと (両端とも `offset` が `None`): 1 行なら `#lyric-12`、複数行なら `#lyric-12-14`。
+/// - 行内の位置つき (両端とも `offset` あり): `#lyric-12.3-14.8`。
+///   片端だけ位置があるときは行ごとに倒す (無い側の終点の位置は行の長さが要り、
+///   ここは本文を受け取らないので決められない)。
+///
+/// 端は前後どちらから渡してもよい (後ろの端を先に選んだ場合は入れ替える)。
+///
+/// **本文は受け取らない。** 共有に乗るのは URL だけ (歌詞は許諾の条件で外に出さない)。
+/// `/songs/` は Universal Links / App Links の対象外なので、受け取った人のブラウザで開く。
+pub fn lyric_share_url(song_id: &str, from: LyricShareEnd, to: LyricShareEnd) -> String {
+    let key = |e: &LyricShareEnd| (e.line, e.offset.unwrap_or(0));
+    let (from, to) = if key(&to) < key(&from) { (to, from) } else { (from, to) };
+    let a = from.line + 1;
+    let b = to.line + 1;
+    let fragment = match (from.offset, to.offset) {
+        (Some(fo), Some(to_off)) => format!("{a}.{fo}-{b}.{to_off}"),
+        _ if a == b => format!("{a}"),
+        _ => format!("{a}-{b}"),
+    };
+    format!("{}#{LYRIC_FRAGMENT_PREFIX}{fragment}", song_page_url(song_id))
+}
+
+/// 選んだ行を人に見せるときの言い方 (「12行目」「12〜14行目」)。
+///
+/// 番号は **見える行で数える** (公開サイトの `shownNo` と同じ考え): 本文の無い行
+/// (空行・区切りだけの行) は数えない。URL の番号 ([`lyric_share_url`]) はデータの
+/// 添字のまま (共有済みのリンクを壊さない) なので、見せる番号とは別に決める。
+/// `line_texts` は `lines` の本文を添字の順に並べたもの。範囲外の添字は末尾に寄せる。
+pub fn lyric_share_lines_label(line_texts: &[String], from_line: u32, to_line: u32) -> String {
+    let (lo, hi) = if to_line < from_line { (to_line, from_line) } else { (from_line, to_line) };
+    let shown_no = |line: u32| -> usize {
+        let n = line_texts
+            .iter()
+            .take(line as usize + 1)
+            .filter(|t| !t.trim().is_empty())
+            .count();
+        n.max(1)
+    };
+    let (a, b) = (shown_no(lo), shown_no(hi));
+    if a == b {
+        format!("{a}行目")
+    } else {
+        format!("{a}〜{b}行目")
+    }
+}
+
 /// `%XX` を戻す。不正な並び・UTF-8 にならない結果は `None`。
 fn percent_decode(s: &str) -> Option<String> {
     let bytes = s.as_bytes();
@@ -687,6 +765,67 @@ pub fn intro_don_share_text(input: &IntroDonShareInput) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // -- 歌詞の一部への共有リンク --
+
+    fn end(line: u32) -> LyricShareEnd {
+        LyricShareEnd { line, offset: None }
+    }
+
+    #[test]
+    fn lyric_share_url_whole_lines_match_web_fragment() {
+        let base = "https://idollivedb.fugaapp.site/songs/song_abc/";
+        assert_eq!(lyric_share_url("song_abc", end(11), end(11)), format!("{base}#lyric-12"));
+        assert_eq!(lyric_share_url("song_abc", end(11), end(13)), format!("{base}#lyric-12-14"));
+        // 後ろの端を先に選んでも同じ URL。
+        assert_eq!(lyric_share_url("song_abc", end(13), end(11)), format!("{base}#lyric-12-14"));
+        assert_eq!(lyric_share_url("song_abc", end(0), end(0)), format!("{base}#lyric-1"));
+    }
+
+    #[test]
+    fn lyric_share_url_with_offsets() {
+        let from = LyricShareEnd { line: 11, offset: Some(3) };
+        let to = LyricShareEnd { line: 13, offset: Some(8) };
+        assert_eq!(
+            lyric_share_url("song_abc", from, to),
+            "https://idollivedb.fugaapp.site/songs/song_abc/#lyric-12.3-14.8"
+        );
+        // 同じ行の中で逆向き。
+        let a = LyricShareEnd { line: 4, offset: Some(9) };
+        let b = LyricShareEnd { line: 4, offset: Some(2) };
+        assert!(lyric_share_url("s", a, b).ends_with("#lyric-5.2-5.9"));
+        // 片端だけ位置があるときは行ごと。
+        let half = LyricShareEnd { line: 4, offset: Some(2) };
+        assert!(lyric_share_url("s", half, end(6)).ends_with("#lyric-5-7"));
+    }
+
+    #[test]
+    fn song_page_url_uses_web_export_path_rule() {
+        // `@` などは encodeURIComponent と同じ (`escaped_id` の `%2540` にはしない)。
+        assert_eq!(
+            song_page_url("song_the_idolm@ster"),
+            "https://idollivedb.fugaapp.site/songs/song_the_idolm%40ster/"
+        );
+        assert_eq!(song_page_url("曲"), "https://idollivedb.fugaapp.site/songs/%E6%9B%B2/");
+        // 予約語はフォールバック名 (出面のページの置き場と同じ)。
+        assert_ne!(song_page_url("all"), "https://idollivedb.fugaapp.site/songs/all/");
+    }
+
+    #[test]
+    fn lyric_share_lines_label_counts_shown_lines() {
+        let texts: Vec<String> = ["一行目", "", "サビ", "二行目", "  ", "三行目"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+        assert_eq!(lyric_share_lines_label(&texts, 0, 0), "1行目");
+        // 空行 (添字 1・4) は数えない。
+        assert_eq!(lyric_share_lines_label(&texts, 3, 5), "3〜4行目");
+        assert_eq!(lyric_share_lines_label(&texts, 5, 3), "3〜4行目");
+        // 範囲外は末尾に寄る。
+        assert_eq!(lyric_share_lines_label(&texts, 5, 99), "4行目");
+        // 先頭が空行でも 0 にはしない。
+        assert_eq!(lyric_share_lines_label(&texts[1..].to_vec(), 0, 0), "1行目");
+    }
 
     fn names(v: &[&str]) -> Vec<String> {
         v.iter().map(|s| s.to_string()).collect()

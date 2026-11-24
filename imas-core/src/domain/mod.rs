@@ -140,6 +140,7 @@ pub mod timeline_queries;
 pub mod unit_queries;
 pub mod vocabulary;
 pub mod voice_answer;
+pub mod web_path;
 pub mod week_layout;
 pub mod weighted_sampling;
 pub mod youtube;

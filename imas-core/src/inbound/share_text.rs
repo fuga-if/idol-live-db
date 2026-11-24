@@ -8,7 +8,7 @@
 
 use crate::domain::quiz_generation::QuizGrade;
 use crate::domain::share_text::{
-    self, IntroDonShareInput, SetlistShareInput, SharePayload,
+    self, IntroDonShareInput, LyricShareEnd, SetlistShareInput, SharePayload,
 };
 
 // -- 共有 URL (Universal Links) ---------------------------------------------
@@ -35,6 +35,18 @@ pub fn share_poll_url(id: String) -> String {
 #[uniffi::export]
 pub fn share_poll_id_from_url(url: String) -> Option<String> {
     share_text::poll_id_from_url(&url)
+}
+
+/// 歌詞の一部への共有リンク (公開サイトの曲ページ + `#lyric-…`)。端は `lines` の 0 始まりの添字。
+#[uniffi::export]
+pub fn share_lyric_url(song_id: String, from: LyricShareEnd, to: LyricShareEnd) -> String {
+    share_text::lyric_share_url(&song_id, from, to)
+}
+
+/// 選んだ歌詞の行の言い方 (「12行目」「12〜14行目」)。番号は本文のある行で数える。
+#[uniffi::export]
+pub fn share_lyric_lines_label(line_texts: Vec<String>, from_line: u32, to_line: u32) -> String {
+    share_text::lyric_share_lines_label(&line_texts, from_line, to_line)
 }
 
 // -- ペイロードの消費 --------------------------------------------------------
