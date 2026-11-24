@@ -28,6 +28,10 @@ protocol StatsReading: Sendable {
     func uncollectedSongs(collectedSongIds: Set<String>, scope: CollectionScope) async throws -> UncollectedSongList
     /// 回収した原曲の数 (P名刺・プロフィール帳の「回収曲」。ダッシュボードの全体の回収数と同じ)。
     func collectedOriginalSongCount(collectedSongIds: Set<String>) async throws -> Int
+    /// 回収した原曲の id (プロデュースの「回収した楽曲」)。数は `collectedOriginalSongCount` と同じ。
+    func collectedOriginalSongIds(collectedSongIds: Set<String>) async throws -> [String]
+    /// 聴いた曲に、その一族 (ver 違い) の原曲を足した集合。「この曲は回収済みか」を引く所が使う。
+    func collectedFamilySongIds(collectedSongIds: Set<String>) async throws -> Set<String>
     /// 歌詞の投稿状況 (全体とブランド別)。`publishedSongIds` はサーバの公開曲 id。
     func lyricCoverage(publishedSongIds: [String]) async throws -> LyricCoverageRecord
     /// 歌詞のある曲の id (`lyricCoverage` と同じ母集合)。`brandId` が nil なら全ブランド。

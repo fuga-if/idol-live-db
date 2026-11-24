@@ -78,6 +78,7 @@ final class UserMarkService {
     @ObservationIgnored private var rows: [String: UserMark] = [:]
 
     /// 自動回収済み song_id キャッシュ（attended 変更時に更新）。
+    /// 聴いた曲に、その一族の原曲を足したもの (回収は原曲単位。imas-core `collected_family_song_ids`)。
     /// 集計は裏で回して届いたら差し替えるので、これは観測に載せる (届いたら描き直す)。
     private var collectedIds: Set<String> = []
     /// 回収の集計の世代。遅れて届いた古い結果を捨てる。
@@ -105,6 +106,9 @@ final class UserMarkService {
         }
         // 起動時に保留中のファボ送信をリトライ
         PendingCommunityActions.shared.flushPendingFavorites()
+        // 同期で読んだのは聴いた曲だけ。原曲を足した集合は裏で組んで差し替える
+        // (コアのスナップショットは起動直後にはまだ無いことがある)。
+        refreshAutoCollected()
     }
 
     /// iCloud バックアップ → ローカルに非破壊復元 (無い行だけ追加)。
@@ -450,7 +454,9 @@ final class UserMarkService {
         let db = self.db
         Task { [weak self] in
             do {
-                let ids = try await db.fetchAutoCollectedSongIdsAsync()
+                let heard = try await db.fetchAutoCollectedSongIdsAsync()
+                // ver 違いを聴いたら原曲も回収済み (一覧の回収の絞り込み・バッジと同じ規則)。
+                let ids = (try? await AppContainer.shared.statsReading.collectedFamilySongIds(collectedSongIds: heard)) ?? heard
                 guard let self, generation == self.collectedGeneration else { return }
                 if ids != self.collectedIds {
                     self.collectedIds = ids

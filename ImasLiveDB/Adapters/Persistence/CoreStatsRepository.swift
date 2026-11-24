@@ -83,6 +83,18 @@ struct CoreStatsRepository: StatsReading {
         }
     }
 
+    func collectedOriginalSongIds(collectedSongIds: Set<String>) async throws -> [String] {
+        try await snapshot.withStore { store in
+            try store.collectedOriginalSongIds(collectedSongIds: Array(collectedSongIds))
+        }
+    }
+
+    func collectedFamilySongIds(collectedSongIds: Set<String>) async throws -> Set<String> {
+        try await snapshot.withStore { store in
+            Set(try store.collectedFamilySongIds(collectedSongIds: Array(collectedSongIds)))
+        }
+    }
+
     private static func uncollected(from record: UncollectedSongRecord) -> UncollectedSong {
         UncollectedSong(
             song: CoreRecordMapping.song(from: record.song), playCount: Int(record.playCount),

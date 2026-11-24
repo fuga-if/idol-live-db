@@ -632,7 +632,9 @@ struct ProduceTabView: View {
             attendedEvents = try await AppContainer.shared.eventReading.attendedEventsWithDate()
             attendedCount = attendedEvents.count
 
-            collectedSongIds = Array(try await mark.autoCollectedSongIds())
+            // 回収は原曲単位 (ver 違いは原曲にまとめる。回収ダッシュボードと同じ数)。
+            collectedSongIds = try await AppContainer.shared.statsReading.collectedOriginalSongIds(
+                collectedSongIds: try await mark.autoCollectedSongIds())
             collectedCount = collectedSongIds.count
 
             // お気に入りは曲・アイドル・ライブの全種別合算 (FavoritesListView 側で内訳タブ)。
