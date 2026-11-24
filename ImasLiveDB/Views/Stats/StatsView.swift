@@ -211,12 +211,14 @@ struct StatsView: View {
                         }
                         .buttonStyle(.imasRow)
                     }
-                    NavigationLink {
-                        UncollectedSongsView(scope: uncollectedScope == .myPick ? .myPick : .all)
-                    } label: {
-                        ImasNavRow(title: "すべて見る", value: "\(uncollectedSongs.count)曲")
+                    ImasCardList {
+                        NavigationLink {
+                            UncollectedSongsView(scope: uncollectedScope == .myPick ? .myPick : .all)
+                        } label: {
+                            ImasNavRow(title: "すべて見る", value: "\(uncollectedSongs.count)曲")
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
             }
         }

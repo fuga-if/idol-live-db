@@ -319,7 +319,18 @@ impl<'a> Families<'a> {
 }
 
 /// ver 違いの一族の根: `parent_song_id` を辿れるだけ辿る (空文字・未知の id は親無しと同じ)。
+/// 辿り着いた先が根でない (親が輪になっている・深すぎる壊れたデータ) ときは自分を根にする
+/// (数えから落ちないように)。
 fn family_root(snap: &Snapshot, song: u32) -> u32 {
+    let root = walk_to_root(snap, song);
+    if walk_to_root(snap, root) == root {
+        root
+    } else {
+        song
+    }
+}
+
+fn walk_to_root(snap: &Snapshot, song: u32) -> u32 {
     let mut root = song;
     for _ in 0..MAX_VARIANT_DEPTH {
         let parent = snap.songs[root as usize]
