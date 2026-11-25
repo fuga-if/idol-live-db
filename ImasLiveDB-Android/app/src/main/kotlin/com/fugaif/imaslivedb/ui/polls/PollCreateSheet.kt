@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Person
@@ -14,6 +15,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -92,7 +94,11 @@ fun PollCreateSheet(
     val scope = SCOPES[scopeIndex]
 
     // iOS canSubmit と同じ条件。ブランド限定は 1 つ以上、候補指定は 2 件以上ないとサーバが弾く。
-    val canSubmit = inputIsAcceptable(InputField.POLL_TITLE, title) && !state.isSubmitting && when (scope) {
+    // 開くたびに今日の作成枠を読み直す (ViewModel は画面に残るので、前に開いたときの数が残っている)。
+    LaunchedEffect(Unit) { viewModel.loadQuota() }
+
+    val canSubmit = inputIsAcceptable(InputField.POLL_TITLE, title) && !state.isSubmitting &&
+        state.quotaNote?.isExhausted != true && when (scope) {
         CommunityApi.PollCandidateScope.ALL -> true
         CommunityApi.PollCandidateScope.BRAND -> selectedBrandIds.isNotEmpty()
         CommunityApi.PollCandidateScope.MANUAL -> state.candidates.size >= 2
@@ -120,6 +126,15 @@ fun PollCreateSheet(
             )
             ImasFormPage(Modifier.weight(1f)) {
                 ImasNote("お題を作って、みんなに推しを投票してもらおう。期間中は誰でも${voteLimitPerTarget()}票まで投票できます。")
+
+                // 書き始める前に分かるよう、案内のすぐ下に出す。使い切ったら読まないと困るので注意にする (iOS と同じ)。
+                state.quotaNote?.let { note ->
+                    if (note.isExhausted) {
+                        ImasNotice(kind = ImasNoticeKind.WARNING, message = note.text)
+                    } else {
+                        ImasNote(note.text, icon = Icons.Filled.Edit)
+                    }
+                }
 
                 ImasFormCard {
                     ImasFormTextField(

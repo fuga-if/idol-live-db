@@ -817,6 +817,29 @@ class CommunityApi(private val http: WorkerHttpClient) {
         }
     }
 
+    /** お題の 1 日の作成枠 (GET /polls/quota)。枠はサーバの日付 (UTC) で数える。 */
+    data class PollCreateQuota(
+        val used: Int,
+        val limit: Int,
+        val remaining: Int,
+        /** 枠が戻る時刻 (ISO 8601、UTC の翌 0 時)。 */
+        val resetAt: String,
+    )
+
+    /**
+     * GET /polls/quota — 今日あと何件お題を作れるか (認証必須。読むだけで枠は使わない)。
+     * 作成画面の頭に出す (iOS `CommunityVoting.pollCreateQuota` と同じ契約)。読めなければ null。
+     */
+    suspend fun pollCreateQuota(): PollCreateQuota? = withContext(Dispatchers.IO) {
+        val o = get("/polls/quota", authorized = true) ?: return@withContext null
+        PollCreateQuota(
+            used = o.optInt("used"),
+            limit = o.optInt("limit"),
+            remaining = o.optInt("remaining"),
+            resetAt = o.optString("reset_at"),
+        )
+    }
+
     /** DELETE /polls/{id} — お題を削除 (作成者本人 or 管理者のみ。それ以外はサーバが 403)。 */
     suspend fun deletePoll(id: String): Boolean = withContext(Dispatchers.IO) {
         send("DELETE", "/polls/${enc(id)}", null)

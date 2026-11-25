@@ -10,6 +10,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import uniffi.imas_core.PollCreateQuotaNote
+import uniffi.imas_core.pollCreateQuotaNote
+import java.time.Instant
+import java.time.ZoneId
 
 /** 手動指定した候補 1 件 (表示名はローカル master から解決したもの)。 */
 data class PollCandidate(val entityId: String, val displayName: String)
@@ -19,7 +23,9 @@ data class PollCreateUiState(
     /** 候補指定スコープで選んだ候補。対象種別を切り替えたら混在させないため空にする。 */
     val candidates: List<PollCandidate> = emptyList(),
     val isSubmitting: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    /** 今日あと何件作れるか。読めなかったとき (古いサーバ・オフライン) は出さず、送信も止めない。 */
+    val quotaNote: PollCreateQuotaNote? = null
 )
 
 /**
@@ -43,6 +49,25 @@ class PollCreateViewModel(app: Application) : AndroidViewModel(app) {
             val brands = runCatching { statsRepo.fetchBrands() }.getOrDefault(emptyList())
             _uiState.value = _uiState.value.copy(brands = brands)
         }
+    }
+
+    /** 今日の作成枠を読み直す。シートを開くたびと、送信が弾かれたあとに呼ぶ (弾かれた送信も枠に数えられる)。 */
+    fun loadQuota() {
+        viewModelScope.launch {
+            val quota = runCatching { api.pollCreateQuota() }.getOrNull() ?: return@launch
+            _uiState.value = _uiState.value.copy(quotaNote = quotaNote(quota))
+        }
+    }
+
+    /** 戻る時刻は端末の時刻で出す。文言はコア (`poll_create_quota_note`)。 */
+    private fun quotaNote(quota: CommunityApi.PollCreateQuota): PollCreateQuotaNote {
+        val reset = runCatching { Instant.parse(quota.resetAt).atZone(ZoneId.systemDefault()) }.getOrNull()
+        return pollCreateQuotaNote(
+            remaining = quota.remaining.coerceAtLeast(0).toUInt(),
+            limit = quota.limit.coerceAtLeast(0).toUInt(),
+            resetHour = (reset?.hour ?: 0).toUInt(),
+            resetMinute = (reset?.minute ?: 0).toUInt(),
+        )
     }
 
     /** ピッカーで選ばれた ID 群を、選択順を保ったまま候補リストへ反映する。 */
@@ -106,6 +131,7 @@ class PollCreateViewModel(app: Application) : AndroidViewModel(app) {
                     errorMessage = result.message ?: "作成に失敗しました。時間をおいて再試行してください。"
                 )
             }
+            if (result !is CommunityApi.PollCreateResult.Success) loadQuota()
         }
     }
 
