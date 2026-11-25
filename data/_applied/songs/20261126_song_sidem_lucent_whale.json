@@ -1,0 +1,30 @@
+{
+ "title": "曲「Lucent whale」(sidem・Jupiter) の追加",
+ "author": "claude (daily-data-crawl 2026-11-26)",
+ "source": [
+  "https://idolmaster-official.jp/news/01_20239 (MONTHLY THEME SONG 13 Jupiter 2026/11/25 発売)",
+  "https://itunes.apple.com/lookup?id=6827106803&entity=song&country=jp (Lucent whale / Jupiter / MONTHLY THEME SONG 13 Jupiter - EP / 2026-11-25)"
+ ],
+ "songs": [
+  {
+   "id": "sidem_lucent_whale",
+   "title": "Lucent whale",
+   "title_kana": "るーせんとほえーる",
+   "brand_id": "sidem",
+   "song_type": "unit",
+   "release_date": "2026-11-25",
+   "streaming_date": "2026-11-25",
+   "cd_release_date": "2026-11-25",
+   "apple_music_id": "6827106804",
+   "apple_music_album_id": "6827106803",
+   "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/8f/90/25/8f90257a-bb44-e0d7-f804-dcfec445c5e0/4540774247936.png/600x600bb.jpg",
+   "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/58/ad/77/58ad77fe-0cc8-d947-10d5-232d8bb43934/mzaf_18434500266691432383.plus.aac.p.m4a",
+   "duration_sec": 214,
+   "cd_series": "THE IDOLM@STER SideM ～P@SSION CHALLENGE We are 315!～ MONTHLY THEME SONG 13 Jupiter",
+   "unit_id": "jupiter",
+   "unit_name": "Jupiter",
+   "singer_label": "Jupiter（天ヶ瀬冬馬、御手洗翔太、伊集院北斗）",
+   "original_singers": ["sidem_天ヶ瀬冬馬", "sidem_御手洗翔太", "sidem_伊集院北斗"]
+  }
+ ]
+}

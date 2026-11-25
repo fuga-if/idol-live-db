@@ -1,0 +1,10 @@
+{
+ "title": "Tokyo自由系*ガール / My time 発売記念イベント 第二回",
+ "author": "daily-data-crawl",
+ "source": "GitHub issue #435 (利用者投稿。公式の披露曲記載は見つからず投稿内容で登録) / 出演者: https://shinycolors.lantis.jp/event/260623_1/",
+ "show_id": "sh_the_idolm@ster_shiny_colors_song_for_prism_tokyo自由系_ガール_my_time_発売記念イベント_2",
+ "all_performers": ["sc_杜野凛世", "sc_大崎甘奈", "sc_福丸小糸", "sc_三峰結華"],
+ "songs": [
+  {"position": 1, "song_id": "sc_tokyo自由系ガール", "performers": "all"}
+ ]
+}

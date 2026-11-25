@@ -1,0 +1,18 @@
+{
+ "title": "F@NTASTIC BATTLE FES ～Wanna step in～ 長野公演 配信チケットの受付",
+ "author": "claude (daily-data-crawl 2026-11-26)",
+ "ticket_sales": [
+  {
+   "event_id": "ev_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~",
+   "show_ids": ["sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_1", "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_5", "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_2", "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_6"],
+   "kind": "first_come",
+   "name": "配信チケット(長野公演)",
+   "starts_at": "2026-11-25 12:00",
+   "ends_at": "2027-01-25 18:00",
+   "url": "https://asobistage.asobistore.jp/event/sidem_fbfes_wsi_nagano/ticket",
+   "note": "ASOBI STAGE。配信チケット・配信ストーリーセット・ファンタスティック配信パック/ストーリーパック・定点カメラ映像。販売期間は予定。最速版アーカイブ 本編終了1時間後〜2026-12-28 18:00、視聴コメント付きアーカイブ 2026-12-28 18:00〜2027-01-25 23:59（予定）。",
+   "source_url": "https://idolmaster-official.jp/news/01_20434.html",
+   "sort_order": 10
+  }
+ ]
+}
