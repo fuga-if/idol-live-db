@@ -146,6 +146,14 @@ describe("GET /polls と GET /polls/:id", () => {
 
     const past = await callJson("GET", "/polls?status=past");
     expect(past.body.map((p: any) => p.id)).toEqual(["ended"]);
+
+    // 共通部分は使い回すが、自分の票数・自分のお題かは呼んだ人ごとに変わる。
+    const anon = await callJson("GET", "/polls");
+    expect(anon.body[0]).toMatchObject({ id: "sooner", total_votes: 3, my_vote_count: 0, is_own_poll: false });
+    const owner = await callJson("GET", "/polls", { headers: await bearer(OWNER) });
+    expect(owner.body[0]).toMatchObject({ id: "sooner", my_vote_count: 0, is_own_poll: true });
+    const other = await callJson("GET", "/polls", { headers: await bearer("001094.other") });
+    expect(other.body[0]).toMatchObject({ my_vote_count: 1, is_own_poll: false });
   });
 
   it("months と month: 終了したお題を日本時間の月ごとに数え、月を指定するとその月だけ返す", async () => {
