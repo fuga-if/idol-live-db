@@ -1,0 +1,437 @@
+{
+ "title": "シンデレラガールズのユニット 34 件の追加",
+ "author": "Claude",
+ "source": "https://dic.pixiv.net/a/%E3%82%B7%E3%83%B3%E3%83%87%E3%83%AC%E3%83%A9%E3%82%AC%E3%83%BC%E3%83%AB%E3%82%BA%E3%83%A6%E3%83%8B%E3%83%83%E3%83%88",
+ "note": "オーナーが指定したピクシブ百科事典「シンデレラガールズユニット」の公式ユニット節のうち DB に無かったもの。グッズ展開上のサイバーウィッチと、全員が浜口あやめのくノ一あやめ忍法帖は除いた。",
+ "units": [
+  {
+   "id": "unit_漆黒ノ華",
+   "brand_id": "cg",
+   "name": "漆黒ノ華",
+   "name_alt": "",
+   "is_permanent": 1,
+   "members": [
+    "cg_小日向美穂",
+    "cg_神崎蘭子",
+    "cg_海老原菜帆"
+   ]
+  },
+  {
+   "id": "unit_センス_メイカー",
+   "brand_id": "cg",
+   "name": "センス・メイカー",
+   "name_alt": "",
+   "is_permanent": 1,
+   "members": [
+    "cg_三好紗南",
+    "cg_双葉杏",
+    "cg_橘ありす"
+   ]
+  },
+  {
+   "id": "unit_トリクロマティック_ナチュレ",
+   "brand_id": "cg",
+   "name": "トリクロマティック・ナチュレ",
+   "name_alt": "",
+   "is_permanent": 1,
+   "members": [
+    "cg_五十嵐響子",
+    "cg_高森藍子",
+    "cg_北条加蓮"
+   ]
+  },
+  {
+   "id": "unit_トレジャートライアングル",
+   "brand_id": "cg",
+   "name": "トレジャートライアングル",
+   "name_alt": "",
+   "is_permanent": 1,
+   "members": [
+    "cg_一ノ瀬志希",
+    "cg_浅利七海",
+    "cg_佐藤心"
+   ]
+  },
+  {
+   "id": "unit_ユモレスク_ユニティ",
+   "brand_id": "cg",
+   "name": "ユモレスク・ユニティ",
+   "name_alt": "",
+   "is_permanent": 1,
+   "members": [
+    "cg_神谷奈緒",
+    "cg_小日向美穂",
+    "cg_日野茜"
+   ]
+  },
+  {
+   "id": "unit_K_B_B_B",
+   "brand_id": "cg",
+   "name": "K.B.B.B",
+   "name_alt": "KBBB",
+   "is_permanent": 1,
+   "members": [
+    "cg_輿水幸子",
+    "cg_二宮飛鳥",
+    "cg_夢見りあむ"
+   ]
+  },
+  {
+   "id": "unit_ポニーテール乙女同盟",
+   "brand_id": "cg",
+   "name": "ポニーテール乙女同盟",
+   "name_alt": "",
+   "is_permanent": 1,
+   "members": [
+    "cg_愛野渚",
+    "cg_堀裕子",
+    "cg_椎名法子",
+    "cg_若林智香",
+    "cg_水野翠"
+   ]
+  },
+  {
+   "id": "unit_ミス_フォーチュン_テリング",
+   "brand_id": "cg",
+   "name": "ミス・フォーチュン・テリング",
+   "name_alt": "",
+   "is_permanent": 1,
+   "members": [
+    "cg_白菊ほたる",
+    "cg_道明寺歌鈴",
+    "cg_鷹富士茄子",
+    "cg_藤居朋",
+    "cg_依田芳乃"
+   ]
+  },
+  {
+   "id": "unit_ユメミルオトメノ151_s",
+   "brand_id": "cg",
+   "name": "ユメミルオトメノ151's",
+   "name_alt": "",
+   "is_permanent": 1,
+   "members": [
+    "cg_棟方愛海",
+    "cg_浅利七海",
+    "cg_喜多日菜子",
+    "cg_依田芳乃",
+    "cg_久川颯"
+   ]
+  },
+  {
+   "id": "unit_グランディフローラ",
+   "brand_id": "cg",
+   "name": "グランディフローラ",
+   "name_alt": "",
+   "is_permanent": 1,
+   "members": [
+    "cg_相葉夕美",
+    "cg_高森藍子",
+    "cg_西園寺琴歌"
+   ]
+  },
+  {
+   "id": "unit_クリア_ジェイド",
+   "brand_id": "cg",
+   "name": "クリア・ジェイド",
+   "name_alt": "",
+   "is_permanent": 1,
+   "members": [
+    "cg_緒方智絵里",
+    "cg_今井加奈",
+    "cg_依田芳乃"
+   ]
+  },
+  {
+   "id": "unit_クリスプ_パフォーマー",
+   "brand_id": "cg",
+   "name": "クリスプ・パフォーマー",
+   "name_alt": "",
+   "is_permanent": 1,
+   "members": [
+    "cg_藤本里奈",
+    "cg_大石泉",
+    "cg_江上椿"
+   ]
+  },
+  {
+   "id": "unit_ジョイフルデイズ",
+   "brand_id": "cg",
+   "name": "ジョイフルデイズ",
+   "name_alt": "",
+   "is_permanent": 1,
+   "members": [
+    "cg_鷹富士茄子",
+    "cg_南条光",
+    "cg_喜多日菜子"
+   ]
+  },
+  {
+   "id": "unit_ドリーミーキングダム",
+   "brand_id": "cg",
+   "name": "ドリーミーキングダム",
+   "name_alt": "",
+   "is_permanent": 1,
+   "members": [
+    "cg_森久保乃々",
+    "cg_遊佐こずえ",
+    "cg_関裕美"
+   ]
+  },
+  {
+   "id": "unit_秘密結社三つ編み",
+   "brand_id": "cg",
+   "name": "秘密結社三つ編み",
+   "name_alt": "",
+   "is_permanent": 1,
+   "members": [
+    "cg_氏家むつみ",
+    "cg_奥山沙織",
+    "cg_赤西瑛梨華"
+   ]
+  },
+  {
+   "id": "unit_プチ＊パフェアリー",
+   "brand_id": "cg",
+   "name": "プチ＊パフェアリー",
+   "name_alt": "",
+   "is_permanent": 1,
+   "members": [
+    "cg_遊佐こずえ",
+    "cg_佐城雪美",
+    "cg_双葉杏"
+   ]
+  },
+  {
+   "id": "unit_ポラリス_ノーツ",
+   "brand_id": "cg",
+   "name": "ポラリス・ノーツ",
+   "name_alt": "",
+   "is_permanent": 1,
+   "members": [
+    "cg_アナスタシア",
+    "cg_工藤忍",
+    "cg_塩見周子"
+   ]
+  },
+  {
+   "id": "unit_Tempest_Kids",
+   "brand_id": "cg",
+   "name": "Tempest Kids",
+   "name_alt": "",
+   "is_permanent": 1,
+   "members": [
+    "cg_赤城みりあ",
+    "cg_小関麗奈",
+    "cg_遊佐こずえ"
+   ]
+  },
+  {
+   "id": "unit_青森四姉妹",
+   "brand_id": "cg",
+   "name": "青森四姉妹",
+   "name_alt": "",
+   "is_permanent": 1,
+   "members": [
+    "cg_工藤忍",
+    "cg_水本ゆかり",
+    "cg_棟方愛海",
+    "cg_浅利七海"
+   ]
+  },
+  {
+   "id": "unit_プレシャスホワイト",
+   "brand_id": "cg",
+   "name": "プレシャスホワイト",
+   "name_alt": "",
+   "is_permanent": 1,
+   "members": [
+    "cg_和久井留美",
+    "cg_服部瞳子",
+    "cg_三船美優",
+    "cg_安部菜々"
+   ]
+  },
+  {
+   "id": "unit_天穹翔姫",
+   "brand_id": "cg",
+   "name": "天穹翔姫",
+   "name_alt": "",
+   "is_permanent": 1,
+   "members": [
+    "cg_鷺沢文香",
+    "cg_鷹富士茄子",
+    "cg_藤原肇",
+    "cg_依田芳乃"
+   ]
+  },
+  {
+   "id": "unit_ポイズンリリック",
+   "brand_id": "cg",
+   "name": "ポイズンリリック",
+   "name_alt": "",
+   "is_permanent": 1,
+   "members": [
+    "cg_白坂小梅",
+    "cg_神崎蘭子",
+    "cg_二宮飛鳥",
+    "cg_一ノ瀬志希",
+    "cg_宮本フレデリカ"
+   ]
+  },
+  {
+   "id": "unit_GIRLS_BE_NEXT_STEPS_with_乃々",
+   "brand_id": "cg",
+   "name": "GIRLS BE NEXT STEPS with 乃々",
+   "name_alt": "GIRLS BE NEXT ONE STEPS",
+   "is_permanent": 1,
+   "members": [
+    "cg_関裕美",
+    "cg_白菊ほたる",
+    "cg_松尾千鶴",
+    "cg_岡崎泰葉",
+    "cg_森久保乃々"
+   ]
+  },
+  {
+   "id": "unit_スウィートラブチェリー",
+   "brand_id": "cg",
+   "name": "スウィートラブチェリー",
+   "name_alt": "",
+   "is_permanent": 1,
+   "members": [
+    "cg_三村かな子",
+    "cg_佐久間まゆ",
+    "cg_緒方智絵里"
+   ]
+  },
+  {
+   "id": "unit_アズールブルー",
+   "brand_id": "cg",
+   "name": "アズールブルー",
+   "name_alt": "",
+   "is_permanent": 1,
+   "members": [
+    "cg_水野翠",
+    "cg_藤原肇",
+    "cg_綾瀬穂乃香"
+   ]
+  },
+  {
+   "id": "unit_レジスタ_ファンタジスタ",
+   "brand_id": "cg",
+   "name": "レジスタ・ファンタジスタ",
+   "name_alt": "",
+   "is_permanent": 1,
+   "members": [
+    "cg_吉岡沙紀",
+    "cg_結城晴",
+    "cg_東郷あい"
+   ]
+  },
+  {
+   "id": "unit_イグニッションZERO",
+   "brand_id": "cg",
+   "name": "イグニッションZERO",
+   "name_alt": "",
+   "is_permanent": 1,
+   "members": [
+    "cg_小関麗奈",
+    "cg_三好紗南",
+    "cg_南条光"
+   ]
+  },
+  {
+   "id": "unit_Louder×Louder",
+   "brand_id": "cg",
+   "name": "Louder×Louder",
+   "name_alt": "",
+   "is_permanent": 1,
+   "members": [
+    "cg_仙崎恵磨",
+    "cg_日野茜",
+    "cg_星輝子"
+   ]
+  },
+  {
+   "id": "unit_クロックワークメモリー",
+   "brand_id": "cg",
+   "name": "クロックワークメモリー",
+   "name_alt": "",
+   "is_permanent": 1,
+   "members": [
+    "cg_斉藤洋子",
+    "cg_岡崎泰葉",
+    "cg_神谷奈緒",
+    "cg_中野有香"
+   ]
+  },
+  {
+   "id": "unit_BLACK_DESIRE",
+   "brand_id": "cg",
+   "name": "BLACK DESIRE",
+   "name_alt": "",
+   "is_permanent": 1,
+   "members": [
+    "cg_星輝子",
+    "cg_黒川千秋",
+    "cg_大西由里子"
+   ]
+  },
+  {
+   "id": "unit_チームヘラクレス",
+   "brand_id": "cg",
+   "name": "チームヘラクレス",
+   "name_alt": "",
+   "is_permanent": 1,
+   "members": [
+    "cg_相葉夕美",
+    "cg_安部菜々",
+    "cg_城ヶ崎莉嘉",
+    "cg_多田李衣菜",
+    "cg_新田美波"
+   ]
+  },
+  {
+   "id": "unit_下ツインテール三姉妹",
+   "brand_id": "cg",
+   "name": "下ツインテール三姉妹",
+   "name_alt": "",
+   "is_permanent": 1,
+   "members": [
+    "cg_双葉杏",
+    "cg_久川凪",
+    "cg_遊佐こずえ"
+   ]
+  },
+  {
+   "id": "unit_EMBER_LAST",
+   "brand_id": "cg",
+   "name": "EMBER LAST",
+   "name_alt": "",
+   "is_permanent": 1,
+   "members": [
+    "cg_松永涼",
+    "cg_大和亜季",
+    "cg_中野有香",
+    "cg_前川みく",
+    "cg_姫川友紀"
+   ]
+  },
+  {
+   "id": "unit_キュリオスター",
+   "brand_id": "cg",
+   "name": "キュリオスター",
+   "name_alt": "",
+   "is_permanent": 1,
+   "members": [
+    "cg_佐々木千枝",
+    "cg_市原仁奈",
+    "cg_橘ありす",
+    "cg_龍崎薫",
+    "cg_棟方愛海",
+    "cg_遊佐こずえ"
+   ]
+  }
+ ]
+}
