@@ -2,7 +2,8 @@ import Foundation
 import os
 
 /// UnitListView のオーケストレーション担当 (IdolListViewModel と同じ役割分担)。
-/// 表示対象は「曲ありユニットのみ」(`UnitIndex.unitsWithSongs`) に絞る。
+/// 表示対象は全ユニット。曲の無いユニット (ゲーム内のライバルユニット等) も一覧・検索に出す
+/// (2026-11-25 オーナー判断。以前は曲ありだけで、登録したユニットが探せなかった)。
 @MainActor
 @Observable
 final class UnitListViewModel {
@@ -41,7 +42,7 @@ final class UnitListViewModel {
         defer { isLoading = false }
         do {
             async let b = brandReading.brands()
-            async let u = unitReading.unitsWithSongs()
+            async let u = unitReading.unitIndex().units
             let (loadedBrands, loadedUnits) = try await (b, u)
             brands = loadedBrands
             units = loadedUnits

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// ユニット一覧 (曲ありユニットのみ) の単独 push 先。中身は `UnitListContent` に委譲する。
+/// ユニット一覧 (曲の無いユニットも含む全件) の単独 push 先。中身は `UnitListContent` に委譲する。
 /// `IdolListView` の「ユニット」タブは `UnitListContent` を直接埋め込んで使うため、
 /// このラッパーは単独 push で開きたい呼び出し元向けに残してある。
 struct UnitListView: View {

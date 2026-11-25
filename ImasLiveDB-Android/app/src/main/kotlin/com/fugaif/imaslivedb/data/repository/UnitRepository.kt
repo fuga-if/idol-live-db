@@ -45,7 +45,18 @@ class UnitRepository(
         }
     }
 
-    /** ユニット一覧画面用。曲ありユニットのみ返す (ブランドでのグルーピングは呼び出し側で行う)。 */
+    /**
+     * ユニット一覧画面用。曲の無いユニットも含む全件 (iOS `UnitListViewModel` と同じ)。
+     * 並びは名前の BINARY 順。ブランドでのグルーピングは呼び出し側で行う。
+     */
+    suspend fun fetchAllUnitsForList(): List<ImasUnit> =
+        snapshots.query { store ->
+            store.unitIndexRecord().units
+                .map { it.toUnit() }
+                .sortedWith(compareBy(SQLITE_BINARY_ORDER, ImasUnit::name))
+        }
+
+    /** 投票候補などの曲ありユニットのみ (ブランドでのグルーピングは呼び出し側で行う)。 */
     suspend fun fetchUnitsForList(): List<ImasUnit> =
         snapshots.query { store ->
             // unitIndexRecord は「全ユニット + 曲ありユニット id」を 1 呼び出しで返す。

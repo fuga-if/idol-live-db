@@ -26,7 +26,7 @@ data class UnitListUiState(
 
 /**
  * ユニット一覧。`IdolListScreen`/`IdolListViewModel` と同じ骨格 (ブランド別グルーピング + list/grid 切替 + 検索)を
- * 「曲ありユニットのみ」に適用したもの。ユニットにはアイドルのような担当/お気に入りマークが無いため
+ * 全ユニットに適用したもの。ユニットにはアイドルのような担当/お気に入りマークが無いため
  * フィルタシートは持たない。
  */
 class UnitListViewModel(app: Application) : AndroidViewModel(app) {
@@ -51,7 +51,7 @@ class UnitListViewModel(app: Application) : AndroidViewModel(app) {
     private fun load() {
         viewModelScope.launch {
             val brands = statsRepo.fetchBrands()
-            val units = repo.fetchUnitsForList()
+            val units = repo.fetchAllUnitsForList()
             _uiState.value = _uiState.value.copy(brands = brands, units = units, isLoading = false)
         }
     }

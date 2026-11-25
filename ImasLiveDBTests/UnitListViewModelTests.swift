@@ -14,14 +14,14 @@ final class UnitListViewModelTests: XCTestCase {
 
     private struct FakeUnitReading: UnitReading {
         var unitsToReturn: [ImasLiveDB.Unit] = []
+        /// 曲ありとして返す id。nil なら全件を曲ありにする。
+        var songUnitIds: Set<String>? = nil
 
-        /// 一覧は `unitsWithSongs()` を通る (= 曲ありユニットだけ)。
-        /// 既定実装が `unitIndex()` から組むので、ここは全件を「曲あり」として返す。
         func unitIndex() async throws -> UnitIndex {
             UnitIndex(
                 units: unitsToReturn,
                 memberIds: [:],
-                unitsWithSongs: Set(unitsToReturn.map(\.id))
+                unitsWithSongs: songUnitIds ?? Set(unitsToReturn.map(\.id))
             )
         }
 
@@ -50,9 +50,11 @@ final class UnitListViewModelTests: XCTestCase {
         )
     }
 
-    private func loadedViewModel(_ units: [ImasLiveDB.Unit]) async -> UnitListViewModel {
+    private func loadedViewModel(
+        _ units: [ImasLiveDB.Unit], songUnitIds: Set<String>? = nil
+    ) async -> UnitListViewModel {
         let vm = UnitListViewModel(
-            unitReading: FakeUnitReading(unitsToReturn: units),
+            unitReading: FakeUnitReading(unitsToReturn: units, songUnitIds: songUnitIds),
             brandReading: FakeBrandReading(brandsToReturn: [
                 Brand(id: "cg", name: "シンデレラガールズ", shortName: "CG",
                       color: nil, sortOrder: 0)
@@ -68,6 +70,18 @@ final class UnitListViewModelTests: XCTestCase {
     }
 
     // MARK: - Tests
+
+    /// 曲の無いユニット (モバマスのライバルユニット等) も一覧と検索に出る。
+    /// 以前は曲ありだけに絞っていて、「はーと」でハートウォーマーが出なかった。
+    func testUnitsWithoutSongsAreListedAndSearchable() async {
+        let vm = await loadedViewModel(
+            [makeUnit("u1", name: "ハートリット"), makeUnit("u2", name: "ハートウォーマー")],
+            songUnitIds: ["u1"]
+        )
+
+        XCTAssertEqual(Set(names(vm, "")), ["ハートリット", "ハートウォーマー"])
+        XCTAssertEqual(Set(names(vm, "はーと")), ["ハートリット", "ハートウォーマー"])
+    }
 
     /// ひらがな↔カタカナを畳む。手書きの `contains` に戻したらここが落ちる。
     func testSearchFoldsKanaLikeEveryOtherList() async {
