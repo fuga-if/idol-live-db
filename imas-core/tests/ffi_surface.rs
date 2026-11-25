@@ -632,6 +632,7 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_votes_remaining,
     uniffi_imas_core_checksum_func_featured_poll_index,
     uniffi_imas_core_checksum_func_poll_my_vote_badge,
+    uniffi_imas_core_checksum_func_poll_create_quota_note,
     uniffi_imas_core_checksum_func_week_timed_layout,
     uniffi_imas_core_checksum_func_weighted_sample_indices,
     uniffi_imas_core_checksum_func_year_range_display,

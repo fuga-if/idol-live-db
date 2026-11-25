@@ -122,6 +122,29 @@ describe("POST /polls (お題の作成)", () => {
   });
 });
 
+describe("GET /polls/quota (今日あと何件作れるか)", () => {
+  it("未ログインは 401。作るたびに減り、使い切ると 0 (429 で弾いた分も 0 のまま)。読むだけでは減らない", async () => {
+    expect((await callJson("GET", "/polls/quota")).status).toBe(401);
+    await insertUser(OWNER);
+    const quota = async () => (await callJson("GET", "/polls/quota", { headers: await bearer(OWNER) })).body;
+
+    const first = await quota();
+    expect(first).toMatchObject({ used: 0, limit: 5, remaining: 5 });
+    expect(new Date(first.reset_at).getUTCHours()).toBe(0);
+    expect((await quota()).remaining).toBe(5);
+
+    for (let i = 0; i < 2; i++) {
+      await callJson("POST", "/polls", { headers: await bearer(OWNER), body: { title: `q${i}`, target_type: "song" } });
+    }
+    expect(await quota()).toMatchObject({ used: 2, remaining: 3 });
+
+    for (let i = 2; i < 6; i++) {
+      await callJson("POST", "/polls", { headers: await bearer(OWNER), body: { title: `q${i}`, target_type: "song" } });
+    }
+    expect(await quota()).toMatchObject({ used: 6, limit: 5, remaining: 0 });
+  });
+});
+
 describe("GET /polls と GET /polls/:id", () => {
   it("一覧: 開催中は締切の近い順、past は終了したもの。自分の票数と 1 位を載せる", async () => {
     await insertPoll("later", { endsIn: "+3 days" });

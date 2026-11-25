@@ -211,9 +211,55 @@ pub fn plan_vote_selection(
     VoteSelectionPlan { overflow: (fresh.len() - to_vote.len()) as u32, to_vote, to_unvote }
 }
 
+/// お題の作成画面に出す「今日あと何件作れるか」。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct PollCreateQuotaNote {
+    /// 画面に出す 1 文。
+    pub text: String,
+    /// 今日の分を使い切ったか。真なら送信を押せなくし、文は注意として出す。
+    pub is_exhausted: bool,
+}
+
+/// お題の 1 日の作成枠 (サーバの `GET /polls/quota`) から、作成画面の文を作る。
+///
+/// 枠はサーバの日付 (UTC) で数えるので、戻る時刻は日本時間なら 9:00。`reset_hour` /
+/// `reset_minute` は戻る時刻を端末の時刻に直したもの (呼ぶ側が `reset_at` から作る)。
+/// サーバが上限を超えて数えていても (429 を返した分も数に入る) 残りは 0 に丸める。
+pub fn poll_create_quota_note(remaining: u32, limit: u32, reset_hour: u32, reset_minute: u32) -> PollCreateQuotaNote {
+    if remaining == 0 {
+        return PollCreateQuotaNote {
+            text: format!(
+                "今日作れるお題は使い切りました（1日{limit}件まで）。{}:{:02}からまた作れます。",
+                reset_hour % 24,
+                reset_minute % 60
+            ),
+            is_exhausted: true,
+        };
+    }
+    PollCreateQuotaNote {
+        text: format!("今日はあと{}件作れます（1日{limit}件まで）", remaining.min(limit)),
+        is_exhausted: false,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn poll_create_quota_note_counts_down_and_says_when_it_comes_back() {
+        let n = poll_create_quota_note(3, 5, 9, 0);
+        assert_eq!(n.text, "今日はあと3件作れます（1日5件まで）");
+        assert!(!n.is_exhausted);
+        assert_eq!(poll_create_quota_note(5, 5, 9, 0).text, "今日はあと5件作れます（1日5件まで）");
+        let n = poll_create_quota_note(0, 5, 9, 0);
+        assert_eq!(n.text, "今日作れるお題は使い切りました（1日5件まで）。9:00からまた作れます。");
+        assert!(n.is_exhausted);
+        // 30 分ずれの地域でも分まで出す。
+        assert_eq!(poll_create_quota_note(0, 5, 5, 30).text, "今日作れるお題は使い切りました（1日5件まで）。5:30からまた作れます。");
+        // 上限より多い残りは上限に丸める。
+        assert_eq!(poll_create_quota_note(9, 5, 9, 0).text, "今日はあと5件作れます（1日5件まで）");
+    }
 
     #[test]
     fn poll_my_vote_badge_marks_only_voted_polls() {

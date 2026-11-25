@@ -7,7 +7,7 @@
 //    ステータスコードも Cache-Control も変えていない。
 
 import { getAuthUser } from "../auth";
-import { checkRateLimit, VOTE_LIMIT } from "../rate_limit";
+import { checkRateLimit, peekRateLimit, VOTE_LIMIT } from "../rate_limit";
 import { upsertUser, checkIsAdmin } from "../users";
 import {
   parsePositiveInt, parseScopeIds, validateScopeIdsAgainstTable,
@@ -42,6 +42,17 @@ export async function handlePolls(ctx: RouteContext): Promise<Response | null> {
           count: r.count,
         }))
       );
+    }
+
+    // ----------------------------------------------------------------
+    // GET /polls/quota — 今日あと何件お題を作れるか (auth必須)。作成画面の頭に出す
+    //   ※ /polls/:id より前に置く。数えるだけで枠は使わない。人ごとの値なので no-store
+    // ----------------------------------------------------------------
+    if (path === "/polls/quota" && request.method === "GET") {
+      const user = await getAuthUser(request, env);
+      if (!user) return error("Unauthorized", 401);
+      const quota = await peekRateLimit(env.DB, user.uid, "poll");
+      return json(quota, 200, { "Cache-Control": "private, no-store" });
     }
 
     // ----------------------------------------------------------------

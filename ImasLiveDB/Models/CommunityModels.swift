@@ -487,6 +487,33 @@ struct PollMonth: Codable, Hashable, Sendable {
     let count: Int
 }
 
+/// お題の 1 日の作成枠 (`GET /polls/quota`)。枠はサーバの日付 (UTC) で数える。
+struct PollCreateQuota: Codable, Equatable, Sendable {
+    let used: Int
+    let limit: Int
+    let remaining: Int
+    /// 枠が戻る時刻 (ISO 8601、UTC の翌 0 時)。
+    let resetAt: String
+
+    /// 作成画面に出す文と、使い切ったか。戻る時刻は端末の時刻で出す。文言はコア (`poll_create_quota_note`)。
+    func note(calendar: Calendar = .current) -> PollCreateQuotaNote {
+        let reset = Self.parseResetAt(resetAt)
+        let parts = reset.map { calendar.dateComponents([.hour, .minute], from: $0) }
+        return pollCreateQuotaNote(
+            remaining: UInt32(clamping: max(0, remaining)),
+            limit: UInt32(clamping: max(0, limit)),
+            resetHour: UInt32(clamping: parts?.hour ?? 0),
+            resetMinute: UInt32(clamping: parts?.minute ?? 0)
+        )
+    }
+
+    private static func parseResetAt(_ text: String) -> Date? {
+        let withFraction = ISO8601DateFormatter()
+        withFraction.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return withFraction.date(from: text) ?? ISO8601DateFormatter().date(from: text)
+    }
+}
+
 /// 終了タブの 1 か月分。
 struct PollMonthSection: Identifiable, Sendable {
     var id: String { month.month }

@@ -1,6 +1,6 @@
 //! コミュニティ投稿の上限の FFI 面。規則は [`crate::domain::community_limits`]。
 
-use crate::domain::community_limits::{self as domain, InputField, VoteSelectionPlan};
+use crate::domain::community_limits::{self as domain, InputField, PollCreateQuotaNote, VoteSelectionPlan};
 
 /// その入力欄の上限 (タグ名 30・タグの説明 300・表示名 40・お題 80・お題の説明 280)。
 #[uniffi::export]
@@ -51,6 +51,12 @@ pub fn featured_poll_index(my_vote_counts: Vec<u32>, current: Option<u32>, seed:
 #[uniffi::export]
 pub fn poll_my_vote_badge(my_vote_count: u32, is_active: bool) -> Option<String> {
     domain::poll_my_vote_badge(my_vote_count, is_active)
+}
+
+/// お題の作成画面の「今日あと N 件作れます」。`reset_hour` / `reset_minute` は枠が戻る時刻を端末の時刻にしたもの。
+#[uniffi::export]
+pub fn poll_create_quota_note(remaining: u32, limit: u32, reset_hour: u32, reset_minute: u32) -> PollCreateQuotaNote {
+    domain::poll_create_quota_note(remaining, limit, reset_hour, reset_minute)
 }
 
 /// 選択肢で選んだ結果から、入れる対象・取り消す対象・溢れた数を決める。

@@ -54,6 +54,10 @@ final class FakeCommunityVoting: CommunityVoting {
 
     func pollAchievements(entityId: String) async throws -> [PollAchievement] { [] }
 
+    func pollCreateQuota() async throws -> PollCreateQuota {
+        PollCreateQuota(used: 0, limit: 5, remaining: 5, resetAt: "2026-11-26T00:00:00.000Z")
+    }
+
     var createPollResult: Poll?
     private(set) var createPollCalls: [(scope: PollCandidateScope, brandIds: [String]?, entityIds: [String]?)] = []
 

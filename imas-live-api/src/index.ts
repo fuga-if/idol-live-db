@@ -204,6 +204,7 @@ async function handleRoot(ctx: RouteContext): Promise<Response | null> {
       "POST /shows/:id/songs/:songId/like",
       "DELETE /shows/:id/songs/:songId/like",
       "GET /polls",
+      "GET /polls/quota",
       "GET /polls/:id",
       "POST /polls",
       "POST /polls/:id/votes",

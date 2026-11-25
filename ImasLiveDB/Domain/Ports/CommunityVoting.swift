@@ -20,6 +20,8 @@ protocol CommunityVoting: Sendable {
     func poll(id: String) async throws -> PollDetail
     /// ある曲/アイドルが終了お題で取った順位 (詳細バッジ用)。
     func pollAchievements(entityId: String) async throws -> [PollAchievement]
+    /// 今日あと何件お題を作れるか (作成画面の頭に出す。読むだけで枠は使わない)。
+    func pollCreateQuota() async throws -> PollCreateQuota
     /// 新しいお題を作成。
     /// - Parameters:
     ///   - candidateScope: 候補スコープ。`.all` で旧来挙動。

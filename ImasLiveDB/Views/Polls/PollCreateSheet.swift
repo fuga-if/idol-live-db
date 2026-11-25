@@ -24,6 +24,8 @@ struct PollCreateSheet: View {
     @State private var showUnitPicker = false
     @State private var isSubmitting = false
     @State private var errorMessage: String?
+    /// 今日あと何件作れるか。読めなかったとき (古いサーバ・オフライン) は出さず、送信も止めない。
+    @State private var quotaNote: PollCreateQuotaNote?
 
     private let dayOptions = [7, 14, 30]
     private var days: Int { dayOptions[dayIndex] }
@@ -49,6 +51,7 @@ struct PollCreateSheet: View {
 
     private var canSubmit: Bool {
         guard InputLimits.isAcceptable(.pollTitle, title), !isSubmitting else { return false }
+        if quotaNote?.isExhausted == true { return false }
         switch scope {
         case .all: return true
         case .brand: return !selectedBrandIds.isEmpty
@@ -60,6 +63,8 @@ struct PollCreateSheet: View {
         NavigationStack {
             ImasFormPage {
                 ImasNote("お題を作って、みんなに推しを投票してもらおう。期間中は誰でも\(CommunityVoteLimit.perTarget)票まで投票できます。")
+
+                quotaSection
 
                 ImasFormCard {
                     ImasFormField(label: "タイトル", imprint: "TITLE") {
@@ -118,6 +123,7 @@ struct PollCreateSheet: View {
                 AppAnalytics.tap("poll_create.submit")
                 Task { await submit() }
             }))
+            .task { await loadQuota() }
             .task {
                 async let brandsTask = AppContainer.shared.brandReading.brands()
                 async let idolsTask = AppContainer.shared.idolReading.idols(brandId: nil)
@@ -147,6 +153,25 @@ struct PollCreateSheet: View {
                 unitPickerSheet
             }
         }
+    }
+
+    // MARK: - 今日の作成枠
+
+    /// 書き始める前に分かるよう、案内のすぐ下に出す。使い切ったら読まないと困るので注意にする。
+    @ViewBuilder
+    private var quotaSection: some View {
+        if let quotaNote {
+            if quotaNote.isExhausted {
+                ImasNotice(kind: .warning, message: quotaNote.text)
+            } else {
+                ImasNote(quotaNote.text, systemImage: "square.and.pencil")
+            }
+        }
+    }
+
+    private func loadQuota() async {
+        guard let quota = try? await AppContainer.shared.communityVoting.pollCreateQuota() else { return }
+        quotaNote = quota.note()
     }
 
     // MARK: - スコープ選択
@@ -315,6 +340,8 @@ struct PollCreateSheet: View {
             // APIClientError の説明 (認証エラー/上限到達等) をそのまま見せる
             errorMessage = (error as? APIClientError)?.errorDescription
                 ?? "作成に失敗しました。時間をおいて再試行してください。"
+            // 弾かれた送信も枠に数えられるので、残りを読み直す (上限に達していれば送信を止める)。
+            await loadQuota()
         }
     }
 }

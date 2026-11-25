@@ -105,6 +105,32 @@ export async function checkRateLimit(
   };
 }
 
+export interface RateLimitQuota {
+  used: number;
+  limit: number;
+  /** あと何回使えるか (0 未満にはしない。429 で弾いた分も used に数えているため)。 */
+  remaining: number;
+  reset_at: string;
+}
+
+/**
+ * 今日の枠の使用量を読むだけ (+1 しない)。作成画面に「今日あと N 件」を出すために使う。
+ * 数え方は checkRateLimit と同じ行 (user_id, 今日の UTC 日付, action)。
+ */
+export async function peekRateLimit(
+  db: D1Database,
+  userId: string,
+  action: RateLimitAction
+): Promise<RateLimitQuota> {
+  const limit = LIMITS[action];
+  const row = await db
+    .prepare("SELECT count FROM rate_limits WHERE user_id = ? AND date = ? AND action = ?")
+    .bind(userId, todayUtc(), action)
+    .first<{ count: number }>();
+  const used = row?.count ?? 0;
+  return { used, limit, remaining: Math.max(limit - used, 0), reset_at: tomorrowMidnightUtc() };
+}
+
 /**
  * IP 単位の割り当て。未認証エンドポイント (auth/login 等) や device 集計の
  * 一次防御に使う。user/device 単位の checkRateLimit とは別枠。

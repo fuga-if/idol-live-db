@@ -554,6 +554,10 @@ actor CommunityAPI {
         return try await APIClient.shared.request("GET", path: "/polls/achievements/\(entityId)")
     }
 
+    func pollCreateQuota() async throws -> PollCreateQuota {
+        return try await APIClient.shared.request("GET", path: "/polls/quota", authorized: true)
+    }
+
     func createPoll(
         title: String,
         description: String?,
