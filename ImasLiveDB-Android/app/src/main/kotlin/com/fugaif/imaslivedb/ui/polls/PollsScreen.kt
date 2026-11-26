@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -25,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,12 +35,14 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.LaunchedEffect
+import com.fugaif.imaslivedb.data.community.CommunityApi
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.designsystem.ImasContentState
 import com.fugaif.imaslivedb.ui.designsystem.ImasDateHeader
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyStateKind
 import com.fugaif.imaslivedb.ui.designsystem.ImasInlineLoading
+import com.fugaif.imaslivedb.ui.designsystem.ImasListSummary
 import com.fugaif.imaslivedb.ui.designsystem.ImasRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasRowPosition
 import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
@@ -104,6 +108,23 @@ fun PollsScreen(
                 isEmpty -> ImasContentState.Empty
                 else -> ImasContentState.Loaded
             }
+            if (uiContentState == ImasContentState.Loaded) {
+                // 件数 / 並び替え。並びはその場のメニューで切り替える (曲一覧と同じ部品)。
+                // 開催中は 20 件ずつしか読まないので件数はサーバの総数。取れなかったときは読んだ件数で、
+                // まだ続きがあれば「件以上」にする (読んだ分を総数のように見せない)。
+                val loadedCount = if (state.showActive) state.cards.size else state.pastSections.sumOf { it.cards.size }
+                val hasMore = if (state.showActive) state.hasMoreActive else state.hasMorePast
+                ImasListSummary(
+                    count = state.totalCount ?: loadedCount,
+                    unit = if (state.totalCount == null && hasMore) "件以上" else "件",
+                    sortOptions = CommunityApi.PollSortKey.entries,
+                    sortSelection = state.sort.key,
+                    onSortChange = viewModel::setSortKey,
+                    sortLabel = { it.label(state.showActive) },
+                    sortAscending = state.sort.ascending,
+                    onSortAscendingChange = viewModel::setSortAscending
+                )
+            }
             ImasStateContainer(
                 state = uiContentState,
                 modifier = Modifier.fillMaxSize(),
@@ -123,7 +144,18 @@ fun PollsScreen(
                     }
                 }
             ) {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                val listState = rememberLazyListState()
+                // 並びを変えたら先頭から読み直すので、見る位置も先頭へ戻す (途中に居残ると何順か分からなくなる)。
+                // 詳細から戻って画面に入り直したときは戻さない (見ていた位置を保つ) ので、最後に戻した並びを覚えておく。
+                val sortKey = "${state.showActive}:${state.sort.query}"
+                var scrolledFor by rememberSaveable { mutableStateOf(sortKey) }
+                LaunchedEffect(sortKey) {
+                    if (scrolledFor != sortKey) {
+                        scrolledFor = sortKey
+                        listState.scrollToItem(0)
+                    }
+                }
+                LazyColumn(modifier = Modifier.fillMaxSize(), state = listState) {
                     if (!authState.isSignedIn) {
                         item {
                             ImasSignInPrompt(

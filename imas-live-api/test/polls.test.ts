@@ -207,6 +207,51 @@ describe("GET /polls と GET /polls/:id", () => {
     expect((await callJson("GET", "/polls?status=past&month=2026-9")).status).toBe(400);
   });
 
+  it("sort と order: 締切・作った日時・票数で並べ、向きを変えられる。省略時は今までと同じ", async () => {
+    const at = (id: string, createdAgo: string, endsIn: string) =>
+      exec(
+        `INSERT INTO polls (id, title, description, target_type, created_by, created_at, ends_at, status, candidate_scope)
+         VALUES (?, ?, NULL, 'song', ?, datetime('now', ?), datetime('now', ?), 'active', 'all')`,
+        id, `title-${id}`, OWNER, createdAgo, endsIn
+      );
+    // 締切: soon < mid < late / 作った日時: late が新しい、soon が古い / 票: mid 3 > late 1 > soon 0
+    await at("soon", "-3 days", "+1 day");
+    await at("mid", "-2 days", "+3 days");
+    await at("late", "-1 day", "+5 days");
+    await at("gone", "-9 days", "-1 day");
+    await insertUser(VOTER);
+    await insertUser("001094.other");
+    await vote("mid", "s1");
+    await vote("mid", "s2");
+    await vote("mid", "s1", "001094.other");
+    await vote("late", "s1");
+    const ids = async (query: string) => (await callJson("GET", `/polls${query}`)).body.map((p: any) => p.id);
+
+    expect(await ids("")).toEqual(["soon", "mid", "late"]);
+    expect(await ids("?sort=ends&order=desc")).toEqual(["late", "mid", "soon"]);
+    // 作った日時・票数は向きを省くと新しい順・多い順。
+    expect(await ids("?sort=created")).toEqual(["late", "mid", "soon"]);
+    expect(await ids("?sort=created&order=asc")).toEqual(["soon", "mid", "late"]);
+    expect(await ids("?sort=votes")).toEqual(["mid", "late", "soon"]);
+    expect(await ids("?sort=votes&order=asc")).toEqual(["soon", "late", "mid"]);
+    // 票数順でも offset で続きを読める (並べてからページを切る)。
+    expect(await ids("?sort=votes&limit=1&offset=1")).toEqual(["late"]);
+    // 知らない軸は締切に倒す。終了したお題は並べ替えても混ざらない。
+    expect(await ids("?sort=nope")).toEqual(["soon", "mid", "late"]);
+    expect(await ids("?status=past&sort=votes")).toEqual(["gone"]);
+  });
+
+  it("counts: 開催中と終了のお題を数える (削除したお題は数えない)", async () => {
+    await insertPoll("open1", { endsIn: "+1 day" });
+    await insertPoll("open2", { endsIn: "+2 days" });
+    await insertPoll("ended", { endsIn: "-1 day" });
+    await insertPoll("removed", { status: "removed" });
+
+    const res = await callJson("GET", "/polls/counts");
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ active: 2, past: 1 });
+  });
+
   it("is_own_poll: 呼び出した人が作ったお題だけ true。未ログインはすべて false", async () => {
     await insertPoll("mine", { createdBy: VOTER });
     await insertPoll("theirs");

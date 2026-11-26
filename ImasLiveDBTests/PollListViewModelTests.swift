@@ -83,6 +83,93 @@ final class PollListViewModelTests: XCTestCase {
         XCTAssertEqual(fake.activePageCalls.last?.limit, 45)
     }
 
+    func testDefaultSortIsDeadlineSoonestFirstForActiveAndNewestFirstForPast() async {
+        let fake = FakeCommunityVoting()
+        fake.pollsByStatus["active"] = [makePoll(id: "p1", active: true)]
+        fake.monthsToReturn = [PollMonth(month: "2026-10", label: "2026.10", count: 1)]
+        let vm = PollListViewModel(voting: fake)
+
+        await vm.load(active: true)
+        await vm.load(active: false)
+
+        XCTAssertEqual(fake.activePageCalls.last?.sort, PollListSort(key: .deadline, ascending: true))
+        XCTAssertEqual(fake.pastPollSorts.last, PollListSort(key: .deadline, ascending: false))
+    }
+
+    func testChangingSortKeyResetsDirectionAndReadsFromTheTop() async {
+        let fake = FakeCommunityVoting()
+        fake.pollsByStatus["active"] = (0..<45).map { makePoll(id: "a\($0)", active: true) }
+        let vm = PollListViewModel(voting: fake)
+        await vm.load(active: true)
+        await vm.loadMoreActive()
+        XCTAssertEqual(vm.polls(active: true).count, 40)
+
+        // 票数順は多い順から。読み進めた 40 件は捨てて先頭の 20 件から読み直す。
+        await vm.changeSortKey(.votes, active: true)
+        XCTAssertEqual(vm.sort(active: true), PollListSort(key: .votes, ascending: false))
+        XCTAssertEqual(fake.activePageCalls.last?.offset, 0)
+        XCTAssertEqual(fake.activePageCalls.last?.limit, PollListViewModel.activePageSize)
+        XCTAssertEqual(vm.polls(active: true).count, 20)
+
+        await vm.changeSortAscending(true, active: true)
+        XCTAssertEqual(fake.activePageCalls.last?.sort, PollListSort(key: .votes, ascending: true))
+
+        // 続きも今の並びで読む。
+        await vm.loadMoreActive()
+        XCTAssertEqual(fake.activePageCalls.last?.offset, 20)
+        XCTAssertEqual(fake.activePageCalls.last?.sort, PollListSort(key: .votes, ascending: true))
+
+        // 終了タブの並びは別に持つ。
+        XCTAssertEqual(vm.sort(active: false), .standard(active: false))
+    }
+
+    func testSameSortDoesNotReload() async {
+        let fake = FakeCommunityVoting()
+        fake.pollsByStatus["active"] = [makePoll(id: "p1", active: true)]
+        let vm = PollListViewModel(voting: fake)
+        await vm.load(active: true)
+
+        await vm.changeSortKey(.deadline, active: true)
+        await vm.changeSortAscending(true, active: true)
+
+        XCTAssertEqual(fake.activePageCalls.count, 1)
+    }
+
+    func testPastSortGoesBackToNewestMonthOnly() async {
+        let fake = FakeCommunityVoting()
+        fake.monthsToReturn = [
+            PollMonth(month: "2026-10", label: "2026.10", count: 1),
+            PollMonth(month: "2026-09", label: "2026.09", count: 2),
+        ]
+        let vm = PollListViewModel(voting: fake)
+        await vm.load(active: false)
+        await vm.loadMorePast()
+        XCTAssertEqual(vm.pastSections.count, 2)
+        XCTAssertEqual(vm.totalCount(active: false), 3)
+
+        await vm.changeSortKey(.created, active: false)
+
+        XCTAssertEqual(vm.pastSections.map(\.id), ["2026-10"])
+        XCTAssertEqual(fake.pastPollSorts.last, PollListSort(key: .created, ascending: false))
+    }
+
+    func testActiveTotalCountComesFromServerAndIsNilWhenUnavailable() async {
+        let fake = FakeCommunityVoting()
+        fake.pollsByStatus["active"] = [makePoll(id: "p1", active: true)]
+        let vm = PollListViewModel(voting: fake)
+
+        await vm.load(active: true)
+        XCTAssertNil(vm.totalCount(active: true))
+        XCTAssertNil(vm.loadError)
+
+        fake.countsToReturn = PollCounts(active: 37, past: 120)
+        await vm.load(active: true)
+        XCTAssertEqual(vm.totalCount(active: true), 37)
+
+        vm.insertCreated(makePoll(id: "new", active: true))
+        XCTAssertEqual(vm.totalCount(active: true), 38)
+    }
+
     func testInsertCreatedPrependsActivePoll() async {
         let fake = FakeCommunityVoting()
         fake.pollsByStatus["active"] = [makePoll(id: "p1", active: true)]

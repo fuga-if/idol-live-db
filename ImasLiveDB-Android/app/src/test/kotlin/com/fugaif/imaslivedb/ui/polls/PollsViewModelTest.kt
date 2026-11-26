@@ -25,6 +25,8 @@ class PollsViewModelTest {
     @Test
     fun listIsBuiltFromOneRequest() {
         val transport = FakeWorkerTransport { request ->
+            // 総数 (並び替えの行に出す) は一覧と別に 1 回だけ取る。
+            if (request.url.contains("/polls/counts")) return@FakeWorkerTransport WorkerResponse(200, COUNTS)
             check(request.url.contains("/polls?status=active")) { "一覧以外を読んだ: ${request.url}" }
             WorkerResponse(200, POLLS)
         }
@@ -38,7 +40,9 @@ class PollsViewModelTest {
             Thread.sleep(10)
         }
 
-        assertEquals(1, transport.requests.size)
+        assertEquals(1, transport.listRequests().size)
+        assertEquals(1, transport.requests.count { it.url.contains("/polls/counts") })
+        assertEquals(37, viewModel.uiState.value.totalCount)
         val cards = viewModel.uiState.value.cards
         assertEquals(listOf("p1", "p2"), cards.map { it.poll.id })
         assertEquals(listOf(12, 0), cards.map { it.poll.totalVotes })
@@ -108,6 +112,7 @@ class PollsViewModelTest {
     fun activeLoadsTwentyAtATimeAndReloadKeepsLoadedCount() {
         val all = (1..25).map { "a$it" }
         val transport = FakeWorkerTransport { request ->
+            if (request.url.contains("/polls/counts")) return@FakeWorkerTransport WorkerResponse(200, COUNTS)
             check(request.url.contains("/polls?status=active")) { "一覧以外を読んだ: ${request.url}" }
             val limit = Regex("limit=(\\d+)").find(request.url)!!.groupValues[1].toInt()
             val offset = Regex("offset=(\\d+)").find(request.url)!!.groupValues[1].toInt()
@@ -120,20 +125,66 @@ class PollsViewModelTest {
         idleUntil { !viewModel.uiState.value.isLoading }
         assertEquals(all.take(20), viewModel.uiState.value.cards.map { it.poll.id })
         assertEquals(true, viewModel.uiState.value.hasMoreActive)
-        assertTrue(transport.requests.last().url.contains("limit=20&offset=0"))
+        assertTrue(transport.listRequests().last().url.contains("limit=20&offset=0"))
 
         viewModel.loadMoreActive()
         idleUntil { !viewModel.uiState.value.isLoadingMore }
         assertEquals(all, viewModel.uiState.value.cards.map { it.poll.id })
         assertEquals(false, viewModel.uiState.value.hasMoreActive)
-        assertTrue(transport.requests.last().url.contains("limit=20&offset=20"))
+        assertTrue(transport.listRequests().last().url.contains("limit=20&offset=20"))
 
         viewModel.refresh()
-        idleUntil { transport.requests.size >= 3 }
+        idleUntil { transport.listRequests().size >= 3 }
         shadowOf(Looper.getMainLooper()).idle()
-        assertEquals(3, transport.requests.size)
-        assertTrue(transport.requests[2].url.contains("limit=25&offset=0"))
+        assertEquals(3, transport.listRequests().size)
+        assertTrue(transport.listRequests()[2].url.contains("limit=25&offset=0"))
         assertEquals(all, viewModel.uiState.value.cards.map { it.poll.id })
+    }
+
+    /**
+     * 並び替え: 軸を変えると向きはその軸の既定 (票数は多い順) に戻り、読み進めた続きを捨てて先頭の 20 件から
+     * 読み直す。続きのページも同じ並びで読む。既定の並び (締切の近い順) も明示して送る。
+     */
+    @Test
+    fun changingSortReloadsFromTheTopInThatOrder() {
+        val all = (1..45).map { "a$it" }
+        val transport = FakeWorkerTransport { request ->
+            if (request.url.contains("/polls/counts")) return@FakeWorkerTransport WorkerResponse(200, COUNTS)
+            val limit = Regex("limit=(\\d+)").find(request.url)!!.groupValues[1].toInt()
+            val offset = Regex("offset=(\\d+)").find(request.url)!!.groupValues[1].toInt()
+            WorkerResponse(200, activeJson(all.drop(offset).take(limit)))
+        }
+        val api = CommunityApi(WorkerHttpClient(app, { null }, transport))
+        val viewModel = PollsViewModel(app, api) { type, id -> "$type:$id" }
+
+        viewModel.refresh()
+        idleUntil { !viewModel.uiState.value.isLoading }
+        assertTrue(transport.listRequests().last().url.endsWith("limit=20&offset=0&sort=ends&order=asc"))
+        viewModel.loadMoreActive()
+        idleUntil { !viewModel.uiState.value.isLoadingMore }
+        assertEquals(40, viewModel.uiState.value.cards.size)
+
+        viewModel.setSortKey(CommunityApi.PollSortKey.VOTES)
+        assertEquals(CommunityApi.PollListSort(CommunityApi.PollSortKey.VOTES, ascending = false), viewModel.uiState.value.sort)
+        idleUntil { transport.listRequests().size >= 3 }
+        idleUntil { viewModel.uiState.value.cards.size == 20 }
+        assertTrue(transport.listRequests().last().url.endsWith("limit=20&offset=0&sort=votes&order=desc"))
+
+        viewModel.setSortAscending(true)
+        idleUntil { transport.listRequests().size >= 4 }
+        assertTrue(transport.listRequests().last().url.endsWith("limit=20&offset=0&sort=votes&order=asc"))
+        idleUntil { transport.listRequests().size >= 4 && !viewModel.uiState.value.isLoading }
+        shadowOf(Looper.getMainLooper()).idle()
+
+        viewModel.loadMoreActive()
+        idleUntil { !viewModel.uiState.value.isLoadingMore }
+        assertTrue(transport.listRequests().last().url.endsWith("limit=20&offset=20&sort=votes&order=asc"))
+
+        // 同じ並びを選び直しても読み直さない。
+        val before = transport.listRequests().size
+        viewModel.setSortAscending(true)
+        shadowOf(Looper.getMainLooper()).idle()
+        assertEquals(before, transport.listRequests().size)
     }
 
     /** 終了したお題は 1 位の票数 (top_vote_count) を読む。無投票・古いサーバでは null。 */
@@ -164,6 +215,9 @@ class PollsViewModelTest {
         assertEquals(listOf("song:s1", null), cards.map { it.topEntityName })
     }
 
+    /** 一覧 (`GET /polls?…`) の呼び出しだけ。総数 (`/polls/counts`) は数えない。 */
+    private fun FakeWorkerTransport.listRequests() = synchronized(requests) { requests.filter { it.url.contains("/polls?") } }
+
     private fun idleUntil(condition: () -> Boolean) {
         val deadline = System.currentTimeMillis() + 10_000
         while (!condition() && System.currentTimeMillis() < deadline) {
@@ -187,6 +241,7 @@ class PollsViewModelTest {
               "candidate_scope":"all","scope_brand_ids":[],"scope_entity_ids":[],
               "total_votes":0,"entry_count":0,"my_vote_count":0,"top_entity_id":null}]
         """.trimIndent()
+        val COUNTS = """{"active":37,"past":120}"""
         val MONTHS = """
             [{"month":"2026-10","label":"2026.10","count":1},
              {"month":"2026-09","label":"2026.09","count":2}]

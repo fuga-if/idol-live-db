@@ -171,7 +171,8 @@ Cron (scheduled) は掃除だけ:
 
 | Method | Path | 認証 | 概要 |
 |--------|------|------|------|
-| GET | /polls | 任意 | ポール一覧 (`status=past&month=YYYY-MM` で締切が日本時間でその月のものだけ) |
+| GET | /polls | 任意 | ポール一覧 (`status=past&month=YYYY-MM` で締切が日本時間でその月のものだけ。`sort=ends\|created\|votes` と `order=asc\|desc` で並び替え、省略時は開催中=締切の近い順・終了=新しい順) |
+| GET | /polls/counts | - | 開催中 / 終了のポールの件数 (`active` / `past`) |
 | GET | /polls/months | - | 終了したポールがある月と件数 (新しい月から) |
 | GET | /polls/quota | 必須 | 今日あと何件お題を作れるか (`used` / `limit` / `remaining` / `reset_at`)。枠は使わない |
 | GET | /polls/results | 任意 | ポール結果まとめ |

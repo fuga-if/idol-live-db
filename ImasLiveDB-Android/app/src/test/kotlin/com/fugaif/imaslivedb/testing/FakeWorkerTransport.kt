@@ -13,7 +13,8 @@ class FakeWorkerTransport(
     private val respond: (WorkerRequest) -> WorkerResponse? = { WorkerResponse(200, "{}") }
 ) : WorkerTransport {
 
-    val requests = mutableListOf<WorkerRequest>()
+    /** 呼ばれた順のリクエスト。一覧と総数のように並べて (別スレッドから) 呼ばれることがあるので同期する。 */
+    val requests: MutableList<WorkerRequest> = java.util.Collections.synchronizedList(mutableListOf())
 
     override fun execute(request: WorkerRequest): WorkerResponse {
         requests += request
