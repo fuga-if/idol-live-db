@@ -128,7 +128,8 @@ struct PollCreateSheet: View {
                 async let brandsTask = AppContainer.shared.brandReading.brands()
                 async let idolsTask = AppContainer.shared.idolReading.idols(brandId: nil)
                 async let unitsTask = AppContainer.shared.unitReading.unitsWithSongs()
-                brands = (try? await brandsTask) ?? []
+                // 「その他」は寄せ集めで限る意味が無いので並べない (規則はコア)。
+                brands = ((try? await brandsTask) ?? []).filter { pollScopeBrandSelectable(brandId: $0.id) }
                 allIdolsForPicker = (try? await idolsTask) ?? []
                 allUnitsForPicker = (try? await unitsTask) ?? []
             }

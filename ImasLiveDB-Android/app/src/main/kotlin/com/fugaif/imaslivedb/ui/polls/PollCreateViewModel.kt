@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import uniffi.imas_core.PollCreateQuotaNote
 import uniffi.imas_core.pollCreateQuotaNote
+import uniffi.imas_core.pollScopeBrandSelectable
 import java.time.Instant
 import java.time.ZoneId
 
@@ -46,7 +47,9 @@ class PollCreateViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         viewModelScope.launch {
+            // 「その他」は寄せ集めで限る意味が無いので並べない (規則はコア)。
             val brands = runCatching { statsRepo.fetchBrands() }.getOrDefault(emptyList())
+                .filter { pollScopeBrandSelectable(it.id) }
             _uiState.value = _uiState.value.copy(brands = brands)
         }
     }

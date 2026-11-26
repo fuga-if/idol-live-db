@@ -59,6 +59,12 @@ pub fn poll_create_quota_note(remaining: u32, limit: u32, reset_hour: u32, reset
     domain::poll_create_quota_note(remaining, limit, reset_hour, reset_minute)
 }
 
+/// お題の「ブランドで絞る」の選択肢に並べるブランドか (「その他」は並べない)。
+#[uniffi::export]
+pub fn poll_scope_brand_selectable(brand_id: String) -> bool {
+    domain::poll_scope_brand_selectable(&brand_id)
+}
+
 /// 選択肢で選んだ結果から、入れる対象・取り消す対象・溢れた数を決める。
 /// `selected_in_order` は選択肢の並び順で渡す。
 #[uniffi::export]

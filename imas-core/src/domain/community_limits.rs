@@ -152,6 +152,15 @@ pub fn featured_poll_index(my_vote_counts: &[u32], current: Option<u32>, seed: u
     Some(pool[(seed % pool.len() as u64) as usize] as u32)
 }
 
+/// お題の「ブランドで絞る」に並べないブランド。「その他」は寄せ集めで、限る意味が無い
+/// (サーバの brands にも無く、選ぶと作成が断られていた)。
+const POLL_SCOPE_EXCLUDED_BRAND_IDS: [&str; 1] = ["other"];
+
+/// お題の「ブランドで絞る」の選択肢に並べるブランドか。
+pub fn poll_scope_brand_selectable(brand_id: &str) -> bool {
+    !POLL_SCOPE_EXCLUDED_BRAND_IDS.contains(&brand_id)
+}
+
 /// お題の一覧の行に出す「自分の投票」の札の文言。まだ 1 票も入れていなければ `None` (札を出さない)。
 ///
 /// 開催中は「投票済 2/3」のように入れた数を添え、あと何票入れられるかを一覧で読めるようにする
@@ -416,5 +425,13 @@ mod tests {
         let plan = plan_vote_selection(&[], &ids(&["x", "x", "y"]), 0, false);
         assert_eq!(plan.to_vote, ids(&["x", "y"]));
         assert_eq!(plan.overflow, 0);
+    }
+
+    #[test]
+    fn poll_scope_brand_excludes_other() {
+        assert!(!poll_scope_brand_selectable("other"));
+        for id in ["765as", "961", "876", "cg", "ml", "sidem", "sc", "gakuen"] {
+            assert!(poll_scope_brand_selectable(id), "{id}");
+        }
     }
 }

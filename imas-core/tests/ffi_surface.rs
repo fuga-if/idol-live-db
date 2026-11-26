@@ -464,6 +464,7 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_performer_name_options,
     uniffi_imas_core_checksum_func_plan_backup_import,
     uniffi_imas_core_checksum_func_plan_vote_selection,
+    uniffi_imas_core_checksum_func_poll_scope_brand_selectable,
     uniffi_imas_core_checksum_func_progress_percent,
     uniffi_imas_core_checksum_func_song_credit_label,
     uniffi_imas_core_checksum_func_compact_singer_label,
