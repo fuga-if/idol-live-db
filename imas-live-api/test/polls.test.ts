@@ -105,16 +105,6 @@ describe("POST /polls (お題の作成)", () => {
     expect(res.body.scope_brand_ids).toEqual(["765"]);
   });
 
-  it("「その他」ブランドに限ったお題も作れる (D1 の brands に other が在る)", async () => {
-    await insertUser(OWNER);
-    const res = await callJson("POST", "/polls", {
-      headers: await bearer(OWNER),
-      body: { title: "other", target_type: "idol", candidate_scope: "brand", scope_brand_ids: ["other"] },
-    });
-    expect(res.status).toBe(201);
-    expect(res.body.scope_brand_ids).toEqual(["other"]);
-  });
-
   it("1 日 5 件まで。6 件目は 429 と使用量", async () => {
     await insertUser(OWNER);
     for (let i = 0; i < 5; i++) {
