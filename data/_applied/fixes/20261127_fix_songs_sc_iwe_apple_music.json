@@ -1,0 +1,12 @@
+{
+ "title": "イルミネーションスターズ「I＝WE」の配信情報補完",
+ "author": "claude (daily-data-crawl 2026-11-27)",
+ "_help": "discover_new_songs が新曲候補として出した I=WE (iTunes 6827446996) は既存行 sc_iwe (全角＝) と同じ曲なので新規ではなく穴埋め。2026-11-27 配信開始、isStreamable=true",
+ "source": ["https://itunes.apple.com/lookup?id=6827446996&country=jp (I=WE / イルミネーションスターズ / I=WE - Single)"],
+ "fixes": [{"table": "songs", "id": "sc_iwe", "fields": {
+   "apple_music_id": "6827446996",
+   "apple_music_album_id": "6827446995",
+   "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/b1/3c/f2/b13cf26b-08e3-aced-866e-6339c5bd6bfb/4540774751556.png/600x600bb.jpg",
+   "cd_series": "I=WE - Single",
+   "streaming_date": "2026-11-27"}}]
+}
