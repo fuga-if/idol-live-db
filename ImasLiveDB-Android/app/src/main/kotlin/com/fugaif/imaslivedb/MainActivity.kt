@@ -109,6 +109,7 @@ class MainActivity : ComponentActivity() {
                         }
                         com.fugaif.imaslivedb.ui.components.SpotifyPlaybackAlert()
                         com.fugaif.imaslivedb.ui.components.UpdateAvailableAlert()
+                        com.fugaif.imaslivedb.ui.components.ReviewPromptHost()
                         // 歌詞のピクチャ・イン・ピクチャの間は、窓いっぱいに歌詞の行だけを出す。
                         if (LyricsPip.isInPip.collectAsState().value) {
                             com.fugaif.imaslivedb.ui.lyrics.LyricsPipContent()
