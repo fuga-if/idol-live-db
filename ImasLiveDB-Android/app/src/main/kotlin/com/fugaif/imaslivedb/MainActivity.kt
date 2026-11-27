@@ -61,6 +61,8 @@ import androidx.compose.material3.TextButton
 import com.fugaif.imaslivedb.data.local.LocalWriteFailure
 import com.fugaif.imaslivedb.data.sync.LocalDataStartup
 import com.fugaif.imaslivedb.data.applink.PollLinkIncoming
+import com.fugaif.imaslivedb.data.applink.DetailLinkIncoming
+import com.fugaif.imaslivedb.data.applink.DetailLinks
 import com.fugaif.imaslivedb.data.applink.PollLinks
 import com.fugaif.imaslivedb.data.producercard.IncomingProducerCard
 import com.fugaif.imaslivedb.data.producercard.ProducerCardIncoming
@@ -87,9 +89,11 @@ class MainActivity : ComponentActivity() {
         openDatabase()
         // P名刺のリンク・名刺ファイルで開かれた (回転などで作り直したときは二度受け取らない)。
         if (savedInstanceState == null) {
-            openedByLink = ProducerCardIntents.parse(intent) != null || PollLinks.parse(intent) != null
+            openedByLink = ProducerCardIntents.parse(intent) != null || PollLinks.parse(intent) != null ||
+                DetailLinks.parse(intent) != null
             handleProducerCardIntent(intent)
             handlePollLinkIntent(intent)
+            handleDetailLinkIntent(intent)
         }
         setUpLyricsPip()
         setContent {
@@ -206,9 +210,15 @@ class MainActivity : ComponentActivity() {
         setIntent(intent)
         handleProducerCardIntent(intent)
         handlePollLinkIntent(intent)
+        handleDetailLinkIntent(intent)
     }
 
     /** お題の共有 URL を開いたら、お題の画面へ (iOS `ContentView.handleDeeplink` の `.poll`)。 */
+    /** 公演・イベントのリンク (iOS `Deeplink.event` / `.show`)。開くのは AppNavigation。 */
+    private fun handleDetailLinkIntent(intent: Intent?) {
+        DetailLinks.parse(intent)?.let(DetailLinkIncoming::present)
+    }
+
     private fun handlePollLinkIntent(intent: Intent?) {
         PollLinks.parse(intent)?.let(PollLinkIncoming::present)
     }
