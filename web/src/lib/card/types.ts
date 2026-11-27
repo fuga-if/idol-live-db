@@ -73,8 +73,13 @@ export interface CardFace {
   heroIdolIds: string[];
   /** 担当の 1 行 (「星井美希 担当」)。ブランドが 2 つ以上なら null で、まとまりごとにブランドの略称を刷る。 */
   oshiCaption: string | null;
-  /** 表に並べきれず数で畳んだ担当の人数。0 なら畳まない。 */
+  /** 表に並べきれなかった担当の人数。0 なら畳まない。 */
   moreOshi: number;
+  /**
+   * 表に並べきれなかった担当を名前で刷る 1 行 (「ほかに 天道輝・櫻木真乃 など6人」)。
+   * 並べきれた (`moreOshi` が 0) なら null。文言・入りきらない分の数え方はコアが決める。
+   */
+  moreOshiLine: string | null;
   /** 表に刷るハンドル 1 つ。 */
   handle: CardLinkView | null;
   /** `"SINCE 2014"`。 */

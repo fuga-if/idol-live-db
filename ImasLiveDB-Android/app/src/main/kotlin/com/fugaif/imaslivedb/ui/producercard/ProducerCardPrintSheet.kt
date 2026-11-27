@@ -118,7 +118,7 @@ fun ProducerCardPrintSheet(card: EncodedProducerCard, directory: ProducerCardDir
                                 }
                             },
                             caption = face.oshiCaption,
-                            moreOshi = face.moreOshi.toInt(),
+                            moreOshiLine = face.moreOshiLine,
                             // 担当の色は画面の名刺と同じく、名刺の刷る色の担当 (既定は描ける先頭の担当、墨なら無し)。
                             seed = face.accentIdolId?.let { directory.idols[it]?.color },
                             handle = face.handle?.display,

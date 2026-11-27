@@ -301,7 +301,7 @@ fun rememberProducerCardContent(
             },
             oshiCaption = cardFace.oshiCaption,
             heroOshi = cardFace.heroIdolIds.mapNotNull { byId[it] },
-            moreOshi = cardFace.moreOshi.toInt(),
+            moreOshiLine = cardFace.moreOshiLine,
             handle = cardFace.handle?.display,
             links = ProducerCardDisplay.links(card),
             cells = if (showsRecord) ProducerCardDisplay.cells(card, directory) else emptyList(),

@@ -69,7 +69,8 @@ struct ProducerCardPrintFront: View {
     var hero: [ProducerCardPrintOshi] = []
     /// 判子の下の 1 行 (コアの `CardFace.oshiCaption`)。
     var caption: String? = nil
-    var moreOshi: Int = 0
+    /// 判子に並べきれなかった担当を名前で刷る 1 行 (コアの `CardFace.moreOshiLine`)。
+    var moreOshiLine: String? = nil
     /// 担当の色 (帯・罫)。先頭の担当の色。
     var seed: String? = nil
     /// 右下に刷るハンドル (「@fuga_p」)。
@@ -92,7 +93,7 @@ struct ProducerCardPrintFront: View {
             },
             hero: hero.map(Self.meishiOshi),
             oshiCaption: caption,
-            moreOshi: moreOshi, handle: handle, nameFont: nameFont,
+            moreOshiLine: moreOshiLine, handle: handle, nameFont: nameFont,
             portrait: portrait.map { .image($0) },
             portraitRound: portraitRound,
             stickers: stickers,

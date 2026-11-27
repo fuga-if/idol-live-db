@@ -161,7 +161,7 @@ function renderNext(el: HTMLElement, showId: string | null, shows: readonly Ref[
 }
 
 /**
- * 名刺の表の担当。並べる人・ブランドごとのまとめ方・1 行の文言・畳む数は wasm (`producer_card_face`)。
+ * 名刺の表の担当。並べる人・ブランドごとのまとめ方・1 行の文言・並べきれない担当の 1 行は wasm (`producer_card_face`)。
  * 1 行の文言があればそれだけ (「星井美希 担当」)、無ければブランドごとに「765AS 星井美希」を並べる
  * (Web はアイドルの画像を持たないので、判子の代わりに名前を刷る)。
  */
@@ -191,10 +191,10 @@ function renderFaceOshi(el: HTMLElement, face: CardFace, idols: readonly Ref[]):
       el.append(span);
     }
   }
-  if (face.moreOshi > 0) {
+  if (face.moreOshiLine !== null) {
     const more = document.createElement("span");
     more.className = "meishi-card__face-group";
-    more.textContent = `+${face.moreOshi}`;
+    more.textContent = face.moreOshiLine;
     el.append(more);
   }
   el.hidden = false;

@@ -235,7 +235,7 @@ enum ProducerCardDisplay {
             },
             faceCaption: cardFace.oshiCaption,
             heroOshi: cardFace.heroIdolIds.compactMap { byId[$0] },
-            moreOshi: Int(cardFace.moreOshi),
+            moreOshiLine: cardFace.moreOshiLine,
             handle: cardFace.handle?.display,
             links: links(card),
             cells: showsRecord ? cells(card, directory: directory) : [],

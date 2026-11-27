@@ -148,7 +148,7 @@ struct ProducerCardPrintSheet {
                 }
             },
             caption: face.oshiCaption,
-            moreOshi: Int(face.moreOshi),
+            moreOshiLine: face.moreOshiLine,
             // 担当の色は画面の名刺と同じく、名刺の刷る色の担当 (既定は描ける先頭の担当、墨なら無し)。
             seed: face.accentIdolId.flatMap { directory.idols[$0]?.color },
             handle: face.handle?.display,

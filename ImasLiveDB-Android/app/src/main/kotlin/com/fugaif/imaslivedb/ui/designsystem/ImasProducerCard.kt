@@ -190,7 +190,7 @@ data class ImasProducerCardBack(
  * @param faceGroups 名刺の表に並べる担当 (コアの `producerCardFace` のブランドごとのまとまり)。
  * @param oshiCaption 判子の下の 1 行 (コアの `CardFace.oshiCaption`)。
  * @param heroOshi 担当を大きく並べる順 (担当を大きく のデザイン。コアの `CardFace.heroIdolIds`)。
- * @param moreOshi 表で数で畳んだ担当の人数。
+ * @param moreOshiLine 表の判子に並べきれなかった担当を名前で刷る 1 行 (コアの `CardFace.moreOshiLine`)。
  * @param handle 表に刷るハンドル 1 つ。
  * @param cells 記録の数 (参加公演・回収曲・次の現場)。空なら掲示板を出さない (自分の名刺は渡さない)。
  * @param boardTrailing 掲示板の右上の印字 (「2014 — 2026」)。
@@ -215,7 +215,7 @@ data class ImasProducerCardContent(
     val faceGroups: List<ImasProducerCardFaceGroup> = emptyList(),
     val oshiCaption: String? = null,
     val heroOshi: List<ImasProducerCardOshi> = emptyList(),
-    val moreOshi: Int = 0,
+    val moreOshiLine: String? = null,
     val handle: String? = null,
     val links: List<ImasProducerCardLink> = emptyList(),
     val cells: List<ImasBoardCell> = emptyList(),
@@ -353,7 +353,7 @@ private fun MeishiFrontSide(content: ImasProducerCardContent, ink: ImasMeishiInk
             },
             hero = content.heroOshi.map { meishiOshi(it, ink) },
             oshiCaption = content.oshiCaption,
-            moreOshi = content.moreOshi,
+            moreOshiLine = content.moreOshiLine,
             handle = content.handle,
             nameFamily = content.nameFamily,
             portrait = content.portraitUrl?.let { ImasMeishiPicture.Url(it) },
@@ -410,7 +410,8 @@ private fun frontLabel(c: ImasProducerCardContent): String {
             val members = group.oshi.joinToString("、") { it.name }
             if (c.faceGroups.size > 1 && group.label.isNotEmpty()) "${group.label} $members" else members
         }
-        parts += if (c.moreOshi > 0) "担当 $joined ほか${c.moreOshi}人" else "担当 $joined"
+        parts += "担当 $joined"
+        c.moreOshiLine?.let { parts += it }
     }
     c.handle?.let { parts += it }
     if (c.portraitUrl != null) parts += "写真あり"
