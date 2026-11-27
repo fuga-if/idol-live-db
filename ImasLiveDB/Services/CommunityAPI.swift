@@ -524,10 +524,11 @@ actor CommunityAPI {
         return try await APIClient.shared.request("GET", path: "/polls", query: ["status": status], authorized: true)
     }
 
-    func activePolls(offset: Int, limit: Int) async throws -> [Poll] {
+    func activePolls(offset: Int, limit: Int, sort: PollListSort) async throws -> [Poll] {
         return try await APIClient.shared.request(
             "GET", path: "/polls",
-            query: ["status": "active", "offset": String(offset), "limit": String(limit)],
+            query: ["status": "active", "offset": String(offset), "limit": String(limit)]
+                .merging(sort.query) { current, _ in current },
             authorized: true
         )
     }
@@ -536,10 +537,16 @@ actor CommunityAPI {
         return try await APIClient.shared.request("GET", path: "/polls/months")
     }
 
-    func pastPolls(month: String) async throws -> [Poll] {
+    func pastPolls(month: String, sort: PollListSort) async throws -> [Poll] {
         return try await APIClient.shared.request(
-            "GET", path: "/polls", query: ["status": "past", "month": month], authorized: true
+            "GET", path: "/polls",
+            query: ["status": "past", "month": month].merging(sort.query) { current, _ in current },
+            authorized: true
         )
+    }
+
+    func pollCounts() async throws -> PollCounts {
+        return try await APIClient.shared.request("GET", path: "/polls/counts")
     }
 
     func poll(id: String) async throws -> PollDetail {

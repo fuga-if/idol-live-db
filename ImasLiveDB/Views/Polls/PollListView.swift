@@ -22,6 +22,7 @@ struct PollRouteView: View {
 }
 
 /// みんなの投票 — お題一覧。[開催中 / 終了] タブ切替。
+/// タブの下に件数と並び替え (残り日数・作成日・票数 × 昇順 / 降順) の行を置く (曲一覧と同じ作法)。
 struct PollListView: View {
     @State private var segmentIndex = 0
     @State private var vm = PollListViewModel(voting: AppContainer.shared.communityVoting)
@@ -42,6 +43,7 @@ struct PollListView: View {
                 } else if !currentPolls.isEmpty {
                     // 既にデータがあれば、リロードが一時的に失敗してもリストは消さない
                     // (引っ張って更新が通信エラーで全消えになる UX を防ぐ)。
+                    countSortBar
                     pollList
                 } else if let loadError = vm.loadError {
                     Spacer()
@@ -90,6 +92,35 @@ struct PollListView: View {
             .trackScreen("poll_list")
     }
 
+    /// 件数 + 並び替え。並びはその場のメニューで切り替える (曲一覧の countSortBar と同じ部品)。
+    /// 開催中は 20 件ずつしか読まないので、件数はサーバの総数を出す。取れなかったときは読んだ件数で、
+    /// まだ続きがあれば「件以上」にする (読んだ分を総数のように見せない)。
+    private var countSortBar: some View {
+        let active = segmentIndex == 0
+        let total = vm.totalCount(active: active)
+        let isPartial = total == nil && (active ? vm.hasMoreActive : vm.hasMorePast)
+        return ImasListSummary(
+            count: total ?? currentPolls.count,
+            unit: isPartial ? "件以上" : "件",
+            sortOptions: PollSortKey.allCases,
+            sortSelection: Binding(
+                get: { vm.sort(active: active).key },
+                set: { key in
+                    AppAnalytics.tap("poll_list.sort")
+                    Task { await vm.changeSortKey(key, active: active) }
+                }
+            ),
+            sortLabel: { $0.label(active: active) },
+            sortAscending: Binding(
+                get: { vm.sort(active: active).ascending },
+                set: { ascending in
+                    AppAnalytics.tap("poll_list.sort_direction")
+                    Task { await vm.changeSortAscending(ascending, active: active) }
+                }
+            )
+        )
+    }
+
     private var pollList: some View {
         // List ではなく ScrollView を使う。List の中に ImasCardList (VStack) を
         // 入れると、List は ImasCardList 全体を「1つのセル」として扱うため、
@@ -97,36 +128,46 @@ struct PollListView: View {
         // この状態だと、詳細から戻る時に List が「セル」を再評価する際に複数の
         // NavigationLink が同時にアクティブ状態として復元されてしまい、「戻ると
         // 隣のお題も開く」現象が起きる。ScrollView ならセル概念が無いので回避できる。
-        ScrollView {
-            if segmentIndex == 0 {
-                // 締切の近い順に 20 件ずつ。末尾まで来たら続きを読む。
-                LazyVStack(alignment: .leading, spacing: 0) {
-                    pollCards(currentPolls)
-                    if vm.hasMoreActive {
-                        ImasInlineLoading()
-                            .onAppear { Task { await vm.loadMoreActive() } }
+        ScrollViewReader { proxy in
+            ScrollView {
+                Color.clear.frame(height: 0).id(Self.topAnchor)
+                if segmentIndex == 0 {
+                    // 選んだ並び (既定は締切の近い順) で 20 件ずつ。末尾まで来たら続きを読む。
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        pollCards(currentPolls)
+                        if vm.hasMoreActive {
+                            ImasInlineLoading()
+                                .onAppear { Task { await vm.loadMoreActive() } }
+                        }
                     }
+                    .padding(.horizontal, DS.sp5)
+                    .padding(.vertical, DS.sp3)
+                } else {
+                    // 終了したお題は締切の月 (日本時間) ごとに区切り、末尾まで来たら 1 か月古い月を読む。
+                    // 並び替えは月の中に効く (月の区切りは新しい月からのまま)。
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        ForEach(vm.pastSections) { section in
+                            ImasDateHeader(big: section.month.label, imprint: "\(section.month.count) 件", isPast: true)
+                            pollCards(section.polls)
+                        }
+                        if vm.hasMorePast {
+                            ImasInlineLoading()
+                                .onAppear { Task { await vm.loadMorePast() } }
+                        }
+                    }
+                    .padding(.horizontal, DS.sp5)
+                    .padding(.bottom, DS.sp3)
                 }
-                .padding(.horizontal, DS.sp5)
-                .padding(.vertical, DS.sp3)
-            } else {
-                // 終了したお題は締切の月 (日本時間) ごとに区切り、末尾まで来たら 1 か月古い月を読む。
-                LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(vm.pastSections) { section in
-                        ImasDateHeader(big: section.month.label, imprint: "\(section.month.count) 件", isPast: true)
-                        pollCards(section.polls)
-                    }
-                    if vm.hasMorePast {
-                        ImasInlineLoading()
-                            .onAppear { Task { await vm.loadMorePast() } }
-                    }
-                }
-                .padding(.horizontal, DS.sp5)
-                .padding(.bottom, DS.sp3)
+            }
+            .scrollContentBackground(.hidden)
+            // 並びを変えたら先頭から読み直すので、見る位置も先頭へ戻す (途中に居残ると何順か分からなくなる)。
+            .onChange(of: vm.sort(active: segmentIndex == 0)) { _, _ in
+                withAnimation { proxy.scrollTo(Self.topAnchor, anchor: .top) }
             }
         }
-        .scrollContentBackground(.hidden)
     }
+
+    private static let topAnchor = "poll-list-top"
 
     private func pollCards(_ polls: [Poll]) -> some View {
         ImasCardList {

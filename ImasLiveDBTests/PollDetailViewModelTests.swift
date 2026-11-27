@@ -20,12 +20,13 @@ final class FakeCommunityVoting: CommunityVoting {
         return pollsByStatus[status] ?? []
     }
 
-    private(set) var activePageCalls: [(offset: Int, limit: Int)] = []
+    private(set) var activePageCalls: [(offset: Int, limit: Int, sort: PollListSort)] = []
 
     /// `pollsByStatus["active"]` を offset/limit で切って返す (サーバの LIMIT/OFFSET と同じ)。
-    func activePolls(offset: Int, limit: Int) async throws -> [Poll] {
+    /// 並べるのはサーバなので、フェイクは受け取った並びを記録するだけで中身は並べ替えない。
+    func activePolls(offset: Int, limit: Int, sort: PollListSort) async throws -> [Poll] {
         if shouldThrow { throw FakeError.boom }
-        activePageCalls.append((offset, limit))
+        activePageCalls.append((offset, limit, sort))
         let all = pollsByStatus["active"] ?? []
         guard offset < all.count else { return [] }
         return Array(all[offset..<min(all.count, offset + limit)])
@@ -34,16 +35,25 @@ final class FakeCommunityVoting: CommunityVoting {
     var monthsToReturn: [PollMonth] = []
     var pastPollsByMonth: [String: [Poll]] = [:]
     private(set) var pastPollMonthCalls: [String] = []
+    private(set) var pastPollSorts: [PollListSort] = []
+    var countsToReturn: PollCounts?
 
     func pollMonths() async throws -> [PollMonth] {
         if shouldThrow { throw FakeError.boom }
         return monthsToReturn
     }
 
-    func pastPolls(month: String) async throws -> [Poll] {
+    func pastPolls(month: String, sort: PollListSort) async throws -> [Poll] {
         if shouldThrow { throw FakeError.boom }
         pastPollMonthCalls.append(month)
+        pastPollSorts.append(sort)
         return pastPollsByMonth[month] ?? []
+    }
+
+    func pollCounts() async throws -> PollCounts {
+        if shouldThrow { throw FakeError.boom }
+        guard let countsToReturn else { throw FakeError.boom }
+        return countsToReturn
     }
 
     func poll(id: String) async throws -> PollDetail {

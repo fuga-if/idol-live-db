@@ -45,6 +45,29 @@ export async function handlePolls(ctx: RouteContext): Promise<Response | null> {
     }
 
     // ----------------------------------------------------------------
+    // GET /polls/counts — 開催中 / 終了のお題の件数 ({ active, past })
+    //   ※ /polls/:id より前に置く。一覧は 20 件ずつしか読まないので、並び替えの行に出す総数はここで取る。
+    //   お題の行だけを数える (候補は読まない)。誰が見ても同じなので一覧と同じく Cache API に 30 秒置く
+    //   (一覧を開くたびに呼ばれるため。件数は最大 30 秒遅れる)。
+    // ----------------------------------------------------------------
+    if (path === "/polls/counts" && request.method === "GET") {
+      const countsKey = new Request(`${url.origin}/__cache/polls-counts`);
+      const cachedCounts = await caches.default.match(countsKey);
+      if (cachedCounts) return json(await cachedCounts.json());
+      const r = await env.DB.prepare(`
+        SELECT SUM(CASE WHEN ends_at > datetime('now') THEN 1 ELSE 0 END) AS active,
+               SUM(CASE WHEN ends_at <= datetime('now') THEN 1 ELSE 0 END) AS past
+          FROM polls
+         WHERE status = 'active'
+      `).first<any>();
+      const counts = { active: r?.active ?? 0, past: r?.past ?? 0 };
+      const put = caches.default.put(countsKey, json(counts, 200, { "Cache-Control": "public, max-age=30" }));
+      if (ctx.waitUntil) ctx.waitUntil(put);
+      else await put;
+      return json(counts);
+    }
+
+    // ----------------------------------------------------------------
     // GET /polls/quota — 今日あと何件お題を作れるか (auth必須)。作成画面の頭に出す
     //   ※ /polls/:id より前に置く。数えるだけで枠は使わない。人ごとの値なので no-store
     // ----------------------------------------------------------------
@@ -56,11 +79,15 @@ export async function handlePolls(ctx: RouteContext): Promise<Response | null> {
     }
 
     // ----------------------------------------------------------------
-    // GET /polls?status=active|past&month=YYYY-MM&limit&offset — 投票一覧 (auth任意)
+    // GET /polls?status=active|past&month=YYYY-MM&sort=ends|created|votes&order=asc|desc&limit&offset
+    //   — 投票一覧 (auth任意)
     // ----------------------------------------------------------------
     // active = status='active' AND ends_at > now
     // past   = status='active' AND ends_at <= now
     // month  = 締切が日本時間でその月のものだけ (past の月送り用)。指定時は limit の既定を 100 にする
+    // sort   = 並びの軸。ends=締切 (既定) / created=作った日時 / votes=票の合計。知らない値は ends
+    // order  = asc / desc。省略時は今までと同じ (active は締切の近い順 = asc、past は新しい順 = desc)。
+    //          軸を指定して order を省くと、その軸の既定 (created / votes は desc = 新しい順・多い順)
     if (path === "/polls" && request.method === "GET") {
       const authUser = await getAuthUser(request, env);
       const uid = authUser?.uid ?? "";
@@ -72,20 +99,22 @@ export async function handlePolls(ctx: RouteContext): Promise<Response | null> {
       const offset = parsePositiveInt(url.searchParams.get("offset"), 0, Number.MAX_SAFE_INTEGER);
 
       const isActive = statusParam !== "past";
+      const sort = parsePollListSort(url.searchParams.get("sort"), url.searchParams.get("order"), isActive);
 
       // 誰が見ても同じ部分 (お題・票数・1 位) は Worker の Cache API に 30 秒置いて使い回し、
       // 人ごとの部分 (自分の票数・自分のお題か) だけを毎回足す。応答の形は変えない。
       // 票数は最大 30 秒遅れる。キーは認証を含まないので、人ごとの値を shared に入れないこと。
       const sharedKey = new Request(
         `${url.origin}/__cache/polls-list?status=${isActive ? "active" : "past"}` +
-          `&month=${monthMatch ? monthParam : ""}&limit=${limit}&offset=${offset}`
+          `&month=${monthMatch ? monthParam : ""}&sort=${sort.key}&order=${sort.ascending ? "asc" : "desc"}` +
+          `&limit=${limit}&offset=${offset}`
       );
       let shared: any[];
       const cached = await caches.default.match(sharedKey);
       if (cached) {
         shared = await cached.json();
       } else {
-        shared = await fetchPollListShared(env.DB, isActive, monthMatch ? monthParam! : null, limit, offset);
+        shared = await fetchPollListShared(env.DB, isActive, monthMatch ? monthParam! : null, sort, limit, offset);
         const put = caches.default.put(sharedKey, json(shared, 200, { "Cache-Control": "public, max-age=30" }));
         if (ctx.waitUntil) ctx.waitUntil(put);
         else await put;
@@ -619,6 +648,39 @@ export async function handlePolls(ctx: RouteContext): Promise<Response | null> {
   return null;
 }
 
+/** GET /polls の並び。`key` は軸、`ascending` は向き。 */
+export type PollListSort = { key: "ends" | "created" | "votes"; ascending: boolean };
+
+/**
+ * `sort` / `order` を読む。知らない軸は締切 (ends) に倒す (古いアプリ・打ち間違いでも一覧は出す)。
+ * order を省いたときの向きは、締切なら今まで通り (開催中は近い順 = 昇順、終了は新しい順 = 降順)、
+ * 作った日時・票数は新しい順・多い順 (降順)。
+ */
+export function parsePollListSort(sortParam: string | null, orderParam: string | null, isActive: boolean): PollListSort {
+  const key: PollListSort["key"] = sortParam === "created" || sortParam === "votes" ? sortParam : "ends";
+  const defaultAscending = key === "ends" ? isActive : false;
+  const ascending = orderParam === "asc" ? true : orderParam === "desc" ? false : defaultAscending;
+  return { key, ascending };
+}
+
+/**
+ * 並びの ORDER BY。同じ値が並んだときの順も毎回同じにする (offset で読み進めたとき、
+ * ページの継ぎ目でお題が重なったり抜けたりしないように)。票数が同じなら締切の近い順。
+ * `alias` を省くと列名だけで書く (page の中では sort_votes が SELECT の別名なので、表の名前を付けると引けない)。
+ */
+function pollListOrderBy(sort: PollListSort, alias?: string): string {
+  const dir = sort.ascending ? "ASC" : "DESC";
+  const c = (column: string) => (alias ? `${alias}.${column}` : column);
+  switch (sort.key) {
+    case "created":
+      return `${c("created_at")} ${dir}, ${c("id")} ${dir}`;
+    case "votes":
+      return `${c("sort_votes")} ${dir}, ${c("ends_at")} ASC, ${c("id")} ASC`;
+    default:
+      return `${c("ends_at")} ${dir}, ${c("id")} ${dir}`;
+  }
+}
+
 /**
  * GET /polls の、誰が見ても同じ部分。人ごとの値 (my_vote_count / is_own_poll) は入れない
  * (Cache API に置くため)。キーの並びは旧応答と同じに保つ (呼び出し側で人ごとの値を差し込む)。
@@ -626,29 +688,53 @@ export async function handlePolls(ctx: RouteContext): Promise<Response | null> {
  * 先にお題をページ分だけ選び (page)、そのお題の候補だけを 1 回なめて集計する (agg)。
  * 旧実装は polls と poll_entries を JOIN して GROUP BY してから LIMIT していたので、
  * 条件に合う全お題の候補を毎回読んでいた (1 回 4,000〜7,000 行。D1 の読みの 7 割)。
+ *
+ * 票数順だけは並べる前に合計が要るので、条件に合うお題 (開催中、または終了の 1 か月) の候補を
+ * 合計してからページを切る。終了タブは月で絞った後なので、全期間をなめることはない。
  */
 async function fetchPollListShared(
   db: D1Database,
   isActive: boolean,
   month: string | null,
+  sort: PollListSort,
   limit: number,
   offset: number
 ): Promise<any[]> {
-  const timeCondition = isActive ? "ends_at > datetime('now')" : "ends_at <= datetime('now')";
-  const orderBy = isActive ? "ends_at ASC" : "ends_at DESC";
+  const timeCondition = isActive ? "p.ends_at > datetime('now')" : "p.ends_at <= datetime('now')";
   // 日本時間の月初〜翌月初を UTC に直した範囲で絞る (idx_polls_status_ends が効く形)。
   const monthStart = month ? `${month}-01` : null;
   const monthCondition = monthStart
     ? "AND p.ends_at >= datetime(?, '-9 hours') AND p.ends_at < datetime(?, '+1 month', '-9 hours')"
     : "";
+  const where = `p.status = 'active' AND ${timeCondition} ${monthCondition}`;
+  const page =
+    sort.key === "votes"
+      ? `
+    scoped AS (SELECT id FROM polls p WHERE ${where}),
+    totals AS (
+      SELECT poll_id, SUM(vote_count) AS votes
+      FROM poll_entries
+      WHERE poll_id IN (SELECT id FROM scoped)
+      GROUP BY poll_id
+    ),
+    page AS (
+      SELECT p.*, COALESCE(t.votes, 0) AS sort_votes
+      FROM polls p
+      LEFT JOIN totals t ON t.poll_id = p.id
+      WHERE p.id IN (SELECT id FROM scoped)
+      ORDER BY ${pollListOrderBy(sort)}
+      LIMIT ? OFFSET ?
+    )`
+      : `
+    page AS (
+      SELECT p.*, 0 AS sort_votes FROM polls p
+      WHERE ${where}
+      ORDER BY ${pollListOrderBy(sort)}
+      LIMIT ? OFFSET ?
+    )`;
   // 日付は iOS デコーダ (.secondsSince1970) に合わせ epoch 秒の数値で返す
   const { results } = await db.prepare(`
-    WITH page AS (
-      SELECT * FROM polls p
-      WHERE p.status = 'active' AND ${timeCondition} ${monthCondition}
-      ORDER BY ${orderBy}
-      LIMIT ? OFFSET ?
-    ),
+    WITH ${page},
     agg AS (
       SELECT poll_id,
              SUM(vote_count) AS total_votes,
@@ -677,7 +763,7 @@ async function fetchPollListShared(
       agg.top_vote_count AS top_vote_count
     FROM page p
     LEFT JOIN agg ON agg.poll_id = p.id
-    ORDER BY ${orderBy}
+    ORDER BY ${pollListOrderBy(sort, "p")}
   `)
     .bind(...(monthStart ? [monthStart, monthStart] : []), limit, offset)
     .all();

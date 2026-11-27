@@ -55,6 +55,39 @@ class CommunityApi(private val http: WorkerHttpClient) {
         val label: String,
         val count: Int,
     )
+    /** 開催中 / 終了のお題の件数 (`GET /polls/counts`、iOS PollCounts の移植)。一覧は 20 件ずつなので総数はここで取る。 */
+    data class PollCounts(val active: Int, val past: Int)
+
+    /** お題一覧の並びの軸 (`GET /polls` の `sort`、iOS PollSortKey の移植)。 */
+    enum class PollSortKey(val apiValue: String) {
+        /** 締切。開催中では「残り日数」と呼ぶ。 */
+        DEADLINE("ends"),
+        /** お題を作った日時。 */
+        CREATED("created"),
+        /** 票の合計。 */
+        VOTES("votes");
+
+        /** メニューと並び替えボタンの文言。締切は開催中だと行の「残りN日」と結び付く残り日数で呼ぶ。 */
+        fun label(active: Boolean): String = when (this) {
+            DEADLINE -> if (active) "残り日数順" else "締切日順"
+            CREATED -> "作成日順"
+            VOTES -> "票数順"
+        }
+
+        /** 軸を選んだ直後の向き。開催中の締切は近い順 (昇順)、終了の締切は新しい順 (降順)、作成日・票数は降順。 */
+        fun defaultAscending(active: Boolean): Boolean = this == DEADLINE && active
+    }
+
+    /** お題一覧の並び (軸と向き)。 */
+    data class PollListSort(val key: PollSortKey, val ascending: Boolean) {
+        /** `GET /polls` に足すクエリ。 */
+        val query: String get() = "sort=${key.apiValue}&order=${if (ascending) "asc" else "desc"}"
+
+        companion object {
+            /** 今までと同じ並び (開催中 = 締切の近い順、終了 = 新しい順)。 */
+            fun standard(active: Boolean) = PollListSort(PollSortKey.DEADLINE, PollSortKey.DEADLINE.defaultAscending(active))
+        }
+    }
     /**
      * お題作成の結果。作成は認証・レート制限 (1日◯件) の対象で、失敗理由を
      * 出し分けないと利用者が「なぜ作れないか」分からないので、タグ作成 ([TagCreateResult])
@@ -746,12 +779,16 @@ class CommunityApi(private val http: WorkerHttpClient) {
     }
 
     /**
-     * GET /polls?status=active&limit=&offset= — 開催中のお題を 1 ページ分 (締切が近い順)。
+     * GET /polls?status=active&limit=&offset=&sort=&order= — 開催中のお題を 1 ページ分 (`sort` の並び、既定は締切が近い順)。
      * サーバの limit は既定 20・上限 100。開催中タブは末尾まで見たら offset を進めて次のページを読む
      * (iOS と同じ契約)。通信失敗は null、「もう無い」は空リストで返す。
      */
-    suspend fun activePolls(offset: Int, limit: Int = 20): List<PollSummary>? = withContext(Dispatchers.IO) {
-        val arr = getArray("/polls?status=active&limit=$limit&offset=$offset", authorized = true)
+    suspend fun activePolls(
+        offset: Int,
+        limit: Int = 20,
+        sort: PollListSort = PollListSort.standard(active = true)
+    ): List<PollSummary>? = withContext(Dispatchers.IO) {
+        val arr = getArray("/polls?status=active&limit=$limit&offset=$offset&${sort.query}", authorized = true)
             ?: return@withContext null
         (0 until arr.length()).mapNotNull { i -> parsePollSummary(arr.getJSONObject(i)) }
     }
@@ -769,10 +806,20 @@ class CommunityApi(private val http: WorkerHttpClient) {
         }
     }
 
-    /** GET /polls?status=past&month= — 締切がその月 (日本時間、"YYYY-MM") の終了したお題。新しい順。 */
-    suspend fun pastPolls(month: String): List<PollSummary>? = withContext(Dispatchers.IO) {
-        val arr = getArray("/polls?status=past&month=${enc(month)}", authorized = true) ?: return@withContext null
+    /** GET /polls?status=past&month=&sort=&order= — 締切がその月 (日本時間、"YYYY-MM") の終了したお題を `sort` の並びで (既定は新しい順)。 */
+    suspend fun pastPolls(
+        month: String,
+        sort: PollListSort = PollListSort.standard(active = false)
+    ): List<PollSummary>? = withContext(Dispatchers.IO) {
+        val arr = getArray("/polls?status=past&month=${enc(month)}&${sort.query}", authorized = true)
+            ?: return@withContext null
         (0 until arr.length()).mapNotNull { i -> parsePollSummary(arr.getJSONObject(i)) }
+    }
+
+    /** GET /polls/counts — 開催中 / 終了のお題の件数。認証不要。通信失敗は null。 */
+    suspend fun pollCounts(): PollCounts? = withContext(Dispatchers.IO) {
+        val o = get("/polls/counts") ?: return@withContext null
+        PollCounts(active = o.optInt("active"), past = o.optInt("past"))
     }
 
     /**

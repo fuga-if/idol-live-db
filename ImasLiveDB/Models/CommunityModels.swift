@@ -480,11 +480,56 @@ struct PollVoteResult: Codable, Sendable {
 
 /// 終了したお題がある月 (日本時間) と件数。終了タブを月ごとにさかのぼる単位。
 struct PollMonth: Codable, Hashable, Sendable {
-    /// "YYYY-MM"。`pastPolls(month:)` にそのまま渡す。
+    /// "YYYY-MM"。`pastPolls(month:sort:)` にそのまま渡す。
     let month: String
     /// 月の見出し ("2026.10")。文言はサーバが作る。
     let label: String
     let count: Int
+}
+
+/// 開催中 / 終了のお題の件数 (`GET /polls/counts`)。一覧は 20 件ずつしか読まないので、総数はここで取る。
+struct PollCounts: Codable, Equatable, Sendable {
+    let active: Int
+    let past: Int
+}
+
+/// お題一覧の並びの軸 (`GET /polls` の `sort`)。
+enum PollSortKey: String, CaseIterable, Hashable, Sendable {
+    /// 締切。開催中では「残り日数」と呼ぶ。
+    case deadline = "ends"
+    /// お題を作った日時。
+    case created
+    /// 票の合計。
+    case votes
+
+    /// メニューと並び替えボタンの文言。締切は開催中だと残り日数のほうが行の「残りN日」と結び付く。
+    func label(active: Bool) -> String {
+        switch self {
+        case .deadline: return active ? "残り日数順" : "締切日順"
+        case .created: return "作成日順"
+        case .votes: return "票数順"
+        }
+    }
+
+    /// 軸を選んだ直後の向き。開催中の締切は今まで通り近い順 (昇順)、終了の締切は新しい順 (降順)。
+    /// 作成日・票数は新しい順・多い順から始める (選んだ直後に意図と逆の並びにしない)。
+    func defaultAscending(active: Bool) -> Bool {
+        self == .deadline ? active : false
+    }
+}
+
+/// お題一覧の並び (軸と向き)。
+struct PollListSort: Hashable, Sendable {
+    var key: PollSortKey
+    var ascending: Bool
+
+    /// 今までと同じ並び (開催中 = 締切の近い順、終了 = 新しい順)。
+    static func standard(active: Bool) -> PollListSort {
+        PollListSort(key: .deadline, ascending: PollSortKey.deadline.defaultAscending(active: active))
+    }
+
+    /// `GET /polls` に足すクエリ。
+    var query: [String: String] { ["sort": key.rawValue, "order": ascending ? "asc" : "desc"] }
 }
 
 /// お題の 1 日の作成枠 (`GET /polls/quota`)。枠はサーバの日付 (UTC) で数える。
