@@ -8,8 +8,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
 import com.fugaif.imaslivedb.di.AppModule
 import com.google.android.play.core.review.ReviewManagerFactory
-import com.google.android.play.core.ktx.launchReview
-import com.google.android.play.core.ktx.requestReview
 
 /**
  * 起動時に一度だけ、条件を満たしていれば Play のアプリ内レビューを出す
@@ -28,9 +26,12 @@ fun ReviewPromptHost() {
         prompt.registerLaunch()
         if (!prompt.shouldAsk()) return@LaunchedEffect
         val activity = context.findActivity() ?: return@LaunchedEffect
+        // 失敗 (Play が無い端末など) は何もしない。出たかどうかもアプリからは分からない。
         runCatching {
             val manager = ReviewManagerFactory.create(activity)
-            manager.launchReview(activity, manager.requestReview())
+            manager.requestReviewFlow().addOnSuccessListener { info ->
+                if (!activity.isFinishing) manager.launchReviewFlow(activity, info)
+            }
         }
     }
 }
