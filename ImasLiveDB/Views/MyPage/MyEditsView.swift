@@ -138,8 +138,8 @@ struct MyEditsView: View {
             page = next
             hasMore = result.items.count >= limit
         } catch {
+            // 一過性の失敗でページ送りを止めない (hasMore は触らない。次に末尾が見えたら読み直す。Android と同じ)。
             Logger.community.error("my_edits_load_more_failed: \(error.localizedDescription)")
-            hasMore = false
         }
     }
 
