@@ -11,6 +11,7 @@ import com.fugaif.imaslivedb.data.db.DatabaseBoot
 import com.fugaif.imaslivedb.data.edit.EditApi
 import com.fugaif.imaslivedb.data.image.BulkImageImporter
 import com.fugaif.imaslivedb.data.image.CustomImageStore
+import com.fugaif.imaslivedb.data.local.ReviewPrompt
 import com.fugaif.imaslivedb.data.repository.CalendarRepository
 import com.fugaif.imaslivedb.data.repository.EditFeedRepository
 import com.fugaif.imaslivedb.data.repository.EventRepository
@@ -113,8 +114,14 @@ class AppModule private constructor(context: Context) {
         )
     }
     val userMarkRepository: UserMarkRepository by lazy {
-        UserMarkRepository(database, onSongFavoriteChanged = favoriteAggregation::report)
+        UserMarkRepository(
+            database,
+            onSongFavoriteChanged = favoriteAggregation::report,
+            onAttendanceAdded = reviewPrompt::noteMilestone,
+        )
     }
+    /** アプリ内レビューを出す時機 (参加ライブの登録を数える)。 */
+    val reviewPrompt: ReviewPrompt by lazy { ReviewPrompt(appContext) }
     /** 曲のお気に入りをみんなの集計に送る (失敗は端末に積んで送り直す)。 */
     val favoriteAggregation: FavoriteAggregation by lazy {
         FavoriteAggregation(appContext, appScope, send = communityApi::toggleFavorite)

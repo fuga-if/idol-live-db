@@ -25,10 +25,13 @@ data class AttendanceMarkedEvent(val showId: String, val type: AttendanceType)
  * 担当/お気に入り等のユーザーマークを管理 (端末ローカル)。
  *
  * @param onSongFavoriteChanged 曲のお気に入りを付け外ししたときに呼ぶ (みんなの集計に送る。iOS と同じ)。
+ * @param onAttendanceAdded 参加の形態を付けたとき (外したときは呼ばない) に呼ぶ。
+ *   レビュー依頼の好機に数える (iOS `ReviewPrompt.noteMilestone()` と同じ位置)。
  */
 class UserMarkRepository(
     private val db: AppDatabase,
-    private val onSongFavoriteChanged: (songId: String, value: Boolean) -> Unit = { _, _ -> }
+    private val onSongFavoriteChanged: (songId: String, value: Boolean) -> Unit = { _, _ -> },
+    private val onAttendanceAdded: () -> Unit = {},
 ) {
 
     private val dao get() = db.userMarkDao()
@@ -95,6 +98,9 @@ class UserMarkRepository(
         } else {
             dao.upsert(UserMark(type, id, UserMark.ATTENDED, true, text, Instant.now().toString()))
         }
+        // 参加ライブの登録は「一区切りついた瞬間」なのでレビュー依頼の好機に数える。
+        // 取り消しは数えない (良い体験ではないので)。
+        if (added != null) onAttendanceAdded()
         // 公演単位で付いたときだけ、いま付けた 1 つの形態を流す (現地に配信を足したなら配信の
         // チケット代を聞く)。取り消し・外しは対象外 (チケット代の確認は「付けた直後」の一度きり
         // でよい) — イベント単位の互換マークも対象外 (どの公演のチケットか特定できない)。
