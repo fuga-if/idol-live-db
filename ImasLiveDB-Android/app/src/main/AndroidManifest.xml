@@ -124,6 +124,27 @@
                 <data android:host="imas-live-api.tokata3011.workers.dev" />
                 <data android:pathPrefix="/app/polls/" />
             </intent-filter>
+            <!--
+              アプリの共有リンクの公演・イベント (iOS の Universal Links と同じ形)。
+              assetlinks.json は imas-live-api (routes/app_links.ts) が返す。開くのは DetailLinks。
+            -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" />
+                <data android:host="imas-live-api.tokata3011.workers.dev" />
+                <data android:pathPrefix="/app/events/" />
+                <data android:pathPrefix="/app/shows/" />
+            </intent-filter>
+            <!-- imaslivedb://events/{id}・imaslivedb://shows/{id} (公開サイトと着地ページの「アプリで開く」)。 -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="imaslivedb" android:host="events" />
+                <data android:scheme="imaslivedb" android:host="shows" />
+            </intent-filter>
             <!-- imaslivedb://polls/{id} (公開サイトの「アプリから投票する」・着地ページの「アプリで開く」)。 -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

@@ -20,6 +20,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import com.fugaif.imaslivedb.data.applink.PollLink
+import com.fugaif.imaslivedb.data.applink.DetailLink
+import com.fugaif.imaslivedb.data.applink.DetailLinkIncoming
 import com.fugaif.imaslivedb.data.applink.PollLinkIncoming
 import kotlinx.coroutines.flow.first
 import androidx.compose.runtime.getValue
@@ -195,6 +197,23 @@ fun AppNavigation() {
             }
         }
         PollLinkIncoming.consume()
+    }
+    // 公演・イベントのリンク (共有リンク・公開サイトの「アプリで開く」) から開かれたら、その詳細へ
+    // (iOS ContentView の `.event` / `.show`)。ライブのタブがタブバーに無ければプロデュースに積む。
+    val detailLink = DetailLinkIncoming.pending
+    LaunchedEffect(detailLink) {
+        val link = detailLink ?: return@LaunchedEffect
+        val route = when (link) {
+            is DetailLink.Event -> NavRoutes.EventDetail.createRoute(link.eventId)
+            is DetailLink.Show -> NavRoutes.Setlist.createRoute(link.showId)
+        }
+        val tab = TopLevelTab.Events
+        val target = if (wide || tabItems.any { it.destination == tab.destination }) tab.destination else AppDestination.PRODUCE
+        current = target
+        val nav = navControllers.getValue(target)
+        nav.currentBackStackEntryFlow.first()
+        nav.navigate(route) { launchSingleTop = true }
+        DetailLinkIncoming.consume()
     }
     // 「文で探す」の結果の行を押されたら、その詳細を開く。シートは本体のナビの外にあるので、依頼を
     // ここで受けて、該当のタブ (タブバーに無ければ詳細の入口があるプロデュース) へ積む。
