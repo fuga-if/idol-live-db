@@ -2,6 +2,7 @@
 //   - アプリ証明の IP 上限 (1 日 50 回) はアプリ証明の口だけに掛ける。共有リンクの着地ページの
 //     閲覧 (OGP のクローラー等) で、同じ IP の端末のアプリ証明を 429 にしない。
 
+import { fetchMock } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import { call, callJson, makeEnv, TEST_IP } from "./support/worker";
 import { exec, rows } from "./support/d1";
@@ -68,6 +69,33 @@ describe("GET /app/{events,shows,polls}/:id (着地ページ)", () => {
       expect(res.status, path).toBe(404);
       expect(res.headers.get("Content-Type")).toBe("text/html; charset=utf-8");
     }
+  });
+
+  it("公開サイトにページがある公演・イベントは、そのページへ 302", async () => {
+    const web = fetchMock.get("https://idollivedb.fugaapp.site");
+    web.intercept({ method: "HEAD", path: "/shows/sh_x_01/" }).reply(200, "");
+    web.intercept({ method: "HEAD", path: "/events/ev_%E3%81%82/" }).reply(200, "");
+    const show = await call("GET", "/app/shows/sh_x_01");
+    expect(show.status).toBe(302);
+    expect(show.headers.get("Location")).toBe("https://idollivedb.fugaapp.site/shows/sh_x_01/");
+    expect(show.headers.get("Cache-Control")).toBe("public, max-age=600");
+    const event = await call("GET", "/app/events/ev_%E3%81%82");
+    expect(event.status).toBe(302);
+    expect(event.headers.get("Location")).toBe("https://idollivedb.fugaapp.site/events/ev_%E3%81%82/");
+  });
+
+  it("公開サイトにまだページが無い公演は、今の着地ページのまま", async () => {
+    fetchMock.get("https://idollivedb.fugaapp.site")
+      .intercept({ method: "HEAD", path: "/shows/sh_new_01/" }).reply(404, "");
+    const res = await call("GET", "/app/shows/sh_new_01");
+    expect(res.status).toBe(404);
+    expect(res.headers.get("Content-Type")).toBe("text/html; charset=utf-8");
+  });
+
+  it("お題は公開サイトを確かめずに着地ページを返す", async () => {
+    const res = await call("GET", "/app/polls/none");
+    expect(res.status).toBe(404);
+    expect(res.headers.get("Location")).toBeNull();
   });
 
   it("アプリ証明の IP 上限を使い切っていても開ける。枠も消費しない", async () => {

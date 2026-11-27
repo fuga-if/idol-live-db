@@ -2,7 +2,8 @@
 //
 //   GET /.well-known/apple-app-site-association — アプリで開くパスの定義 (AASA)
 //   GET /.well-known/assetlinks.json            — Android App Links の確かめ (お題の旧い共有 URL)
-//   GET /app/{events,shows,polls}/:id           — アプリが無い端末向けの着地ページ (HTML)
+//   GET /app/{events,shows,polls}/:id           — アプリが無い端末向けの着地ページ (HTML)。
+//                                                  公演・イベントは公開サイトにページがあればそこへ 302
 //
 // 着地ページには IP の枠を掛けない (アプリ証明の口の枠は routes/app_attest.ts)。
 // 名前は CloudKit (公演・イベント) と D1 (お題) から引き、引けなければ 404 の誘導ページを返す。
@@ -16,6 +17,33 @@ const APP_STORE_URL = "https://apps.apple.com/jp/app/id6763342297";
 const APP_STORE_NUMERIC_ID = "6763342297";
 /** Android 版の Google Play ページ。 */
 const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=site.fugaapp.imaslivedb";
+/** 公開サイト。公演・イベントのページはここの `/{events,shows}/<id>/` (web/src/pages)。 */
+const WEB_BASE = "https://idollivedb.fugaapp.site";
+/** 公開サイトにページがあるかを確かめる待ち時間の上限。過ぎたら今の着地ページを返す。 */
+const WEB_PAGE_CHECK_TIMEOUT_MS = 1500;
+
+/**
+ * 公演・イベントの公開サイトのページの URL。ページがあれば返し、無い・確かめられなければ null。
+ *
+ * アプリの無い人 (と、Universal Links が効かないアプリ内ブラウザ) は、名前とストアの
+ * ボタンだけの着地ページより、セトリ・出演者まで読める公開サイトのページへ送る方が役に立つ
+ * (公開サイトのページにも「アプリで開く」がある)。公開サイトは 1 日 1 回の書き出しなので、
+ * その日に足された公演はまだページが無い。そのときと、確かめに失敗したときは今の着地ページ。
+ * アプリの入った iPhone では OS がこの URL をアプリへ渡すので、ここまで来ない。
+ */
+async function webPageUrl(kind: "events" | "shows", id: string): Promise<string | null> {
+  const url = `${WEB_BASE}/${kind}/${encodeURIComponent(id)}/`;
+  try {
+    const res = await fetch(url, {
+      method: "HEAD",
+      redirect: "manual",
+      signal: AbortSignal.timeout(WEB_PAGE_CHECK_TIMEOUT_MS),
+    });
+    return res.status === 200 ? url : null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Android App Links の確かめ。アプリの AndroidManifest がこのホストの `/app/polls/` を
@@ -200,6 +228,19 @@ export async function handleAppLinks(ctx: RouteContext): Promise<Response | null
           },
         }
       );
+    }
+    if (kind !== "polls") {
+      const webUrl = await webPageUrl(kind, id);
+      if (webUrl !== null) {
+        return new Response(null, {
+          status: 302,
+          headers: {
+            Location: webUrl,
+            "Cache-Control": "public, max-age=600",
+            "X-Request-Id": requestId,
+          },
+        });
+      }
     }
     // 名前は CloudKit (唯一の正) を S2S lookup で直読みする。recordName = id。
     // 旧実装は Worker D1 の master ミラーを読んでいたが、ミラーは CloudKit と
