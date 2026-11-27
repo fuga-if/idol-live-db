@@ -30,8 +30,9 @@ data class AttendanceMarkedEvent(val showId: String, val type: AttendanceType)
  */
 class UserMarkRepository(
     private val db: AppDatabase,
-    private val onSongFavoriteChanged: (songId: String, value: Boolean) -> Unit = { _, _ -> },
+    // onSongFavoriteChanged を最後に置く (テストが末尾ラムダで渡している)。
     private val onAttendanceAdded: () -> Unit = {},
+    private val onSongFavoriteChanged: (songId: String, value: Boolean) -> Unit = { _, _ -> },
 ) {
 
     private val dao get() = db.userMarkDao()
