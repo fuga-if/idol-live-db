@@ -1,0 +1,26 @@
+{
+ "title": "曲「想定心理外 -Outside Isotope-」(ml) の追加",
+ "author": "claude (daily-data-crawl 2026-11-28, issue #424)",
+ "source": [
+  "https://idolmaster-official.jp/news/01_20381 (ミリシタ 期間限定イベント「プラチナスタートラスト13～想定心理外 -Outside Isotope-～」2026-11-17 開始)",
+  "https://itunes.apple.com/lookup?id=6827106880&country=jp (想定心理外 -Outside Isotope- / 北上麗花 (CV.平山笑美), ジュリア (CV.愛美), 桜守歌織 (CV.香里有佐), 所 恵美 (CV.藤井ゆきよ) & 松田亜利沙 (CV.村川梨衣) / 2026-11-26 / isStreamable=false)"
+ ],
+ "songs": [
+  {
+   "id": "ml_想定心理外_-outside_isotope-",
+   "title": "想定心理外 -Outside Isotope-",
+   "title_kana": "そうていしんりがい",
+   "brand_id": "ml",
+   "song_type": "unit",
+   "release_date": "2026-11-17",
+   "apple_music_id": "6827106880",
+   "apple_music_album_id": "6827106879",
+   "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/58/87/87/58878710-2a34-175f-b7ee-2b9edd658a1d/4540774751549.png/600x600bb.jpg",
+   "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/e2/d1/5d/e2d15d29-2d8f-88b7-b683-f16d424fa2ee/mzaf_351290429131683137.plus.aac.p.m4a",
+   "duration_sec": 247,
+   "cd_series": "想定心理外 -Outside Isotope- - Single",
+   "singer_label": "北上麗花、ジュリア、桜守歌織、所恵美、松田亜利沙",
+   "original_singers": ["ml_北上麗花", "ml_ジュリア", "ml_桜守歌織", "ml_所恵美", "ml_松田亜利沙"]
+  }
+ ]
+}

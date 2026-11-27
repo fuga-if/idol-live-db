@@ -1,0 +1,18 @@
+{
+ "title": "CINDERELLA GIRLS × MILLION LIVE! CLASH M@TCH!! アソビストア一般会員2次先行",
+ "author": "claude (daily-data-crawl 2026-11-28)",
+ "ticket_sales": [
+  {
+   "event_id": "ev_the_idolm@ster_cinderella_girls_×_million_live_clash_m@tch",
+   "kind": "lottery",
+   "name": "アソビストア一般会員2次先行",
+   "starts_at": "2026-11-27 12:00",
+   "ends_at": "2026-12-13 23:59",
+   "result_at": "2026-12-26 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/a76e8cbd-8f59-47f7-aaf3-a5df54767b2f",
+   "note": "1公演2枚まで(複数公演申込可)。入金期間12/26 13:00〜12/31 23:59。対象席種は一般指定席のみ(アリーナ前方席・プレミアムラウンジ付指定席の取り扱いなし)。",
+   "source_url": "https://idolmaster-official.jp/live_event/deremilli_clashmatch/ticket/",
+   "sort_order": 2
+  }
+ ]
+}
