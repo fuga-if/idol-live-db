@@ -1,0 +1,30 @@
+{
+ "title": "曲「ロンリー・デイト水性白書」(sc・ザ・ふたりトラベラー) の追加 (#431)",
+ "author": "claude",
+ "source": [
+  "https://music765plus.com/ロンリー・デイト水性白書 (2026/11/22 enza版シャイニーカラーズに実装、歌 ザ・ふたりトラベラー [郁田はるき][櫻木真乃]、作詞 前田甘露、作曲・編曲 OzaShin)",
+  "https://x.com/ozawa_rena/status/2124805670973386826 (郁田はるき役 小澤麗那さんの新曲告知)",
+  "derived:title_kana は曲名から起こした読み"
+ ],
+ "songs": [
+  {
+   "id": "sc_ロンリーデイト水性白書",
+   "title": "ロンリー・デイト水性白書",
+   "title_kana": "ろんりーでいとすいせいはくしょ",
+   "brand_id": "sc",
+   "song_type": "unit",
+   "release_date": "2026-11-22",
+   "lyricist": "前田甘露",
+   "composer": "OzaShin",
+   "arranger": "OzaShin",
+   "unit_id": "unit_ザふたりトラベラー",
+   "unit_name": "ザ・ふたりトラベラー",
+   "singer_label": "ザ・ふたりトラベラー（郁田はるき、櫻木真乃）",
+   "first_appearance_note": "シャニマス (2026-11-22) にて実装",
+   "original_singers": [
+    "sc_郁田はるき",
+    "sc_櫻木真乃"
+   ]
+  }
+ ]
+}

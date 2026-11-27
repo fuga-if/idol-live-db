@@ -1,0 +1,28 @@
+{
+ "title": "曲「想定心理外 -Outside Isotope-」(ml) の追加 (#424)",
+ "author": "claude",
+ "source": [
+  "https://idolmaster-official.jp/news/01_20381 (2026.11.17 ミリシタ イベント「プラチナスタートラスト13～想定心理外 -Outside Isotope-～」開催、イベント楽曲)",
+  "https://x.com/imasml_theater/status/2122571183585464801 (ミリシタ公式 X: 北上麗花・ジュリア・桜守歌織・所恵美・松田亜利沙)",
+  "derived:title_kana は曲名の主題部分から起こした読み"
+ ],
+ "songs": [
+  {
+   "id": "ml_想定心理外_-outside_isotope-",
+   "title": "想定心理外 -Outside Isotope-",
+   "title_kana": "そうていしんりがい",
+   "brand_id": "ml",
+   "song_type": "unit",
+   "release_date": "2026-11-17",
+   "singer_label": "北上麗花、ジュリア、桜守歌織、所恵美、松田亜利沙",
+   "first_appearance_note": "ミリシタ イベント「プラチナスタートラスト13～想定心理外 -Outside Isotope-～」(2026-11-17) にて実装",
+   "original_singers": [
+    "ml_北上麗花",
+    "ml_ジュリア",
+    "ml_桜守歌織",
+    "ml_所恵美",
+    "ml_松田亜利沙"
+   ]
+  }
+ ]
+}
