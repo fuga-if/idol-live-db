@@ -2281,6 +2281,7 @@ INSERT INTO "idol_brands" VALUES('765as_詩花','961',1);
 INSERT INTO "idol_brands" VALUES('gakuen_藍井撫子','gakuen',1);
 INSERT INTO "idol_brands" VALUES('gakuen_白草四音','gakuen',1);
 INSERT INTO "idol_brands" VALUES('gakuen_白草月花','gakuen',1);
+INSERT INTO "idol_brands" VALUES('gakuen_賀陽燐羽','gakuen',1);
 INSERT INTO "idol_brands" VALUES('gakuen_氷渡香名江','gakuen',1);
 CREATE TABLE idol_facets (
             id TEXT PRIMARY KEY NOT NULL,
