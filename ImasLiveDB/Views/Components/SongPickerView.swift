@@ -14,13 +14,15 @@ struct SongPickerView: View {
 
     private var filtered: [PickedSong] {
         let trimmed = query.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty else { return Array(allSongs.prefix(100)) }
+        // 件数では切らない (List は遅延描画なので全曲でも重くない。100 / 200 で切っていた頃は
+        // 古い曲や検索語に多く当たる曲が選べなかった。Android の曲ピッカーも全件)。
+        guard !trimmed.isEmpty else { return allSongs }
         // 照合はコア (`domain/text_search_index.rs`) に一任する。ここで
         // `title.lowercased().contains` を書いていたので、**読みで引けなかった**
         // (曲一覧は「みちしるべ」で当たるのに、編集 UI の曲ピッカーだけ当たらない)。
         // 索引が無い (読み込み前) 間は絞り込まない。黙って 0 件にする方が悪い。
-        guard let catalog else { return Array(allSongs.prefix(200)) }
-        return Array(catalog.filter(allSongs, needle: trimmed).prefix(200))
+        guard let catalog else { return allSongs }
+        return catalog.filter(allSongs, needle: trimmed)
     }
 
     var body: some View {
