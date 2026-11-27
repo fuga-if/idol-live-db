@@ -133,8 +133,8 @@ struct ImasMeishiFront: View {
     var hero: [ImasMeishiOshi] = []
     /// 判子の下の 1 行 (コアの `CardFace.oshiCaption`)。nil ならまとまりごとにブランドの略称を刷る。
     var oshiCaption: String? = nil
-    /// 数で畳んだ担当の人数 (「+2」)。
-    var moreOshi: Int = 0
+    /// 判子に並べきれなかった担当を名前で刷る 1 行 (コアの `CardFace.moreOshiLine`。「ほかに 天道輝・櫻木真乃 など6人」)。
+    var moreOshiLine: String? = nil
     /// 右下に刷るハンドル (「@fuga_p」)。
     var handle: String? = nil
     /// 名前の書体の PostScript 名 (デザインの書体)。
@@ -153,7 +153,7 @@ struct ImasMeishiFront: View {
     var scale: CGFloat = 1
 
     init(look: Look = .pass, name: String, sinceImprint: String? = nil, oshiGroups: [ImasMeishiOshiGroup] = [],
-         hero: [ImasMeishiOshi] = [], oshiCaption: String? = nil, moreOshi: Int = 0, handle: String? = nil,
+         hero: [ImasMeishiOshi] = [], oshiCaption: String? = nil, moreOshiLine: String? = nil, handle: String? = nil,
          nameFont: String? = nil, portrait: ImasMeishiPicture? = nil, portraitRound: Bool = false,
          stickers: [ImasMeishiSticker] = [], stats: [Stat] = [], ink: ImasMeishiInk, scale: CGFloat = 1) {
         self.look = look
@@ -162,7 +162,7 @@ struct ImasMeishiFront: View {
         self.oshiGroups = oshiGroups
         self.hero = hero
         self.oshiCaption = oshiCaption
-        self.moreOshi = moreOshi
+        self.moreOshiLine = moreOshiLine
         self.handle = handle
         self.nameFont = nameFont
         self.portrait = portrait
@@ -629,19 +629,28 @@ struct ImasMeishiFront: View {
         }
     }
 
-    /// 担当を大きく のデザインの名前の下の 1 行 (「星井美希 担当」、無ければブランドの略称、畳んだ数)。
+    /// 担当を大きく のデザインの名前の下の 1 行 (「星井美希 担当」、無ければブランドの略称) と、並べきれなかった担当の名前。
     @ViewBuilder
     private var heroCaption: some View {
         let labels = oshiGroups.map(\.label).filter { !$0.isEmpty }
         let line = oshiCaption ?? (labels.isEmpty ? nil : labels.joined(separator: "・"))
-        let more = moreOshi > 0 ? "+\(moreOshi)" : nil
-        let text = [line, more].compactMap { $0 }.joined(separator: "  ")
-        if !text.isEmpty {
-            Text(text)
-                .font(.system(size: p(8), weight: .medium))
-                .foregroundStyle(ink.ink)
-                .lineLimit(2)
-                .minimumScaleFactor(0.6)
+        if line != nil || moreOshiLine != nil {
+            VStack(alignment: .leading, spacing: p(1.5)) {
+                if let line {
+                    Text(line)
+                        .font(.system(size: p(8), weight: .medium))
+                        .foregroundStyle(ink.ink)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.6)
+                }
+                if let moreOshiLine {
+                    Text(moreOshiLine)
+                        .font(.system(size: p(6.5), weight: .medium))
+                        .foregroundStyle(ink.sub)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                }
+            }
         }
     }
 
@@ -669,7 +678,8 @@ struct ImasMeishiFront: View {
     }
 
     /// 担当の判子 (写真) をブランドごとにまとめた並びと、その下の 1 行 (「星井美希 担当」) か
-    /// まとまりごとのブランドの略称。名刺に載る担当 (5 人) が全員、名前・写真と重ならずに並ぶ大きさ。
+    /// まとまりごとのブランドの略称。判子はコアが選んだ 5 人までで、名前・写真と重ならずに並ぶ大きさ。
+    /// 並べきれなかった担当はその下に名前で刷る (「ほかに 天道輝・櫻木真乃 など6人」)。
     @ViewBuilder
     private func oshiBlock(stamp: CGFloat, font: Font, labelFont: Font) -> some View {
         if !oshiGroups.isEmpty {
@@ -689,18 +699,18 @@ struct ImasMeishiFront: View {
                             }
                         }
                     }
-                    if moreOshi > 0 {
-                        Text("+\(moreOshi)")
-                            .font(.system(size: p(stamp * 0.36), weight: .bold, design: .rounded).monospacedDigit())
-                            .foregroundStyle(ink.ink)
-                            .frame(width: p(stamp), height: p(stamp))
-                            .overlay(Circle().strokeBorder(ink.line, lineWidth: max(p(0.75), 0.5)))
-                    }
                 }
                 if let oshiCaption {
                     Text(oshiCaption)
                         .font(font)
                         .foregroundStyle(ink.ink)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                }
+                if let moreOshiLine {
+                    Text(moreOshiLine)
+                        .font(labelFont)
+                        .foregroundStyle(ink.sub)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
                 }

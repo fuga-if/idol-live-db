@@ -122,8 +122,8 @@ struct ImasProducerCard: View {
     var faceCaption: String? = nil
     /// 担当を大きく並べる順 (担当を大きく のデザイン。コアの `CardFace.heroIdolIds`)。
     var heroOshi: [Oshi] = []
-    /// 表で数で畳んだ担当の人数。
-    var moreOshi: Int = 0
+    /// 表の判子に並べきれなかった担当を名前で刷る 1 行 (コアの `CardFace.moreOshiLine`)。
+    var moreOshiLine: String? = nil
     /// 表に刷るハンドル 1 つ。
     var handle: String? = nil
     var links: [Link] = []
@@ -254,7 +254,7 @@ struct ImasProducerCard: View {
                 },
                 hero: heroOshi.map(meishiOshi),
                 oshiCaption: faceCaption,
-                moreOshi: moreOshi,
+                moreOshiLine: moreOshiLine,
                 handle: handle,
                 nameFont: nameFont,
                 portrait: portraitURL.map { .url($0) },
@@ -321,7 +321,8 @@ struct ImasProducerCard: View {
                 let members = group.oshi.map(\.name).joined(separator: "、")
                 return faceGroups.count > 1 && !group.label.isEmpty ? "\(group.label) \(members)" : members
             }.joined(separator: "、")
-            parts.append(moreOshi > 0 ? "担当 \(names) ほか\(moreOshi)人" : "担当 \(names)")
+            parts.append("担当 \(names)")
+            if let moreOshiLine { parts.append(moreOshiLine) }
         }
         if let handle { parts.append(handle) }
         if portraitURL != nil { parts.append("写真あり") }

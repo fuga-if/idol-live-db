@@ -91,7 +91,8 @@ fun ProducerCardPrintFront(
     hero: List<ProducerCardPrintOshi> = emptyList(),
     /** 判子の下の 1 行 (コアの `CardFace.oshiCaption`)。 */
     caption: String? = null,
-    moreOshi: Int = 0,
+    /** 判子に並べきれなかった担当を名前で刷る 1 行 (コアの `CardFace.moreOshiLine`)。 */
+    moreOshiLine: String? = null,
     /** 担当の色 (帯・罫)。名刺の刷る色の担当の色 (墨なら null)。 */
     seed: String? = null,
     /** 右下に刷るハンドル (「@fuga_p」)。 */
@@ -111,7 +112,7 @@ fun ProducerCardPrintFront(
         name = name, ink = colors, look = look, sinceImprint = sinceImprint,
         oshiGroups = groups.map { group -> ImasMeishiOshiGroup(group.label, group.oshi.map { meishiOshi(it) }) },
         hero = hero.map { meishiOshi(it) },
-        oshiCaption = caption, moreOshi = moreOshi, handle = handle, nameFamily = nameFamily,
+        oshiCaption = caption, moreOshiLine = moreOshiLine, handle = handle, nameFamily = nameFamily,
         portrait = portrait?.let { ImasMeishiPicture.Image(it) },
         portraitRound = portraitRound,
         stickers = stickers,

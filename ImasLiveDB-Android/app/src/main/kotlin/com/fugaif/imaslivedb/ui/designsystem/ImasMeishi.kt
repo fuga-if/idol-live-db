@@ -247,7 +247,7 @@ private enum class MeishiFace(val family: FontFamily) {
  * @param oshiGroups 表に並べる担当のブランドごとのまとまり (コアの `CardFace.oshiGroups` の順)。
  * @param hero 担当を大きく並べる順 (担当を大きく のデザインだけ。コアの `CardFace.heroIdolIds` の順)。
  * @param oshiCaption 判子の下の 1 行 (コアの `CardFace.oshiCaption`)。null ならまとまりごとにブランドの略称を刷る。
- * @param moreOshi 数で畳んだ担当の人数 (「+2」)。
+ * @param moreOshiLine 判子に並べきれなかった担当を名前で刷る 1 行 (コアの `CardFace.moreOshiLine`。「ほかに 天道輝・櫻木真乃 など6人」)。
  * @param handle 右下に刷るハンドル (「@fuga_p」)。
  * @param nameFamily 名前の書体 (デザインの書体)。null は見出しの書体の極太。
  * @param portrait 名刺の写真 (右に正方形の枠で)。
@@ -265,7 +265,7 @@ fun ImasMeishiFront(
     oshiGroups: List<ImasMeishiOshiGroup> = emptyList(),
     hero: List<ImasMeishiOshi> = emptyList(),
     oshiCaption: String? = null,
-    moreOshi: Int = 0,
+    moreOshiLine: String? = null,
     handle: String? = null,
     nameFamily: FontFamily? = null,
     portrait: ImasMeishiPicture? = null,
@@ -277,7 +277,7 @@ fun ImasMeishiFront(
     val p = rememberMeishiScale(scale)
     // 夜公演は渡された墨から黒い紙を組む。
     val drawn = if (look == ImasMeishiLook.NIGHT) ink.night() else ink
-    val parts = MeishiFrontParts(name, drawn, sinceImprint, oshiGroups, hero, oshiCaption, moreOshi, handle, nameFamily, portrait, portraitRound, stats, p)
+    val parts = MeishiFrontParts(name, drawn, sinceImprint, oshiGroups, hero, oshiCaption, moreOshiLine, handle, nameFamily, portrait, portraitRound, stats, p)
     Box(modifier.requiredSize(p.dp(ImasMeishi.WIDTH), p.dp(ImasMeishi.HEIGHT)).background(drawn.paper).clipToBounds()) {
         when (look) {
             ImasMeishiLook.PASS -> PassFront(parts)
@@ -303,7 +303,7 @@ private class MeishiFrontParts(
     val oshiGroups: List<ImasMeishiOshiGroup>,
     val hero: List<ImasMeishiOshi>,
     val oshiCaption: String?,
-    val moreOshi: Int,
+    val moreOshiLine: String?,
     val handle: String?,
     val nameFamily: FontFamily?,
     val portrait: ImasMeishiPicture?,
@@ -770,18 +770,26 @@ private fun OshiFront(m: MeishiFrontParts) {
     }
 }
 
-/** 担当を大きく の名前の下の 1 行 (「星井美希 担当」、無ければブランドの略称、畳んだ数)。 */
+/** 担当を大きく の名前の下の 1 行 (「星井美希 担当」、無ければブランドの略称) と、並べきれなかった担当の名前。 */
 @Composable
 private fun HeroCaption(m: MeishiFrontParts) {
     val labels = m.oshiGroups.map { it.label }.filter { it.isNotEmpty() }
     val line = m.oshiCaption ?: labels.takeIf { it.isNotEmpty() }?.joinToString("・")
-    val more = if (m.moreOshi > 0) "+${m.moreOshi}" else null
-    val text = listOfNotNull(line, more).joinToString("  ")
-    if (text.isEmpty()) return
-    ImasFitText(
-        text, style = TextStyle(fontSize = m.p.sp(8f), fontWeight = FontWeight.Medium),
-        color = m.ink.ink, maxLines = 2, minScale = 0.6f
-    )
+    if (line == null && m.moreOshiLine == null) return
+    Column(verticalArrangement = Arrangement.spacedBy(m.p.dp(1.5f))) {
+        line?.let {
+            ImasFitText(
+                it, style = TextStyle(fontSize = m.p.sp(8f), fontWeight = FontWeight.Medium),
+                color = m.ink.ink, maxLines = 2, minScale = 0.6f
+            )
+        }
+        m.moreOshiLine?.let {
+            ImasFitText(
+                it, style = TextStyle(fontSize = m.p.sp(6.5f), fontWeight = FontWeight.Medium),
+                color = m.ink.sub, maxLines = 1, minScale = 0.6f
+            )
+        }
+    }
 }
 
 // MARK: 共通
@@ -805,7 +813,8 @@ private fun NameText(m: MeishiFrontParts, size: Float, tracking: Float = 0f) {
 
 /**
  * 担当の判子 (写真) をブランドごとにまとめた並びと、その下の 1 行 (「星井美希 担当」) か
- * まとまりごとのブランドの略称。名刺に載る担当が全員、名前・写真と重ならずに並ぶ大きさ。
+ * まとまりごとのブランドの略称。判子はコアが選んだ 5 人までで、名前・写真と重ならずに並ぶ大きさ。
+ * 並べきれなかった担当はその下に名前で刷る (「ほかに 天道輝・櫻木真乃 など6人」)。
  */
 @Composable
 private fun OshiBlock(m: MeishiFrontParts, stamp: Float, caption: TextStyle, label: TextStyle, modifier: Modifier = Modifier) {
@@ -823,20 +832,9 @@ private fun OshiBlock(m: MeishiFrontParts, stamp: Float, caption: TextStyle, lab
                     }
                 }
             }
-            if (m.moreOshi > 0) {
-                Box(
-                    Modifier.size(p.dp(stamp)).border(p.hair(0.75f), m.ink.line, CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        "+${m.moreOshi}",
-                        style = meishiText(p, stamp * 0.36f, FontWeight.Bold, MeishiFace.ROUNDED).copy(fontFeatureSettings = "tnum"),
-                        color = m.ink.ink, maxLines = 1
-                    )
-                }
-            }
         }
         m.oshiCaption?.let { ImasFitText(it, style = caption, color = m.ink.ink, maxLines = 1, minScale = 0.6f) }
+        m.moreOshiLine?.let { ImasFitText(it, style = label, color = m.ink.sub, maxLines = 1, minScale = 0.6f) }
     }
 }
 

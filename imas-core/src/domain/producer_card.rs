@@ -28,7 +28,15 @@ const MAX_URL_LEN: usize = 1400;
 
 const MAX_NAME_CHARS: u32 = 24;
 const MAX_MESSAGE_CHARS: u32 = 60;
-const MAX_OSHI: u32 = 5;
+/// 古い版のアプリ (担当の上限が 5 人だった版) が読める担当の数。これより多い名刺は「読めない名刺」になる。
+const LEGACY_MAX_OSHI: u32 = 5;
+/// 担当を何人でも載せられる版の、手で組んだ名刺を読むときの歯止め (実際の上限は QR に収まる長さ)。
+/// 担当 1 人は id で 20〜40 バイトなので、QR (`MAX_URL_LEN`) にはこれより先に収まらなくなる。
+const MAX_OSHI_READ: u32 = 50;
+/// 担当を選ばずにおいたとき (自動の選び方) に載せる人数。表の判子の枠と同じ。
+const AUTO_PICK_OSHI: usize = 5;
+/// 刷る色に選べる担当の数 (並びの先頭から)。刷る色の番号は 3 bit で、担当の位置は 1〜4 まで。
+const INK_OSHI_SLOTS: usize = 5;
 const MAX_LINKS: u32 = 4;
 const MAX_LINK_VALUE_CHARS: usize = 200;
 /// アイドル・公演の id の長さの上限 (バイト)。実際の id は 50 バイト前後。
@@ -37,6 +45,24 @@ const MAX_ID_BYTES: usize = 128;
 /// 日付を数える起点。アイマスのライブはこれより前に無い。
 fn epoch() -> NaiveDate {
     NaiveDate::from_ymd_opt(2000, 1, 1).expect("valid date")
+}
+
+/// 担当を 6 人以上載せられるようにするか。**担当の上限の開閉はこの 1 か所だけ**。
+///
+/// 読む側 (`decode_producer_card` / 名刺ファイル) はこの定数に関係なく `MAX_OSHI_READ` 人まで読める。
+/// 公開中の版は担当が 6 人以上の名刺を「読めない名刺」として扱う (誤読はしない) ので、
+/// 読める版が行き渡ってから `true` にする (名刺 id の `PRODUCER_CARD_EMBEDS_CARD_ID` と同じ段取り)。
+/// - `false`: 載せられるのは `LEGACY_MAX_OSHI` 人まで (今までどおり)。
+/// - `true`: `MAX_OSHI_READ` 人まで。実際には QR に収まる長さが上限 (`ProducerCardInputError::TooLong`)。
+pub const PRODUCER_CARD_MANY_OSHI: bool = false;
+
+/// 名刺に載せられる担当の数 ([`PRODUCER_CARD_MANY_OSHI`])。
+const fn max_oshi() -> u32 {
+    if PRODUCER_CARD_MANY_OSHI {
+        MAX_OSHI_READ
+    } else {
+        LEGACY_MAX_OSHI
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -264,7 +290,7 @@ pub fn producer_card_limits() -> ProducerCardLimits {
     ProducerCardLimits {
         max_name_chars: MAX_NAME_CHARS,
         max_message_chars: MAX_MESSAGE_CHARS,
-        max_oshi: MAX_OSHI,
+        max_oshi: max_oshi(),
         max_links: MAX_LINKS,
     }
 }
@@ -280,7 +306,7 @@ pub fn validate_producer_card(input: &ProducerCardInput) -> Option<ProducerCardI
     if char_len(input.message.trim()) > MAX_MESSAGE_CHARS as usize {
         return Some(ProducerCardInputError::MessageTooLong);
     }
-    if input.oshi_idol_ids.len() > MAX_OSHI as usize {
+    if input.oshi_idol_ids.len() > max_oshi() as usize {
         return Some(ProducerCardInputError::TooManyOshi);
     }
     if input.links.len() > MAX_LINKS as usize {
@@ -312,14 +338,15 @@ pub fn producer_card_input_error_message(error: ProducerCardInputError) -> Strin
         ProducerCardInputError::MessageTooLong => {
             format!("ひとことは{MAX_MESSAGE_CHARS}文字までです")
         }
-        ProducerCardInputError::TooManyOshi => format!("担当は{MAX_OSHI}人まで載せられます"),
+        ProducerCardInputError::TooManyOshi => format!("担当は{}人まで載せられます", max_oshi()),
         ProducerCardInputError::TooManyLinks => format!("リンクは{MAX_LINKS}本までです"),
         ProducerCardInputError::LinkInvalid => "リンクの書き方を確かめてください".into(),
         ProducerCardInputError::QrUrlInvalid => {
             "QR にする URL は http:// か https:// から始まるページの URL にしてください".into()
         }
         ProducerCardInputError::TooLong => {
-            "名刺が長すぎて QR に収まりません。リンクか自分の QR を短くしてください".into()
+            "名刺が長すぎて QR に収まりません。担当かリンクを減らすか、自分の QR を短くしてください"
+                .into()
         }
     }
 }
@@ -342,7 +369,7 @@ pub fn encode_producer_card(input: &ProducerCardInput) -> EncodedProducerCard {
         oshi_idol_ids: input
             .oshi_idol_ids
             .iter()
-            .take(MAX_OSHI as usize)
+            .take(max_oshi() as usize)
             .cloned()
             .collect(),
         links: input
@@ -1043,7 +1070,7 @@ pub fn card_ink_normalize(ink: Option<&CardInk>, oshi_idol_ids: &[String]) -> Op
         CardInk::Sumi => Some(CardInk::Sumi),
         CardInk::Oshi { idol_id } => {
             let i = oshi_idol_ids.iter().position(|id| id == idol_id)?;
-            (i > 0 && i < MAX_OSHI as usize).then(|| CardInk::Oshi {
+            (i > 0 && i < INK_OSHI_SLOTS).then(|| CardInk::Oshi {
                 idol_id: idol_id.clone(),
             })
         }
@@ -1054,7 +1081,7 @@ pub fn card_ink_normalize(ink: Option<&CardInk>, oshi_idol_ids: &[String]) -> Op
 /// (担当の居ない名刺はもともと墨で刷る)。
 pub fn card_ink_choices(ink: Option<&CardInk>, oshi_idol_ids: &[String]) -> Vec<CardInkChoice> {
     let current = card_ink_normalize(ink, oshi_idol_ids);
-    let ids: Vec<&String> = oshi_idol_ids.iter().take(MAX_OSHI as usize).collect();
+    let ids: Vec<&String> = oshi_idol_ids.iter().take(INK_OSHI_SLOTS).collect();
     let mut out: Vec<CardInkChoice> = ids
         .iter()
         .enumerate()
@@ -1398,7 +1425,7 @@ fn read_card(bytes: &[u8]) -> Option<ProducerCard> {
         None
     };
     let issued_on = day_to_date(u32::try_from(r.varint()?).ok()?);
-    let oshi_n = r.count(MAX_OSHI as usize)?;
+    let oshi_n = r.count(MAX_OSHI_READ as usize)?;
     let mut oshi_idol_ids = Vec::with_capacity(oshi_n);
     for _ in 0..oshi_n {
         oshi_idol_ids.push(r.str()?);
@@ -1686,12 +1713,17 @@ pub fn card_issued_label(issued_on: &str) -> String {
 //
 // 担当はブランドごとにまとめて並べる。枠が足りないときも、まずブランドごとに 1 人 (そのブランドで
 // 並びが先の担当) を載せ、残りの枠に 2 人目以降を並び順で入れる (担当の多い人でもブランドが抜け
-// 落ちないように)。名刺に載せる担当そのもの (アプリの担当から `MAX_OSHI` 人) も同じ規則で選ぶ。
+// 落ちないように)。自動で選ぶ名刺の担当 (アプリの担当から `AUTO_PICK_OSHI` 人) も同じ規則で選ぶ。
+//
+// 名刺に載せる担当は枠より多くてもよい (`PRODUCER_CARD_MANY_OSHI`)。枠に入らない担当は判子にせず、
+// 判子の並びの下に名前の 1 行 (`CardFace.more_oshi_line`「ほかに 如月千早・萩原雪歩」) で刷る。
 // ---------------------------------------------------------------------------
 
-/// 名刺の表に担当を並べる枠の数 (名刺に載る担当の上限と同じ。名刺に載る担当は全員表に出る)。
-/// これより多い担当が来たときだけ、最後の枠を「+N」にして数で畳む。
-pub const CARD_FACE_OSHI_SLOTS: u32 = MAX_OSHI;
+/// 名刺の表に担当を判子で並べる枠の数。これより多い担当は判子にせず、名前の 1 行で刷る。
+pub const CARD_FACE_OSHI_SLOTS: u32 = 5;
+
+/// 枠に入らない担当の名前の行の上限の文字数 (「ほかに 」まで含めて)。超える分は「など N 人」と数で言う。
+const CARD_FACE_MORE_LINE_MAX_CHARS: usize = 24;
 
 /// 担当の名前を表の 1 行に並べる上限の文字数 (「 担当」まで含めて)。名刺の写真の横の幅に
 /// 紙の上で読める大きさで収まる長さ。超えるときは「765AS 5人 担当」と数で言う。
@@ -1737,8 +1769,11 @@ pub struct CardFace {
     /// そのときは名前の代わりにまとまりごとにブランドの略称を判子の下に刷る (略称を刷らない名刺は何も刷らない)。
     /// 数で畳んだ行の略称も、略称を刷らない名刺では落とす (「5人 担当」)。
     pub oshi_caption: Option<String>,
-    /// 表に並べきれず数で畳んだ担当の人数 (「+2」)。0 なら畳まない。
+    /// 判子の枠に入らなかった担当の人数。0 なら全員が判子で並ぶ。
     pub more_oshi: u32,
+    /// 判子の枠に入らなかった担当の名前の 1 行 (「ほかに 如月千早・萩原雪歩」、長ければ
+    /// 「ほかに 如月千早・萩原雪歩 など5人」)。判子の並びの下に刷る。`more_oshi` が 0 なら None。
+    pub more_oshi_line: Option<String>,
     /// 表に刷るハンドル 1 つ (X があれば X、無ければ先頭のリンク)。自分の QR は裏に刷るので選ばない。
     pub handle: Option<CardLinkView>,
     /// 帯・印字の P 歴 (「SINCE 2014」)。
@@ -1792,7 +1827,7 @@ fn pick_oshi_by_brand(oshi: &[&CardOshiEntry], slots: usize) -> Vec<usize> {
 // 名刺に載せる担当を本人が選ぶ
 // ---------------------------------------------------------------------------
 //
-// - 選べるのはアプリの担当の中から 1〜`MAX_OSHI` 人。選んだ順に並び、並べ替え・外すができる。
+// - 選べるのはアプリの担当の中から 1〜`max_oshi()` 人。選んだ順に並び、並べ替え・外すができる。
 // - まだ選んでいない (`chosen = None`) ときは自動の選び方 (`producer_card_pick_oshi`、ブランドごとに 1 人)。
 // - 選んだあとに担当から外したアイドルは自動で抜ける (重複も 1 つに)。抜けて誰も残らなければ
 //   まだ選んでいないのと同じ (自動の選び方) に戻す。名刺から担当ごと外すのは「担当を載せる」の付け外し。
@@ -1834,12 +1869,12 @@ fn unique_oshi(oshi: &[CardOshiEntry]) -> Vec<&CardOshiEntry> {
         .collect()
 }
 
-/// 名刺に載せる担当 (アプリの担当の並びから `MAX_OSHI` 人)。ブランドごとに 1 人を先に確保し、
+/// 名刺に載せる担当 (アプリの担当の並びから `AUTO_PICK_OSHI` 人)。ブランドごとに 1 人を先に確保し、
 /// 残りを並び順で埋める。返す並びはアプリの並びのまま。同じ id は 1 度だけ数える。
 /// 本人がまだ選んでいないときの既定 (`producer_card_oshi_picked_ids(None, ..)`)。
 pub fn producer_card_pick_oshi(oshi: &[CardOshiEntry]) -> Vec<String> {
     let unique = unique_oshi(oshi);
-    pick_oshi_by_brand(&unique, MAX_OSHI as usize)
+    pick_oshi_by_brand(&unique, AUTO_PICK_OSHI)
         .into_iter()
         .map(|i| unique[i].idol_id.clone())
         .collect()
@@ -1857,7 +1892,7 @@ pub fn producer_card_oshi_normalize(ids: &[String], oshi: &[CardOshiEntry]) -> V
             seen.push(id);
             true
         })
-        .take(MAX_OSHI as usize)
+        .take(max_oshi() as usize)
         .cloned()
         .collect()
 }
@@ -1895,11 +1930,11 @@ pub fn producer_card_oshi_picks(
         })
         .collect();
     CardOshiPicks {
-        full: picked.len() >= MAX_OSHI as usize,
+        full: picked.len() >= max_oshi() as usize,
         single: picked.len() == 1,
         chosen_by_hand,
         oshi: unique.into_iter().cloned().collect(),
-        max: MAX_OSHI,
+        max: max_oshi(),
         picked,
     }
 }
@@ -1916,7 +1951,7 @@ pub fn producer_card_oshi_toggle(
         if ids.len() > 1 {
             ids.remove(i);
         }
-    } else if ids.len() < MAX_OSHI as usize && oshi.iter().any(|o| o.idol_id == idol_id) {
+    } else if ids.len() < max_oshi() as usize && oshi.iter().any(|o| o.idol_id == idol_id) {
         ids.push(idol_id.to_string());
     }
     ids
@@ -1933,18 +1968,50 @@ pub fn card_oshi_choice_from_json(json: &str) -> Option<Vec<String>> {
     (!ids.is_empty()).then_some(ids)
 }
 
-/// 判子の下の 1 行。ブランドが 1 つのときだけ名前を (長ければ数で)。
-fn card_face_caption(groups: &[CardFaceOshiGroup], names: &[&str]) -> Option<String> {
+/// 判子の下の 1 行。ブランドが 1 つのときだけ名前を (長ければ数で)。`total` は判子の枠に入らなかった
+/// 担当も含めた人数 (枠より多いときは名前を並べきれないので、いつも数で言う)。
+fn card_face_caption(groups: &[CardFaceOshiGroup], names: &[&str], total: usize) -> Option<String> {
     let [group] = groups else { return None };
     let caption = format!("{} 担当", names.join("・"));
-    if caption.chars().count() <= CARD_FACE_CAPTION_MAX_CHARS {
+    if total <= names.len() && caption.chars().count() <= CARD_FACE_CAPTION_MAX_CHARS {
         return Some(caption);
     }
-    let count = group.idol_ids.len();
+    let count = total.max(group.idol_ids.len());
     Some(if group.brand_label.is_empty() {
         format!("{count}人 担当")
     } else {
         format!("{} {count}人 担当", group.brand_label)
+    })
+}
+
+/// 判子の枠に入らなかった担当の名前の 1 行。収まる分だけ名前を並べ、残れば「など N 人」(N は畳んだ全員)。
+fn card_face_more_line(folded: &[&CardOshiEntry]) -> Option<String> {
+    if folded.is_empty() {
+        return None;
+    }
+    let head = "ほかに ";
+    let mut names: Vec<&str> = Vec::new();
+    for (i, o) in folded.iter().enumerate() {
+        let mut trial = names.clone();
+        trial.push(&o.name);
+        let rest = folded.len() - (i + 1);
+        let line = format!("{head}{}", trial.join("・"));
+        let tail = if rest > 0 {
+            format!(" など{}人", folded.len())
+        } else {
+            String::new()
+        };
+        if char_len(&line) + char_len(&tail) > CARD_FACE_MORE_LINE_MAX_CHARS {
+            break;
+        }
+        names = trial;
+    }
+    Some(if names.is_empty() {
+        format!("ほかに {}人", folded.len())
+    } else if names.len() == folded.len() {
+        format!("{head}{}", names.join("・"))
+    } else {
+        format!("{head}{} など{}人", names.join("・"), folded.len())
     })
 }
 
@@ -1957,13 +2024,17 @@ pub fn producer_card_face(card: &ProducerCard, drawable: &[CardOshiEntry]) -> Ca
         .filter_map(|id| drawable.iter().find(|d| &d.idol_id == id))
         .collect();
     let slots = CARD_FACE_OSHI_SLOTS as usize;
-    let (picked, more) = if oshi.len() <= slots {
-        ((0..oshi.len()).collect::<Vec<_>>(), 0)
+    let picked: Vec<usize> = if oshi.len() <= slots {
+        (0..oshi.len()).collect()
     } else {
-        let picked = pick_oshi_by_brand(&oshi, slots - 1);
-        let more = (oshi.len() - picked.len()) as u32;
-        (picked, more)
+        pick_oshi_by_brand(&oshi, slots)
     };
+    // 判子の枠に入らなかった担当 (名刺の並び順)。名前の 1 行で刷る。
+    let folded: Vec<&CardOshiEntry> = (0..oshi.len())
+        .filter(|i| !picked.contains(i))
+        .map(|i| oshi[i])
+        .collect();
+    let more = folded.len() as u32;
     // ブランドごとにまとめる (ブランドは並びで先に出た順)。
     let mut grouped: Vec<(&str, Vec<&CardOshiEntry>)> = Vec::new();
     for o in picked.iter().map(|&i| oshi[i]) {
@@ -2003,7 +2074,7 @@ pub fn producer_card_face(card: &ProducerCard, drawable: &[CardOshiEntry]) -> Ca
                 .flat_map(|g| g.idol_ids.iter().skip(1).cloned()),
         )
         .collect();
-    let caption = card_face_caption(&groups, &names);
+    let caption = card_face_caption(&groups, &names, oshi.len());
     let handle = card
         .links
         .iter()
@@ -2024,6 +2095,7 @@ pub fn producer_card_face(card: &ProducerCard, drawable: &[CardOshiEntry]) -> Ca
         hero_idol_ids: hero,
         oshi_caption: caption,
         more_oshi: more,
+        more_oshi_line: card_face_more_line(&folded),
         handle,
         since_imprint: card.since_year.map(|y| format!("SINCE {y}")),
         issued_label: card_issued_label(&card.issued_on),
@@ -2352,7 +2424,7 @@ pub fn decode_card_file(bytes: &[u8]) -> Option<CardFileContents> {
     let card = decode_producer_card(&raw)?;
     // URL の形で入っていても `#` の後ろに揃える (保存・重複の判定はこの形)。
     let payload = card_payload(&raw)?.to_string();
-    let count = r.count(MAX_OSHI as usize)?;
+    let count = r.count(MAX_OSHI_READ as usize)?;
     let mut images = Vec::with_capacity(count);
     for _ in 0..count {
         let idol_id = r.str()?;
@@ -2757,8 +2829,10 @@ mod tests {
             picked,
             vec!["haruka", "chihaya", "sora", "temari", "momoko"]
         );
-        assert!(!picks.chosen_by_hand && picks.full && !picks.single);
-        assert_eq!(picks.max, 5);
+        // 自動の選び方は判子の枠の数 (5 人)。上限まで埋まるのは上限が 5 人の間だけ。
+        assert!(!picks.chosen_by_hand && !picks.single);
+        assert_eq!(picks.full, !PRODUCER_CARD_MANY_OSHI);
+        assert_eq!(picks.max, max_oshi());
         assert_eq!(picks.oshi.len(), 8);
         assert_eq!(
             producer_card_oshi_picked_ids(None, &oshi),
@@ -2784,12 +2858,10 @@ mod tests {
             producer_card_oshi_picked_ids(Some(&one), &oshi),
             ids(&["miki"])
         );
-        // 上限で切る。
+        // 上限で切る (上限が 5 人の間)。何人でも載せられる版ではそのまま。
         let many = ids(&["momoko", "misuzu", "temari", "sora", "yukiho", "miki"]);
-        assert_eq!(
-            producer_card_oshi_picked_ids(Some(&many), &oshi),
-            ids(&["momoko", "misuzu", "temari", "sora", "yukiho"])
-        );
+        let expected: Vec<String> = many.iter().take(max_oshi() as usize).cloned().collect();
+        assert_eq!(producer_card_oshi_picked_ids(Some(&many), &oshi), expected);
         // 選んだ人が全員担当から外れたら、自動の選び方に戻す。
         let gone = ids(&["gone"]);
         let picks = producer_card_oshi_picks(Some(&gone), &oshi);
@@ -2808,11 +2880,12 @@ mod tests {
             producer_card_oshi_toggle(None, &oshi, "chihaya"),
             ids(&["haruka", "sora", "temari", "momoko"])
         );
-        // 上限なら足さない。担当でない人は足さない。
-        assert_eq!(
-            producer_card_oshi_toggle(None, &oshi, "miki"),
-            producer_card_pick_oshi(&oshi)
-        );
+        // 上限なら足さない (上限が 5 人の間)。何人でも載せられる版では末尾に足す。担当でない人は足さない。
+        let mut expected = producer_card_pick_oshi(&oshi);
+        if PRODUCER_CARD_MANY_OSHI {
+            expected.push("miki".into());
+        }
+        assert_eq!(producer_card_oshi_toggle(None, &oshi, "miki"), expected);
         let one = ids(&["miki"]);
         assert_eq!(
             producer_card_oshi_toggle(Some(&one), &oshi, "stranger"),
@@ -2841,14 +2914,113 @@ mod tests {
 
     #[test]
     fn card_face_folds_with_brand_representatives_when_over_slots() {
-        // 名刺の上限を超える担当が来たとき (古い版の名刺など) も、ブランドの代表を先に並べて残りを畳む。
+        // 判子の枠 (5) より多い担当は、ブランドの代表を先に判子にして、残りを名前の 1 行で刷る。
         let mut card = encode_producer_card(&input()).card;
         let mut all = five_in_four_brands();
         all.insert(1, entry("haruka", "天海春香", "765as", "765AS"));
         card.oshi_idol_ids = all.iter().map(|o| o.idol_id.clone()).collect();
         let face = producer_card_face(&card, &all);
-        assert_eq!(face.more_oshi, 2);
-        assert_eq!(face.oshi_idol_ids, vec!["miki", "temari", "sora", "momoko"]);
+        assert_eq!(face.more_oshi, 1);
+        assert_eq!(
+            face.oshi_idol_ids,
+            vec!["miki", "haruka", "temari", "sora", "momoko"]
+        );
+        assert_eq!(face.more_oshi_line.as_deref(), Some("ほかに 秦谷美鈴"));
+        // 枠に収まれば名前の行は無い。
+        card.oshi_idol_ids.truncate(5);
+        let face = producer_card_face(&card, &all);
+        assert_eq!(face.more_oshi, 0);
+        assert_eq!(face.more_oshi_line, None);
+    }
+
+    #[test]
+    fn card_face_more_line_names_what_fits_and_counts_the_rest() {
+        // 8 ブランドから 1 人ずつ + 765AS をもう 3 人。判子は先に出た 5 ブランドの代表。
+        let all = vec![
+            entry("haruka", "天海春香", "765as", "765AS"),
+            entry("shika", "詩花", "961", "961"),
+            entry("ai", "日高愛", "876", "876"),
+            entry("rin", "渋谷凛", "cg", "デレマス"),
+            entry("mirai", "春日未来", "ml", "ミリオン"),
+            entry("hikaru", "天道輝", "sidem", "SideM"),
+            entry("mano", "櫻木真乃", "sc", "シャニマス"),
+            entry("saki", "花海咲季", "gakuen", "学マス"),
+            entry("chihaya", "如月千早", "765as", "765AS"),
+            entry("miki", "星井美希", "765as", "765AS"),
+            entry("yukiho", "萩原雪歩", "765as", "765AS"),
+        ];
+        let mut card = encode_producer_card(&input()).card;
+        card.oshi_idol_ids = all.iter().map(|o| o.idol_id.clone()).collect();
+        let face = producer_card_face(&card, &all);
+        assert_eq!(
+            face.oshi_idol_ids,
+            vec!["haruka", "shika", "ai", "rin", "mirai"]
+        );
+        assert_eq!(face.more_oshi, 6);
+        // 「ほかに 」から 24 文字に収まる分だけ名前を並べ、残りは畳んだ全員の数で言う。
+        assert_eq!(
+            face.more_oshi_line.as_deref(),
+            Some("ほかに 天道輝・櫻木真乃・花海咲季 など6人")
+        );
+        // 1 ブランドだけで枠より多いときは、判子の下の行も全員の数で言う。
+        let one_brand: Vec<CardOshiEntry> = [
+            "天海春香",
+            "如月千早",
+            "星井美希",
+            "萩原雪歩",
+            "高槻やよい",
+            "菊地真",
+            "我那覇響",
+        ]
+        .iter()
+        .enumerate()
+        .map(|(i, n)| entry(&format!("i{i}"), n, "765as", "765AS"))
+        .collect();
+        card.oshi_idol_ids = one_brand.iter().map(|o| o.idol_id.clone()).collect();
+        card.show_brand_labels = true;
+        let face = producer_card_face(&card, &one_brand);
+        assert_eq!(face.oshi_caption.as_deref(), Some("765AS 7人 担当"));
+        assert_eq!(
+            face.more_oshi_line.as_deref(),
+            Some("ほかに 菊地真・我那覇響")
+        );
+    }
+
+    #[test]
+    fn cards_with_many_oshi_read_regardless_of_the_switch() {
+        // 担当が 6 人以上の名刺は、載せられる上限に関係なく読める (先に読める版を行き渡らせるため)。
+        let mut card = encode_producer_card(&input()).card;
+        card.oshi_idol_ids = (0..12).map(|i| format!("ml_idol_{i}")).collect();
+        let url = producer_card_url_from_payload(&producer_card_payload(&card));
+        let back = decode_producer_card(&url).expect("12 人の名刺を読める");
+        assert_eq!(back.oshi_idol_ids, card.oshi_idol_ids);
+        // 手で組んだ名刺の歯止めを超える数は読まない。
+        card.oshi_idol_ids = (0..=MAX_OSHI_READ).map(|i| format!("i{i}")).collect();
+        let url = producer_card_url_from_payload(&producer_card_payload(&card));
+        assert!(decode_producer_card(&url).is_none());
+    }
+
+    #[test]
+    fn oshi_limit_follows_the_switch_and_qr_length_stays_the_real_limit() {
+        let mut many = input();
+        many.oshi_idol_ids = (0..8).map(|i| format!("ml_idol_{i}")).collect();
+        let encoded = encode_producer_card(&many);
+        assert_eq!(encoded.card.oshi_idol_ids.len(), max_oshi().min(8) as usize);
+        assert_eq!(
+            validate_producer_card(&many),
+            (!PRODUCER_CARD_MANY_OSHI).then_some(ProducerCardInputError::TooManyOshi)
+        );
+        // 刷る色に選べる担当は先頭の 5 人まで (刷る色の番号に入る位置)。
+        let oshi: Vec<String> = (0..8).map(|i| format!("i{i}")).collect();
+        assert_eq!(card_ink_choices(None, &oshi).len(), INK_OSHI_SLOTS + 1);
+        let far = CardInk::Oshi {
+            idol_id: "i6".into(),
+        };
+        assert_eq!(card_ink_normalize(Some(&far), &oshi), None);
+        let near = CardInk::Oshi {
+            idol_id: "i4".into(),
+        };
+        assert_eq!(card_ink_normalize(Some(&near), &oshi), Some(near));
     }
 
     #[test]
@@ -3826,7 +3998,7 @@ mod tests {
         };
         r.u8().unwrap();
         r.str().unwrap();
-        assert_eq!(r.count(MAX_OSHI as usize), Some(0));
+        assert_eq!(r.count(MAX_OSHI_READ as usize), Some(0));
         let sections = r.count(MAX_CARD_FILE_SECTIONS).unwrap();
         assert_eq!(sections, 3);
         for _ in 0..sections {
