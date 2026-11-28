@@ -1,8 +1,8 @@
 {
  "title": "公演 sh_シンデレラガールズ_15周年_大型イベント_1 のセットリスト追加",
  "author": "Claude",
- "source": "https://idolmaster-official.jp/news/01_20087.html",
- "note": "出典: 公式ニュース (15th ANNIVERSARY PARTY DAY1 告知内容まとめ) の「DAY1 セットリスト公開！」画像 (全 24 曲)。歌唱者は声優名表記なので 01_20427 の出演キャスト一覧でアイドル名に置き換えた。THE IDOLM@STER CINDERELLA GIRLS (LOVE-Party/CHILL-Party) 表記は各パートの出演 12 人。11・22 のシンデレラNo.1 はゲスト (武内駿輔・米内佑希) 参加を notes に記載。",
+ "source": "https://idolmaster-official.jp/news/01_20087.html / DJ 曲目: オーナー提供の画像",
+ "note": "出典: 公式ニュース (15th ANNIVERSARY PARTY DAY1 告知内容まとめ) の「DAY1 セットリスト公開！」画像 (全 24 曲)。歌唱者は声優名表記なので 01_20427 の出演キャスト一覧でアイドル名に置き換えた。THE IDOLM@STER CINDERELLA GIRLS (LOVE-Party/CHILL-Party) 表記は各パートの出演 12 人。11・22 のシンデレラNo.1 はゲスト (武内駿輔・米内佑希) 参加を notes に記載。 DJ パート (LOVE-Party: 篠崎あやと 10 曲 / CHILL-Party: 佐藤貴文 13 曲) は公式画像に曲目が無く、オーナー提供の曲目画像から各パートの頭に入れた。DJ がかけた音源なので歌唱者は無し。",
  "show_id": "sh_シンデレラガールズ_15周年_大型イベント_1",
  "all_performers": [
   "cg_島村卯月",
@@ -33,6 +33,76 @@
  "songs": [
   {
    "position": 1,
+   "song_id": "cg_tulip_-taku_inoue_remix-",
+   "section": "LOVE-Party",
+   "performers": [],
+   "notes": "DJ（篠崎あやと）・をさらに篠崎あやと Remix"
+  },
+  {
+   "position": 2,
+   "song_id": "cg_きゅんきゅんまっくす",
+   "section": "LOVE-Party",
+   "performers": [],
+   "notes": "DJ（篠崎あやと）・篠崎あやと Remix"
+  },
+  {
+   "position": 3,
+   "song_id": "cg_キラメキ",
+   "section": "LOVE-Party",
+   "performers": [],
+   "notes": "DJ（篠崎あやと）・篠崎あやと Remix"
+  },
+  {
+   "position": 4,
+   "song_id": "cg_キラッ満開スマイル",
+   "section": "LOVE-Party",
+   "performers": [],
+   "notes": "DJ（篠崎あやと）・篠崎あやと Remix"
+  },
+  {
+   "position": 5,
+   "song_id": "cg_absolute_nine",
+   "section": "LOVE-Party",
+   "performers": [],
+   "notes": "DJ（篠崎あやと）・篠崎あやと Remix"
+  },
+  {
+   "position": 6,
+   "song_id": "cg_なつっこ音頭",
+   "section": "LOVE-Party",
+   "performers": [],
+   "notes": "DJ（篠崎あやと）・篠崎あやと Remix"
+  },
+  {
+   "position": 7,
+   "song_id": "cg_orange_sapphire",
+   "section": "LOVE-Party",
+   "performers": [],
+   "notes": "DJ（篠崎あやと）・篠崎あやと Remix"
+  },
+  {
+   "position": 8,
+   "song_id": "cg_o-ku-ri-mo-no_sunday",
+   "section": "LOVE-Party",
+   "performers": [],
+   "notes": "DJ（篠崎あやと）・篠崎あやと Remix"
+  },
+  {
+   "position": 9,
+   "song_id": "cg_yes_party_time",
+   "section": "LOVE-Party",
+   "performers": [],
+   "notes": "DJ（篠崎あやと）・Massive New Krew Remix (Short EDIT)"
+  },
+  {
+   "position": 10,
+   "song_id": "cg_otahen_アンセム_-massive_new_krew_remix-",
+   "section": "LOVE-Party",
+   "performers": [],
+   "notes": "DJ（篠崎あやと）・Game Size"
+  },
+  {
+   "position": 11,
    "song_id": "cg_パステルピンクな恋",
    "section": "LOVE-Party",
    "performers": [
@@ -52,7 +122,7 @@
    "unit_name": "THE IDOLM@STER CINDERELLA GIRLS (LOVE-Party)"
   },
   {
-   "position": 2,
+   "position": 12,
    "song_id": "cg_palette",
    "section": "LOVE-Party",
    "performers": [
@@ -62,7 +132,7 @@
    ]
   },
   {
-   "position": 3,
+   "position": 13,
    "song_id": "cg_poppinparapong",
    "section": "LOVE-Party",
    "performers": [
@@ -72,7 +142,7 @@
    ]
   },
   {
-   "position": 4,
+   "position": 14,
    "song_id": "cg_もしもカワイイが世界からなくなっても",
    "section": "LOVE-Party",
    "performers": [
@@ -81,7 +151,7 @@
    ]
   },
   {
-   "position": 5,
+   "position": 15,
    "song_id": "cg_きゅんきゅんまっくす",
    "section": "LOVE-Party",
    "performers": [
@@ -93,7 +163,7 @@
    ]
   },
   {
-   "position": 6,
+   "position": 16,
    "song_id": "cg_大好きのブーケ",
    "section": "LOVE-Party",
    "performers": [
@@ -103,7 +173,7 @@
    ]
   },
   {
-   "position": 7,
+   "position": 17,
    "song_id": "cg_書きかけのラブレター",
    "section": "LOVE-Party",
    "performers": [
@@ -113,7 +183,7 @@
    ]
   },
   {
-   "position": 8,
+   "position": 18,
    "song_id": "cg_shabon_song",
    "section": "LOVE-Party",
    "performers": [
@@ -126,7 +196,7 @@
    ]
   },
   {
-   "position": 9,
+   "position": 19,
    "song_id": "cg_snowlove",
    "section": "LOVE-Party",
    "performers": [
@@ -137,7 +207,7 @@
    ]
   },
   {
-   "position": 10,
+   "position": 20,
    "song_id": "cg_無限lpだlove",
    "section": "LOVE-Party",
    "performers": [
@@ -150,7 +220,7 @@
    ]
   },
   {
-   "position": 11,
+   "position": 21,
    "song_id": "cg_シンデレラno1",
    "section": "LOVE-Party",
    "performers": [
@@ -171,7 +241,98 @@
    "notes": "with 武内駿輔"
   },
   {
-   "position": 12,
+   "position": 22,
+   "song_id": "cg_おねだり_shall_we_-for_kanako_rearrange_mix-",
+   "section": "CHILL-Party",
+   "performers": [],
+   "notes": "DJ（佐藤貴文）"
+  },
+  {
+   "position": 23,
+   "song_id": "cg_フレデリカ猫やめるよ",
+   "section": "CHILL-Party",
+   "performers": [],
+   "notes": "DJ（佐藤貴文）"
+  },
+  {
+   "position": 24,
+   "song_id": "cg_おかしな国のおかし屋さん",
+   "section": "CHILL-Party",
+   "performers": [],
+   "notes": "DJ（佐藤貴文）"
+  },
+  {
+   "position": 25,
+   "song_id": "cg_みんなのきもち",
+   "section": "CHILL-Party",
+   "performers": [],
+   "notes": "DJ（佐藤貴文）"
+  },
+  {
+   "position": 26,
+   "song_id": "cg_ぴにゃこら太絵かき歌",
+   "section": "CHILL-Party",
+   "performers": [],
+   "notes": "DJ（佐藤貴文）"
+  },
+  {
+   "position": 27,
+   "song_id": "cg_情熱ファンファンファーレ",
+   "section": "CHILL-Party",
+   "performers": [],
+   "notes": "DJ（佐藤貴文）"
+  },
+  {
+   "position": 28,
+   "song_id": "cg_モーレツ世直しギルティ",
+   "section": "CHILL-Party",
+   "performers": [],
+   "notes": "DJ（佐藤貴文）"
+  },
+  {
+   "position": 29,
+   "song_id": "765as_→→→sp",
+   "section": "CHILL-Party",
+   "performers": [],
+   "notes": "DJ（佐藤貴文）"
+  },
+  {
+   "position": 30,
+   "song_id": "cg_まほうのまくら",
+   "section": "CHILL-Party",
+   "performers": [],
+   "notes": "DJ（佐藤貴文）"
+  },
+  {
+   "position": 31,
+   "song_id": "cg_あんずのうた",
+   "section": "CHILL-Party",
+   "performers": [],
+   "notes": "DJ（佐藤貴文）"
+  },
+  {
+   "position": 32,
+   "song_id": "cg_メルヘンデビュー",
+   "section": "CHILL-Party",
+   "performers": [],
+   "notes": "DJ（佐藤貴文）"
+  },
+  {
+   "position": 33,
+   "song_id": "cg_otahen_アンセム",
+   "section": "CHILL-Party",
+   "performers": [],
+   "notes": "DJ（佐藤貴文）"
+  },
+  {
+   "position": 34,
+   "song_id": "765as_なんどでも笑おう",
+   "section": "CHILL-Party",
+   "performers": [],
+   "notes": "DJ（佐藤貴文）"
+  },
+  {
+   "position": 35,
    "song_id": "cg_とんでいっちゃいたいの",
    "section": "CHILL-Party",
    "performers": [
@@ -191,7 +352,7 @@
    "unit_name": "THE IDOLM@STER CINDERELLA GIRLS (CHILL-Party)"
   },
   {
-   "position": 13,
+   "position": 36,
    "song_id": "cg_すりーぷすきっぷ",
    "section": "CHILL-Party",
    "performers": [
@@ -201,7 +362,7 @@
    ]
   },
   {
-   "position": 14,
+   "position": 37,
    "song_id": "cg_flip_flop",
    "section": "CHILL-Party",
    "performers": [
@@ -213,7 +374,7 @@
    ]
   },
   {
-   "position": 15,
+   "position": 38,
    "song_id": "cg_happy2_days",
    "section": "CHILL-Party",
    "performers": [
@@ -223,7 +384,7 @@
    ]
   },
   {
-   "position": 16,
+   "position": 39,
    "song_id": "cg_認めてくれなくたっていいよ",
    "section": "CHILL-Party",
    "performers": [
@@ -235,7 +396,7 @@
    ]
   },
   {
-   "position": 17,
+   "position": 40,
    "song_id": "cg_オレンジタイム",
    "section": "CHILL-Party",
    "performers": [
@@ -245,7 +406,7 @@
    ]
   },
   {
-   "position": 18,
+   "position": 41,
    "song_id": "cg_athanasia",
    "section": "CHILL-Party",
    "performers": [
@@ -255,7 +416,7 @@
    ]
   },
   {
-   "position": 19,
+   "position": 42,
    "song_id": "cg_さよならアンドロメダ",
    "section": "CHILL-Party",
    "performers": [
@@ -265,7 +426,7 @@
    ]
   },
   {
-   "position": 20,
+   "position": 43,
    "song_id": "cg_nightwear",
    "section": "CHILL-Party",
    "performers": [
@@ -277,7 +438,7 @@
    ]
   },
   {
-   "position": 21,
+   "position": 44,
    "song_id": "cg_life_is_harmony",
    "section": "CHILL-Party",
    "performers": [
@@ -290,7 +451,7 @@
    ]
   },
   {
-   "position": 22,
+   "position": 45,
    "song_id": "cg_シンデレラno1",
    "section": "CHILL-Party",
    "performers": [
@@ -311,14 +472,14 @@
    "notes": "with 米内佑希"
   },
   {
-   "position": 23,
+   "position": 46,
    "song_id": "cg_クロスオーバー",
    "section": "LOVE-Party & CHILL-Party",
    "performers": "all",
    "unit_name": "THE IDOLM@STER CINDERELLA GIRLS"
   },
   {
-   "position": 24,
+   "position": 47,
    "song_id": "cg_hourglass",
    "section": "LOVE-Party & CHILL-Party",
    "performers": "all",
