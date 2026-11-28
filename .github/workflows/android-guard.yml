@@ -98,8 +98,8 @@ jobs:
       - name: Robolectric cache key
         id: robolectric
         run: |
-          v=$(grep -E '^robolectric *=' ImasLiveDB-Android/gradle/libs.versions.toml | cut -d'"' -f2)
-          sdk=$(grep -E '^targetSdk *=' ImasLiveDB-Android/gradle/libs.versions.toml | cut -d'"' -f2)
+          v=$(grep -m1 -E '^robolectric *=' ImasLiveDB-Android/gradle/libs.versions.toml | cut -d'"' -f2)
+          sdk=$(grep -m1 -E '^targetSdk *=' ImasLiveDB-Android/gradle/libs.versions.toml | cut -d'"' -f2)
           echo "key=${v}-sdk${sdk}" >> "$GITHUB_OUTPUT"
 
       - name: Cache Robolectric android-all
