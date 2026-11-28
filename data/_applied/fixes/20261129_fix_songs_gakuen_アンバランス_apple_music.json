@@ -1,0 +1,12 @@
+{
+ "title": "学マス 乖轟「アンバランス」の配信情報補完",
+ "author": "claude (daily-data-crawl 2026-11-29)",
+ "_help": "既存行 gakuen_アンバランス (apple_music_id 空・release_date 空のため fill_apple_music_ids --since の対象外) の穴埋め。iTunes 6833400794 アンバランス / 初星学園, 雨夜 燕 & 有村麻央 / アンバランス - Single、2026-11-28 配信、isStreamable=true",
+ "source": ["https://itunes.apple.com/lookup?id=6833400794&country=jp"],
+ "fixes": [{"table": "songs", "id": "gakuen_アンバランス", "fields": {
+   "apple_music_id": "6833400794",
+   "apple_music_album_id": "6833400793",
+   "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/34/1e/c8/341ec847-ddae-f350-2cef-ab73c830c8cc/PA00244198_0_258733_jacket.jpg/600x600bb.jpg",
+   "cd_series": "アンバランス - Single",
+   "streaming_date": "2026-11-28"}}]
+}

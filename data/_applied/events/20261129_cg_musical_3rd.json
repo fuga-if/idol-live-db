@@ -1,0 +1,20 @@
+{
+ "title": "CINDERELLA GIRLS MUSICAL 完全新作 第3弾 の追加",
+ "author": "claude (daily-data-crawl 2026-11-29)",
+ "source": "https://idolmaster-official.jp/news/01_20087 (15th ANNIVERSARY PARTY DAY1 お知らせまとめ: CINDERELLA GIRLS MUSICAL 完全新作 第3弾、2027年4月24日(土)・25日(日) 大阪・オリックス劇場。詳細は後日公開)、https://x.com/imas_CGofficial/status/2126640763651911724",
+ "events": [
+  {
+   "id": "ev_cinderella_girls_musical_第3弾",
+   "brand_id": "cg",
+   "name": "CINDERELLA GIRLS MUSICAL 第3弾",
+   "event_type": "",
+   "kind": "live",
+   "is_streaming": 0,
+   "is_solo": 0,
+   "shows": [
+    {"id": "sh_cinderella_girls_musical_第3弾_1", "name": "DAY1", "date": "2027-04-24", "venue": "オリックス劇場", "venue_city": "大阪", "venue_id": "venue_オリックス劇場", "sort_order": 1, "performer_type": "cast"},
+    {"id": "sh_cinderella_girls_musical_第3弾_2", "name": "DAY2", "date": "2027-04-25", "venue": "オリックス劇場", "venue_city": "大阪", "venue_id": "venue_オリックス劇場", "sort_order": 2, "performer_type": "cast"}
+   ]
+  }
+ ]
+}
