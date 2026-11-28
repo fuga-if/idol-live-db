@@ -91,6 +91,28 @@ jobs:
         working-directory: ImasLiveDB-Android
         run: ./gradlew --no-daemon assembleRelease
 
+      # Robolectric はテストの最中に android-all の jar を Maven Central から落とし、
+      # ~/.m2/repository に置く。Gradle の依存ではないので setup-gradle の cache に
+      # 入らず、取りに行くのに失敗するとテストが classMethod FAILED でまとめて落ちる
+      # (11/24 と 11/27 の develop がこれ)。版と SDK ごとに取っておく。
+      - name: Robolectric cache key
+        id: robolectric
+        run: |
+          v=$(grep -E '^robolectric *=' ImasLiveDB-Android/gradle/libs.versions.toml | cut -d'"' -f2)
+          sdk=$(grep -E '^targetSdk *=' ImasLiveDB-Android/gradle/libs.versions.toml | cut -d'"' -f2)
+          echo "key=${v}-sdk${sdk}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Robolectric android-all
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.m2/repository/org/robolectric
+          key: ${{ runner.os }}-robolectric-${{ steps.robolectric.outputs.key }}
+
       - name: Unit tests
         working-directory: ImasLiveDB-Android
         run: ./gradlew --no-daemon test
+
+      # cache が効いているかの確認用。
+      - name: Show Robolectric jars
+        if: always()
+        run: ls -la ~/.m2/repository/org/robolectric/*/ 2>/dev/null || echo "no robolectric jars in ~/.m2"
