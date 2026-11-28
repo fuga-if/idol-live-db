@@ -1,0 +1,328 @@
+{
+ "title": "公演 sh_シンデレラガールズ_15周年_大型イベント_1 のセットリスト追加",
+ "author": "Claude",
+ "source": "https://idolmaster-official.jp/news/01_20087.html",
+ "note": "出典: 公式ニュース (15th ANNIVERSARY PARTY DAY1 告知内容まとめ) の「DAY1 セットリスト公開！」画像 (全 24 曲)。歌唱者は声優名表記なので 01_20427 の出演キャスト一覧でアイドル名に置き換えた。THE IDOLM@STER CINDERELLA GIRLS (LOVE-Party/CHILL-Party) 表記は各パートの出演 12 人。11・22 のシンデレラNo.1 はゲスト (武内駿輔・米内佑希) 参加を notes に記載。",
+ "show_id": "sh_シンデレラガールズ_15周年_大型イベント_1",
+ "all_performers": [
+  "cg_島村卯月",
+  "cg_一ノ瀬志希",
+  "cg_古賀小春",
+  "cg_五十嵐響子",
+  "cg_椎名法子",
+  "cg_乙倉悠貴",
+  "cg_佐久間まゆ",
+  "cg_相葉夕美",
+  "cg_赤城みりあ",
+  "cg_龍崎薫",
+  "cg_城ヶ崎莉嘉",
+  "cg_城ヶ崎美嘉",
+  "cg_白菊ほたる",
+  "cg_双葉杏",
+  "cg_三村かな子",
+  "cg_宮本フレデリカ",
+  "cg_道明寺歌鈴",
+  "cg_アナスタシア",
+  "cg_鷹富士茄子",
+  "cg_高森藍子",
+  "cg_久川凪",
+  "cg_及川雫",
+  "cg_夢見りあむ",
+  "cg_諸星きらり"
+ ],
+ "songs": [
+  {
+   "position": 1,
+   "song_id": "cg_パステルピンクな恋",
+   "section": "LOVE-Party",
+   "performers": [
+    "cg_島村卯月",
+    "cg_一ノ瀬志希",
+    "cg_古賀小春",
+    "cg_五十嵐響子",
+    "cg_椎名法子",
+    "cg_乙倉悠貴",
+    "cg_佐久間まゆ",
+    "cg_相葉夕美",
+    "cg_赤城みりあ",
+    "cg_龍崎薫",
+    "cg_城ヶ崎莉嘉",
+    "cg_城ヶ崎美嘉"
+   ],
+   "unit_name": "THE IDOLM@STER CINDERELLA GIRLS (LOVE-Party)"
+  },
+  {
+   "position": 2,
+   "song_id": "cg_palette",
+   "section": "LOVE-Party",
+   "performers": [
+    "cg_島村卯月",
+    "cg_五十嵐響子",
+    "cg_佐久間まゆ"
+   ]
+  },
+  {
+   "position": 3,
+   "song_id": "cg_poppinparapong",
+   "section": "LOVE-Party",
+   "performers": [
+    "cg_赤城みりあ",
+    "cg_椎名法子",
+    "cg_龍崎薫"
+   ]
+  },
+  {
+   "position": 4,
+   "song_id": "cg_もしもカワイイが世界からなくなっても",
+   "section": "LOVE-Party",
+   "performers": [
+    "cg_城ヶ崎莉嘉",
+    "cg_城ヶ崎美嘉"
+   ]
+  },
+  {
+   "position": 5,
+   "song_id": "cg_きゅんきゅんまっくす",
+   "section": "LOVE-Party",
+   "performers": [
+    "cg_一ノ瀬志希",
+    "cg_乙倉悠貴",
+    "cg_椎名法子",
+    "cg_古賀小春",
+    "cg_赤城みりあ"
+   ]
+  },
+  {
+   "position": 6,
+   "song_id": "cg_大好きのブーケ",
+   "section": "LOVE-Party",
+   "performers": [
+    "cg_佐久間まゆ",
+    "cg_五十嵐響子",
+    "cg_相葉夕美"
+   ]
+  },
+  {
+   "position": 7,
+   "song_id": "cg_書きかけのラブレター",
+   "section": "LOVE-Party",
+   "performers": [
+    "cg_古賀小春",
+    "cg_龍崎薫",
+    "cg_城ヶ崎莉嘉"
+   ]
+  },
+  {
+   "position": 8,
+   "song_id": "cg_shabon_song",
+   "section": "LOVE-Party",
+   "performers": [
+    "cg_城ヶ崎美嘉",
+    "cg_相葉夕美",
+    "cg_赤城みりあ",
+    "cg_島村卯月",
+    "cg_一ノ瀬志希",
+    "cg_乙倉悠貴"
+   ]
+  },
+  {
+   "position": 9,
+   "song_id": "cg_snowlove",
+   "section": "LOVE-Party",
+   "performers": [
+    "cg_古賀小春",
+    "cg_椎名法子",
+    "cg_乙倉悠貴",
+    "cg_龍崎薫"
+   ]
+  },
+  {
+   "position": 10,
+   "song_id": "cg_無限lpだlove",
+   "section": "LOVE-Party",
+   "performers": [
+    "cg_佐久間まゆ",
+    "cg_島村卯月",
+    "cg_一ノ瀬志希",
+    "cg_相葉夕美",
+    "cg_城ヶ崎莉嘉",
+    "cg_城ヶ崎美嘉"
+   ]
+  },
+  {
+   "position": 11,
+   "song_id": "cg_シンデレラno1",
+   "section": "LOVE-Party",
+   "performers": [
+    "cg_島村卯月",
+    "cg_一ノ瀬志希",
+    "cg_古賀小春",
+    "cg_五十嵐響子",
+    "cg_椎名法子",
+    "cg_乙倉悠貴",
+    "cg_佐久間まゆ",
+    "cg_相葉夕美",
+    "cg_赤城みりあ",
+    "cg_龍崎薫",
+    "cg_城ヶ崎莉嘉",
+    "cg_城ヶ崎美嘉"
+   ],
+   "unit_name": "THE IDOLM@STER CINDERELLA GIRLS (LOVE-Party)",
+   "notes": "with 武内駿輔"
+  },
+  {
+   "position": 12,
+   "song_id": "cg_とんでいっちゃいたいの",
+   "section": "CHILL-Party",
+   "performers": [
+    "cg_白菊ほたる",
+    "cg_双葉杏",
+    "cg_三村かな子",
+    "cg_宮本フレデリカ",
+    "cg_道明寺歌鈴",
+    "cg_アナスタシア",
+    "cg_鷹富士茄子",
+    "cg_高森藍子",
+    "cg_久川凪",
+    "cg_及川雫",
+    "cg_夢見りあむ",
+    "cg_諸星きらり"
+   ],
+   "unit_name": "THE IDOLM@STER CINDERELLA GIRLS (CHILL-Party)"
+  },
+  {
+   "position": 13,
+   "song_id": "cg_すりーぷすきっぷ",
+   "section": "CHILL-Party",
+   "performers": [
+    "cg_双葉杏",
+    "cg_久川凪",
+    "cg_白菊ほたる"
+   ]
+  },
+  {
+   "position": 14,
+   "song_id": "cg_flip_flop",
+   "section": "CHILL-Party",
+   "performers": [
+    "cg_高森藍子",
+    "cg_及川雫",
+    "cg_道明寺歌鈴",
+    "cg_宮本フレデリカ",
+    "cg_アナスタシア"
+   ]
+  },
+  {
+   "position": 15,
+   "song_id": "cg_happy2_days",
+   "section": "CHILL-Party",
+   "performers": [
+    "cg_双葉杏",
+    "cg_三村かな子",
+    "cg_鷹富士茄子"
+   ]
+  },
+  {
+   "position": 16,
+   "song_id": "cg_認めてくれなくたっていいよ",
+   "section": "CHILL-Party",
+   "performers": [
+    "cg_宮本フレデリカ",
+    "cg_及川雫",
+    "cg_高森藍子",
+    "cg_久川凪",
+    "cg_夢見りあむ"
+   ]
+  },
+  {
+   "position": 17,
+   "song_id": "cg_オレンジタイム",
+   "section": "CHILL-Party",
+   "performers": [
+    "cg_久川凪",
+    "cg_諸星きらり",
+    "cg_夢見りあむ"
+   ]
+  },
+  {
+   "position": 18,
+   "song_id": "cg_athanasia",
+   "section": "CHILL-Party",
+   "performers": [
+    "cg_白菊ほたる",
+    "cg_道明寺歌鈴",
+    "cg_鷹富士茄子"
+   ]
+  },
+  {
+   "position": 19,
+   "song_id": "cg_さよならアンドロメダ",
+   "section": "CHILL-Party",
+   "performers": [
+    "cg_三村かな子",
+    "cg_アナスタシア",
+    "cg_諸星きらり"
+   ]
+  },
+  {
+   "position": 20,
+   "song_id": "cg_nightwear",
+   "section": "CHILL-Party",
+   "performers": [
+    "cg_宮本フレデリカ",
+    "cg_三村かな子",
+    "cg_鷹富士茄子",
+    "cg_及川雫",
+    "cg_高森藍子"
+   ]
+  },
+  {
+   "position": 21,
+   "song_id": "cg_life_is_harmony",
+   "section": "CHILL-Party",
+   "performers": [
+    "cg_白菊ほたる",
+    "cg_諸星きらり",
+    "cg_道明寺歌鈴",
+    "cg_双葉杏",
+    "cg_アナスタシア",
+    "cg_夢見りあむ"
+   ]
+  },
+  {
+   "position": 22,
+   "song_id": "cg_シンデレラno1",
+   "section": "CHILL-Party",
+   "performers": [
+    "cg_白菊ほたる",
+    "cg_双葉杏",
+    "cg_三村かな子",
+    "cg_宮本フレデリカ",
+    "cg_道明寺歌鈴",
+    "cg_アナスタシア",
+    "cg_鷹富士茄子",
+    "cg_高森藍子",
+    "cg_久川凪",
+    "cg_及川雫",
+    "cg_夢見りあむ",
+    "cg_諸星きらり"
+   ],
+   "unit_name": "THE IDOLM@STER CINDERELLA GIRLS (CHILL-Party)",
+   "notes": "with 米内佑希"
+  },
+  {
+   "position": 23,
+   "song_id": "cg_クロスオーバー",
+   "section": "LOVE-Party & CHILL-Party",
+   "performers": "all",
+   "unit_name": "THE IDOLM@STER CINDERELLA GIRLS"
+  },
+  {
+   "position": 24,
+   "song_id": "cg_hourglass",
+   "section": "LOVE-Party & CHILL-Party",
+   "performers": "all",
+   "unit_name": "THE IDOLM@STER CINDERELLA GIRLS"
+  }
+ ]
+}
