@@ -56,6 +56,7 @@ fun InfoScreenScaffold(title: String, onBack: () -> Unit, content: @Composable (
 }
 
 private const val LAST_UPDATED = "最終更新日: 2026年4月23日"
+private const val TERMS_LAST_UPDATED = "最終更新日: 2026年11月27日"
 
 @Composable
 fun PrivacyPolicyScreen(onBack: () -> Unit) {
@@ -120,7 +121,7 @@ fun TermsOfServiceScreen(onBack: () -> Unit) {
                     ImasProseBlock.Bullets(
                         listOf(
                             "ジャケット画像: 公式配信ストアの正式 API 経由で取得したもののみを表示しています。",
-                            "歌詞: 使用していません。",
+                            "歌詞: 利用者が CD の歌詞カードなどを見て入力した歌詞を、JASRAC・NexTone の許諾の範囲で掲載しています。",
                             "キャラクターイラスト: 使用していません。",
                             "公式ロゴ: 使用していません。"
                         )
@@ -128,6 +129,19 @@ fun TermsOfServiceScreen(onBack: () -> Unit) {
                     ImasProseBlock.Heading("ユーザー投稿コンテンツ"),
                     ImasProseBlock.Paragraph(
                         "コミュニティ機能への投稿（セットリスト情報・修正提案など）は、ユーザー自身の責任において行ってください。投稿コンテンツに起因する問題について、開発者は責任を負いません。"
+                    ),
+                    ImasProseBlock.Heading("歌詞の投稿"),
+                    ImasProseBlock.Paragraph(
+                        "歌詞は、CD の歌詞カードなど公式に発行されたものを見て、自分で入力したものだけを投稿できます。次のものは投稿できません。"
+                    ),
+                    ImasProseBlock.Bullets(
+                        listOf(
+                            "歌詞サイトや他のサービス・アプリから写したり、転載したりした歌詞",
+                            "聴き取りによる書き起こし、翻訳、替え歌"
+                        )
+                    ),
+                    ImasProseBlock.Paragraph(
+                        "投稿された歌詞はすぐに公開されます。上のいずれかに当たるものや、権利者から削除の求めがあったものは、公開後でも予告なく削除します。悪質な場合は、投稿者のアカウントを停止します。"
                     ),
                     ImasProseBlock.Heading("投稿コンテンツのライセンス"),
                     ImasProseBlock.Paragraph(
@@ -140,18 +154,23 @@ fun TermsOfServiceScreen(onBack: () -> Unit) {
                             "他者の著作権・商標権・プライバシーを侵害するコンテンツの投稿",
                             "他のユーザーへの嫌がらせ・誹謗中傷",
                             "スパムや虚偽情報の投稿",
-                            "本アプリのシステムへの不正アクセス・改ざん"
+                            "本アプリのシステムへの不正アクセス・改ざん",
+                            "歌詞サイトや他のサービスからの、歌詞・データの転載"
                         )
                     ),
                     ImasProseBlock.Heading("サービスの変更・停止"),
                     ImasProseBlock.Paragraph(
                         "開発者は予告なくアプリの機能変更・サービス停止を行う場合があります。これによって生じた損害について開発者は責任を負いません。"
                     ),
+                    ImasProseBlock.Heading("削除の求め・通報"),
+                    ImasProseBlock.Paragraph(
+                        "掲載内容について権利者の方から削除のご依頼がある場合や、不適切な投稿を見つけた場合は、各歌詞の画面の「この歌詞を報告」または下記の連絡先からお知らせください。確認のうえ、速やかに非公開にします。"
+                    ),
                     ImasProseBlock.Heading("連絡先"),
                     ImasProseBlock.Paragraph(
-                        "ご意見・不具合報告は GitHub Issue にてご連絡ください。\nhttps://github.com/fuga-if/imas-live-privacy/issues/new"
+                        "ご意見・不具合報告は GitHub Issue にてご連絡ください。\nhttps://github.com/fuga-if/imas-live-privacy/issues/new\n\n権利者の方からのご連絡はメールでも受け付けています。\ninfo@fugaapp.site"
                     ),
-                    ImasProseBlock.Note(LAST_UPDATED)
+                    ImasProseBlock.Note(TERMS_LAST_UPDATED)
                 )
             )
         }
